@@ -1,0 +1,264 @@
+import { NextResponse } from "next/server";
+import connectDb from "@/lib/mongodb";
+import Product from "@/models/Product";
+
+const products = [
+  {
+    name: "Dead Man's Deck",
+    slug: "dead-mans-deck",
+    shortDescription: "Zombie survival card game combining strategy, memory, and chilling zombie theme.",
+    story: "Meet Dead Man's Deck, the card game that combines strategy, memory, and a chilling zombie theme to keep you on your toes! With every flip of the card, you're one step closer to survival… or succumbing to the undead. But here's the twist: Want to turn up the party? Dead Man's Deck easily transforms into a zombie-themed drinking game. A thrilling strategy game that doubles as a party drinking game with optional Challenge Cards. Perfect for both intense game nights and lighthearted gatherings.",
+    howToPlay: {
+      setup: "Seat 2–8 players, shuffle the main deck and deal 4 cards face-down to each player. Everyone secretly looks at any two of their cards and remembers both value and position. Place the remaining deck in the center as a draw pile.",
+      gameplay: "On your turn, draw 1 card from the draw or discard pile. Decide whether to keep it by swapping it with one of your face-down cards, or discard it if it is worse. Timing is key—beat your opponents to discard Phase and Power Cards or risk being stuck with them!",
+      winning: "Either discard all your cards first or declare 'NO MORE A ZOMBIE!' and reveal your hand to claim the win. But watch out—if you're wrong, double penalties await. Lower scores are better."
+    },
+    meta: {
+      players: "2–8",
+      duration: "15–20 mins",
+      age: "14+",
+      difficulty: "Easy",
+      moods: ["party", "chaotic", "strategy", "drinking-game"],
+      badges: ["first-time-friendly", "party-favorite", "best-for-groups", "dual-gameplay"]
+    },
+    price: { amount: 599, currency: "INR" },
+    points: { purchase: 50 },
+    stock: { available: true, quantity: 100 },
+    media: {
+      thumbnail: "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=500&h=400&fit=crop",
+      images: [
+        "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=500&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1570303008925-86a2f001c47f?w=500&h=400&fit=crop"
+      ],
+      video: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ", provider: "youtube" }
+    },
+    category: ["card-game", "party", "drinking-game"],
+    relatedSlugs: ["mehfil", "tamasha", "buzzed"]
+  },
+  {
+    name: "Mehfil",
+    slug: "mehfil",
+    shortDescription: "Turn any gathering into a full-blown musical night with singing challenges!",
+    story: "Mehfil by Joy Juncture is a super fun, super simple singing challenge card game where your voice (good or bad!) becomes the star of the evening. Mehfil never stops. Perfect for family nights, house parties, weddings, picnics, long drives, office breaks, hostel hangouts, or that one cousin who refuses to stop singing. Bring musical entertainment to any social occasion with four exciting categories - Word Play, Situationship, Jodi Jukebox, and Mic Drop - each offering unique Bollywood music challenges.",
+    howToPlay: {
+      setup: "Open the Mehfil card deck and gather your friends and family. Choose a music player or streaming service to play Bollywood songs. Shuffle the challenge cards and place them in the center. Each player gets ready to challenge themselves!",
+      gameplay: "Players take turns drawing cards from four exciting categories - Word Play, Situationship, Jodi Jukebox, and Mic Drop. Each card presents a unique Bollywood music challenge. Complete the challenge by singing, humming, or performing. The group decides if you nailed it!",
+      winning: "There's no real winning in Mehfil - it's all about fun and laughter! Everyone leaves as a winner with great memories!"
+    },
+    meta: {
+      players: "1–99+",
+      duration: "30–60 mins",
+      age: "13+",
+      difficulty: "Easy",
+      moods: ["party", "musical", "laughter", "family-friendly", "icebreaker"],
+      badges: ["party-essential", "musical-game", "portable-design", "family-gathering", "all-occasions"]
+    },
+    price: { amount: 499, currency: "INR" },
+    points: { purchase: 40 },
+    stock: { available: true, quantity: 100 },
+    media: {
+      thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&h=400&fit=crop",
+      images: [
+        "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&h=400&fit=crop"
+      ],
+      video: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ", provider: "youtube" }
+    },
+    category: ["party-game", "musical", "singing-game"],
+    relatedSlugs: ["dead-mans-deck", "tamasha", "buzzed"]
+  },
+  {
+    name: "Tamasha",
+    slug: "tamasha",
+    shortDescription: "Blends filmy drama, acting talent, iconic dance steps and competitive bidding into one laugh-out-loud party game.",
+    story: "Tamasha blends filmy drama, acting talent, iconic dance steps and competitive bidding into one laugh-out-loud party game. Perfect for families, friends, and anyone who loves Bollywood. Experience the magic of Bollywood through gameplay that celebrates Indian cinema's most iconic moments, characters, and dance moves. Whether you're a casual fan or a true Bollywood enthusiast, Tamasha brings the excitement of Hindi cinema to your game night! A guaranteed hit for birthdays, Diwali gifting, family game night hampers, sangeet nights, bachelorettes, and every bollywood lover in your life.",
+    howToPlay: {
+      setup: "Gather your friends and family who love Bollywood. Shuffle the Tamasha card deck and place it in the center. Each player receives bidding tokens. Designate who goes first.",
+      gameplay: "Players take turns drawing cards featuring Bollywood scenes, iconic dialogues, dance steps, or famous characters. Players bid using their tokens to complete the challenge - act out the scene, perform the dance step, or recreate the dialogue. The player with the highest bid must complete the challenge. If successful, they earn points!",
+      winning: "The player with the most points at the end wins the game! Victory comes from successfully completing Bollywood challenges and outbidding your opponents. The real win is the laughter and memories created together!"
+    },
+    meta: {
+      players: "1–99+",
+      duration: "30–60 mins",
+      age: "13+",
+      difficulty: "Easy",
+      moods: ["party", "bollywood", "acting", "laughter", "competitive"],
+      badges: ["party-essential", "bollywood-game", "portable-design", "perfect-gift", "all-occasions"]
+    },
+    price: { amount: 499, currency: "INR" },
+    points: { purchase: 40 },
+    stock: { available: true, quantity: 100 },
+    media: {
+      thumbnail: "https://images.unsplash.com/photo-1514306688772-cfb6b6a9a3a1?w=500&h=400&fit=crop",
+      images: [
+        "https://images.unsplash.com/photo-1514306688772-cfb6b6a9a3a1?w=500&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=500&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1533461502717-83546f485c90?w=500&h=400&fit=crop"
+      ],
+      video: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ", provider: "youtube" }
+    },
+    category: ["party-game", "bollywood", "acting-game"],
+    relatedSlugs: ["mehfil", "dead-mans-deck", "buzzed"]
+  },
+  {
+    name: "Buzzed",
+    slug: "buzzed",
+    shortDescription: "Keep the party buzzing with Buzzed, the ultimate drinking card game by Joy Juncture!",
+    story: "Keep the party buzzing with Buzzed, the ultimate drinking card game by Joy Juncture! Whether it's a house party, a pre-game warmup, a post-game chill session, or a full-blown club night, Buzzed brings people together with effortless fun. Designed for adults, by adults, this card game works for every kind of party person - early birds, night owls, social butterflies, silent observers, front-benchers, and full-time back-bench comedians. With quirky, chaotic, senseless, and wildly funny prompts, Buzzed guarantees non-stop laughter, unforgettable memories, and stories you'll discuss the next morning (if you remember them!). Just shuffle → sip → survive!!",
+    howToPlay: {
+      setup: "No setup needed! Just open the Buzzed deck, shuffle the cards, and gather your crew. Make sure everyone has their favorite drink within reach. Super easy to get started!",
+      gameplay: "Players take turns drawing cards from the deck. Each card has quirky, chaotic, senseless, and wildly funny prompts that work for any group size and every vibe. Read the prompt and follow along - no complicated rules to memorize, just pure fun and laughter!",
+      winning: "There's no winning in Buzzed - it's all about the party, the memories, and the hilarious moments! The real victory is non-stop laughter, unforgettable memories, and the stories you'll discuss the next morning (if you remember them!). Just shuffle → sip → survive!!"
+    },
+    meta: {
+      players: "2–99+",
+      duration: "30–90 mins",
+      age: "18+",
+      difficulty: "Very Easy",
+      moods: ["party", "drinking", "chaos", "laughter", "adult-humor", "social"],
+      badges: ["super-easy-to-play", "perfect-for-all-settings", "inclusive-multiplayer", "made-in-india", "pocket-friendly"]
+    },
+    price: { amount: 299, currency: "INR" },
+    points: { purchase: 30 },
+    stock: { available: true, quantity: 100 },
+    media: {
+      thumbnail: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&h=400&fit=crop",
+      images: [
+        "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1514306688772-cfb6b6a9a3a1?w=500&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=500&h=400&fit=crop"
+      ],
+      video: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ", provider: "youtube" }
+    },
+    category: ["drinking-game", "party-game", "adult-game"],
+    relatedSlugs: ["dead-mans-deck", "mehfil", "tamasha"]
+  },{
+  name: "Judge Me & Guess",
+  slug: "judge-me-and-guess",
+  shortDescription: "A social experience card game that turns strangers into friends and replaces awkward silence with curious guesses and bold judgments.",
+  story: "Judge Me & Guess isn't just a card game... it's a social experience made for every community, every group, and every table. From cafés and clubs to office teams, friend circles, student groups, and Sunday brunch communities… this game adapts to your vibe and your rules. Whether you're meeting a stranger, sitting with your date, or catching up with friends, this game replaces awkward silence with curious guesses, bold judgments, and surprisingly accurate truths!! Every card comes with a signature eye illustration (because someone is always judging 👀) and is divided into 3 levels... from light and warm-up to bold & deeper questions as the game progresses. Bring it to your café table, team lunch, weekend group, or family dinner — and let the conversations begin.",
+  howToPlay: {
+    setup: "Gather your group at a table. Each player has access to the 52 high-quality cards with 3 judgment levels. Have everyone get their phones ready to secretly note down answers. Place the stylish display stand in the center if playing in a café or community space.",
+    gameplay: "Draw a card and read your 'Judge Me & Guess' prompt aloud. Secretly note down the real answer on your phone. Everyone at the table judges you based on what they see and assume. They write down their guesses. Whoever guesses closest or gets it correct wins the card. The game progresses from light warm-up questions to bold and deeper questions as you play!",
+    winning: "Collect the most cards to win! Play it soft, play it spicy, play it your own way - the game works for every group dynamic. You can customize how you play: points, punishments, storytelling, anything goes. The real win is the genuine laughter, real conversations, and connections made around the table!"
+  },
+  meta: {
+    players: "2–8+",
+    duration: "30–90 mins",
+    age: "14+",
+    difficulty: "Very Easy",
+    moods: ["social", "conversation", "judgment", "laughter", "connection", "icebreaker"],
+    badges: ["conversation-starter", "community-builder", "no-rules", "customizable", "perfect-for-groups", "tabletop-display"]
+  },
+  price: { amount: 999, currency: "INR" },
+  points: { purchase: 80 },
+  stock: { available: true, quantity: 100 },
+  media: {
+    thumbnail: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=400&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=500&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&h=400&fit=crop"
+    ],
+    video: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ", provider: "youtube" }
+  },
+  category: ["party-game", "conversation-game", "social-game"],
+  relatedSlugs: ["mehfil", "tamasha", "dead-mans-deck", "buzzed"]
+},
+{
+  name: "The Bloody Inheritance",
+  slug: "the-bloody-inheritance",
+  shortDescription: "A hands-on murder mystery case file where you become the detective in a gripping crime thriller experience.",
+  story: "Step inside a story that feels straight out of a crime thriller!! The Bloody Inheritance is a hands-on murder mystery case file where you become the detective. Created by JJ's game designers, this experience is packed with realistic evidence, gripping storytelling, and the kind of twists that keep you thinking long after the game ends!! This isn't your usual 'solve-the-puzzle' game. It feels like opening a real cold case... armed with files, photos, reports, letters, clues, and odd fragments of someone's life. Every piece leads you closer to the truth… if you read between the lines! A totally fresh kind of game night experience that sharpens deduction, teamwork, and smart decision-making.",
+  howToPlay: {
+    setup: "Gather your detective team of 3-5 players. Open The Bloody Inheritance case file and lay out all the evidence on a table. You'll have access to handwritten notes, photographs, reports, puzzles, objects, printed documents, and more. Review everything carefully - nothing is random, every clue matters!",
+    gameplay: "Work through the evidence systematically. Study the clues carefully. Connect the dots between different pieces of information. Read between the lines to uncover hidden meanings. Piece together what truly happened based on the evidence. Discuss theories with your team and collaborate to solve the mystery. The fastest team to reach the correct conclusion wins bragging rights and eternal detective glory!",
+    winning: "The team that correctly identifies the truth behind The Bloody Inheritance in the shortest time wins! Success comes from careful analysis, smart decision-making, and working together as a detective team. But the real victory is the immersive experience and the stories you'll tell about cracking the case!"
+  },
+  meta: {
+    players: "1–5",
+    duration: "60–120 mins",
+    age: "14+",
+    difficulty: "Hard",
+    moods: ["mystery", "detective", "thriller", "strategic", "collaborative", "immersive"],
+    badges: ["murder-mystery", "case-file", "realistic-evidence", "team-building", "party-game", "low-prep-high-engagement"]
+  },
+  price: { amount: 999, currency: "INR" },
+  points: { purchase: 80 },
+  stock: { available: true, quantity: 50 },
+  media: {
+    thumbnail: "https://images.unsplash.com/photo-1450101499163-c8917c7b4efc?w=500&h=400&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1450101499163-c8917c7b4efc?w=500&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=500&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=400&fit=crop"
+    ],
+    video: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ", provider: "youtube" }
+  },
+  category: ["mystery-game", "detective-game", "case-file"],
+  relatedSlugs: ["judge-me-and-guess", "tamasha", "dead-mans-deck"]
+},
+{
+  name: "One More Round",
+  slug: "one-more-round",
+  shortDescription: "A 150-piece jigsaw puzzle for adults that celebrates game night, laughter, and the art of chilling out with friends.",
+  story: "One More Round – A 150-Piece Jigsaw Puzzle for Adults That Feels Like Game Night in a Box. Looking for a jigsaw puzzle that's more than just a pretty picture? One More Round is your official invite to game night with friends, beers, and a bit of playful chaos. This 150-piece puzzle drops you right into a buzzing table full of laughter, clinking glasses, and half-played card games. It's the kind of scene you wish you were part of... now you can piece it together, one moment at a time. Designed for puzzle lovers who appreciate fun, storytelling, and strong visual detail, this hand-illustrated adult puzzle celebrates the art of chilling out. From spilled drinks to cheeky expressions, every detail adds to the story and the challenge.",
+  howToPlay: {
+    setup: "Open the One More Round puzzle box and lay out all 150 pieces on a flat surface. Identify the border/edge pieces first and assemble the frame. Organize remaining pieces by color, pattern, or visual themes to make assembly easier. Find a comfortable space with good lighting for your puzzle session.",
+    gameplay: "Sort through the pieces and begin assembling the puzzle, starting with the border and working inward. Look for distinctive features like specific colors, patterns, objects, and character expressions to identify where pieces belong. Work systematically, connecting pieces that share similar visual elements. The hand-illustrated details will guide you - from spilled drinks to cheeky expressions, every element tells part of the story!",
+    winning: "Complete the full 150-piece puzzle to reveal the vibrant scene of game night, happy hour, and infectious laughter! Frame it, display it, or gift it to another puzzle enthusiast. Can you find all the hidden surprises and the odd drink out?"
+  },
+  meta: {
+    players: "1–4",
+    duration: "2–4 hours",
+    age: "14+",
+    difficulty: "Medium",
+    moods: ["relaxing", "social", "artistic", "storytelling", "casual", "mindful"],
+    badges: ["hand-illustrated", "eco-friendly", "made-in-india", "gift-worthy", "hidden-surprises", "adult-puzzle"]
+  },
+  price: { amount: 499, currency: "INR" },
+  points: { purchase: 40 },
+  stock: { available: true, quantity: 100 },
+  media: {
+    thumbnail: "https://images.unsplash.com/photo-1570303008925-86a2f001c47f?w=500&h=400&fit=crop",
+    images: [
+      "https://images.unsplash.com/photo-1570303008925-86a2f001c47f?w=500&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=500&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=400&fit=crop"
+    ],
+    video: { url: "https://www.youtube.com/embed/dQw4w9WgXcQ", provider: "youtube" }
+  },
+  category: ["puzzle", "jigsaw-puzzle", "adult-game"],
+  relatedSlugs: ["judge-me-and-guess", "buzzed", "mehfil", "the-bloody-inheritance"]
+},
+
+
+
+
+
+];
+
+export async function GET() {
+  try {
+    await connectDb();
+    console.log("✅ Connected to MongoDB");
+
+    await Product.deleteMany({});
+    console.log("🗑️ Cleared existing products");
+
+    const result = await Product.insertMany(products);
+    console.log(`✅ Inserted ${result.length} products!`);
+
+    return NextResponse.json({
+      ok: true,
+      message: `${result.length} products seeded successfully!`,
+      count: result.length
+    });
+  } catch (error) {
+    console.error("❌ Error seeding database:", error);
+    return NextResponse.json(
+      { error: "Failed to seed database", details: String(error) },
+      { status: 500 }
+    );
+  }
+}

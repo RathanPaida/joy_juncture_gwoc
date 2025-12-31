@@ -1,5 +1,5 @@
 // models/Product.ts
-import mongoose, { Schema, models, model } from "mongoose";
+import mongoose, { Schema, model, models } from "mongoose";
 
 const howToPlaySchema = new Schema(
   {
@@ -29,12 +29,12 @@ const mediaSchema = new Schema(
 
 const metaSchema = new Schema(
   {
-    players: { type: String, required: true },     // "2–8"
-    duration: { type: String, required: true },    // "15–20 mins"
-    age: { type: String, required: true },         // "14+"
-    difficulty: { type: String, required: true },  // "Easy"
-    moods: [{ type: String }],                     // ["party", "chaotic"]
-    badges: [{ type: String }],                    // ["first-time-friendly"]
+    players: { type: String, required: true },
+    duration: { type: String, required: true },
+    age: { type: String, required: true },
+    difficulty: { type: String, required: true },
+    moods: [{ type: String }],
+    badges: [{ type: String }],
   },
   { _id: false }
 );
@@ -54,25 +54,51 @@ const pointsSchema = new Schema(
   { _id: false }
 );
 
+const stockSchema = new Schema(
+  {
+    available: { type: Boolean, default: true },
+    quantity: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const faqSchema = new Schema(
+  {
+    question: { type: String },
+    answer: { type: String },
+  },
+  { _id: false }
+);
+
 const productSchema = new Schema(
   {
     name: { type: String, required: true },
     slug: { type: String, required: true, unique: true, index: true },
     shortDescription: { type: String, required: true },
     story: { type: String, required: true },
+
     howToPlay: { type: howToPlaySchema, required: true },
     meta: { type: metaSchema, required: true },
     price: { type: priceSchema, required: true },
     points: { type: pointsSchema, default: () => ({ purchase: 0 }) },
     media: { type: mediaSchema, required: true },
-    category: [{ type: String }],      // e.g. ["card-game","party"]
-    relatedSlugs: [{ type: String }],  // for related games carousel
+    stock: { type: stockSchema, default: () => ({ available: true, quantity: 0 }) },
+
+    keyFeatures: [{ type: String }],  // NEW
+    faqs: [faqSchema],  // NEW
+    whatYouGet: [{ type: String }],  // NEW
+
+    category: [{ type: String }],
+    relatedSlugs: [{ type: String }],
   },
   { timestamps: true }
 );
 
-// Optional: simple text index for search
-productSchema.index({ name: "text", shortDescription: "text", story: "text" });
+productSchema.index({
+  name: "text",
+  shortDescription: "text",
+  story: "text",
+});
 
 const Product = models.Product || model("Product", productSchema);
 
