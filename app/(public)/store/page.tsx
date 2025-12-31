@@ -12,24 +12,22 @@ interface Product {
 
 async function getProducts() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/products?page=1&limit=12`, {
-    cache: "no-store",
-  });
-  if (!res.ok) return { items: [], meta: { total: 0, page: 1, limit: 12 } };
+  const res = await fetch(`${baseUrl}/api/products?page=1&limit=12`, { cache: "no-store" });
+  if (!res.ok) return { items: [] };
   return res.json();
 }
 
 export const metadata: Metadata = {
-  title: "JJ Store - Board Games & Card Games",
-  description: "Shop the finest board games and card games at Joy Junction",
+  title: "JJ Store | Board Games & Card Games",
+  description: "Shop the finest board games and card games",
 };
 
 export default async function StorePage() {
-  const { items, meta } = await getProducts();
+  const { items } = await getProducts();
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <section className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-12">
+      <section className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-14">
         <div className="max-w-6xl mx-auto px-4">
           <h1 className="text-4xl font-bold mb-2">JJ Store</h1>
           <p className="text-xl opacity-90">Discover amazing board games and card games</p>
@@ -39,7 +37,7 @@ export default async function StorePage() {
       <section className="max-w-6xl mx-auto px-4 py-12">
         {items.length > 0 ? (
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((product) => (
+            {items.map((product: Product) => (
               <ProductCard key={product._id} product={product} />
             ))}
           </div>
