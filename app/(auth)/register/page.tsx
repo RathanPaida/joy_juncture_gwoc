@@ -81,7 +81,7 @@ export default function RegisterPage() {
       if (isAdmin) {
         router.push('/admin/dashboard');
       } else {
-        router.push('/dashboard');
+        router.push('/home');
       }
       
     } catch (err: any) {

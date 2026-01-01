@@ -36,7 +36,7 @@ export default function LoginPage() {
       } else {
         localStorage.setItem('isAdmin', 'false');
         localStorage.setItem('userEmail', email);
-        router.push('/dashboard');
+        router.push('/home');
       }
       
     } catch (err: any) {
@@ -45,8 +45,8 @@ export default function LoginPage() {
       // Simple error messages
       if (err.code === 'auth/user-not-found') {
         setError('No account found with this email.');
-      } else if (err.code === 'auth/wrong-password') {
-        setError('Incorrect password.');
+      } else if (err.code === 'auth/invalid-credential') {
+        setError('Incorrect Email id or password,If you are new please register');
       } else if (err.code === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
       } else {
