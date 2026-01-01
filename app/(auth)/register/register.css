@@ -1,24 +1,28 @@
 /* app/register/register.css */
+/* SAME STRUCTURE – Black background + Orange theme */
+
+/* ===== CONTAINER ===== */
 .register-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  background: linear-gradient(135deg, #0b0b0b 0%, #121212 100%);
   padding: 20px;
 }
 
+/* ===== CARD ===== */
 .register-card {
-  background: rgba(26, 26, 26, 0.9);
-  border: 1px solid #333;
+  background: #141414;
+  border: 1px solid #2a2a2a;
   border-radius: 16px;
   padding: 40px;
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
+/* ===== HEADER ===== */
 .register-header {
   text-align: center;
   margin-bottom: 30px;
@@ -27,51 +31,54 @@
 .logo {
   font-size: 2.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #ff8c00 0%, #ffb347 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 5px;
 }
 
 .logo-accent {
-  color: #8b5cf6;
-  -webkit-text-fill-color: #8b5cf6;
+  color: #ff8c00;
+  -webkit-text-fill-color: #ff8c00;
 }
 
 .tagline {
-  color: #94a3b8;
+  color: #b3b3b3;
   font-size: 0.9rem;
   letter-spacing: 0.05em;
   margin-bottom: 20px;
 }
 
 .register-header h2 {
-  color: #f8fafc;
+  color: #f5f5f5;
   font-size: 1.8rem;
   margin-bottom: 8px;
 }
 
 .subtitle {
-  color: #94a3b8;
+  color: #a3a3a3;
   font-size: 0.95rem;
 }
 
+/* ===== FORM ===== */
 .register-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
+/* ===== ERROR ===== */
 .error-message {
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
+  background: rgba(255, 140, 0, 0.12);
+  border: 1px solid rgba(255, 140, 0, 0.35);
   border-radius: 8px;
   padding: 12px;
-  color: #f87171;
+  color: #ff9f1c;
   font-size: 0.9rem;
   text-align: center;
 }
 
+/* ===== INPUTS ===== */
 .input-group {
   display: flex;
   flex-direction: column;
@@ -79,31 +86,32 @@
 }
 
 .input-group label {
-  color: #e2e8f0;
+  color: #e5e5e5;
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .input-group input {
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid #333;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
   border-radius: 8px;
   padding: 14px 16px;
-  color: #f8fafc;
+  color: #f5f5f5;
   font-size: 1rem;
   transition: all 0.3s;
 }
 
 .input-group input:focus {
   outline: none;
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  border-color: #ff8c00;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.25);
 }
 
 .input-group input::placeholder {
-  color: #64748b;
+  color: #7a7a7a;
 }
 
+/* ===== TERMS ===== */
 .terms-group {
   margin: 10px 0;
 }
@@ -112,7 +120,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  color: #94a3b8;
+  color: #b3b3b3;
   font-size: 0.9rem;
   line-height: 1.4;
   cursor: pointer;
@@ -121,8 +129,8 @@
 .terms-checkbox {
   width: 18px;
   height: 18px;
-  background: #1e293b;
-  border: 1px solid #333;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
   border-radius: 4px;
   margin-top: 3px;
   cursor: pointer;
@@ -131,14 +139,14 @@
 }
 
 .terms-checkbox:checked {
-  background: #8b5cf6;
-  border-color: #8b5cf6;
+  background: #ff8c00;
+  border-color: #ff8c00;
 }
 
 .terms-checkbox:checked::after {
   content: '✓';
   position: absolute;
-  color: white;
+  color: #000;
   font-size: 14px;
   top: 50%;
   left: 50%;
@@ -146,7 +154,7 @@
 }
 
 .terms-link {
-  color: #8b5cf6;
+  color: #ff9f1c;
   text-decoration: none;
   font-weight: 500;
 }
@@ -155,9 +163,10 @@
   text-decoration: underline;
 }
 
+/* ===== PRIMARY BUTTON ===== */
 .register-btn {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-  color: white;
+  background: linear-gradient(135deg, #ff8c00 0%, #ffb347 100%);
+  color: #000;
   border: none;
   border-radius: 8px;
   padding: 16px;
@@ -170,14 +179,15 @@
 
 .register-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 10px 25px rgba(255, 140, 0, 0.4);
 }
 
 .register-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
+/* ===== DIVIDER ===== */
 .divider {
   display: flex;
   align-items: center;
@@ -190,25 +200,26 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #333;
+  background: #2a2a2a;
 }
 
 .divider span {
   padding: 0 15px;
-  color: #94a3b8;
+  color: #9a9a9a;
   font-size: 0.9rem;
 }
 
+/* ===== GOOGLE BUTTON ===== */
 .google-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: #1e293b;
-  border: 1px solid #333;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
   border-radius: 8px;
   padding: 14px;
-  color: #f8fafc;
+  color: #f5f5f5;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -216,8 +227,8 @@
 }
 
 .google-btn:hover {
-  background: #2d3748;
-  border-color: #4a5568;
+  background: #202020;
+  border-color: #ff8c00;
 }
 
 .google-icon {
@@ -225,15 +236,16 @@
   height: 20px;
 }
 
+/* ===== LOGIN LINK ===== */
 .login-link {
   text-align: center;
-  color: #94a3b8;
+  color: #a3a3a3;
   font-size: 0.95rem;
   margin-top: 20px;
 }
 
 .login-link a {
-  color: #8b5cf6;
+  color: #ff9f1c;
   text-decoration: none;
   font-weight: 600;
 }
@@ -242,21 +254,21 @@
   text-decoration: underline;
 }
 
-/* Responsive */
+/* ===== RESPONSIVE ===== */
 @media (max-width: 480px) {
   .register-card {
     padding: 30px 20px;
     margin: 0 10px;
   }
-  
+
   .logo {
     font-size: 2rem;
   }
-  
+
   .register-header h2 {
     font-size: 1.5rem;
   }
-  
+
   .terms-label {
     font-size: 0.85rem;
   }
