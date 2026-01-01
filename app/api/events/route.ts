@@ -23,9 +23,18 @@ export async function GET(request: NextRequest) {
     const events = await Event.find(query)
       .sort({ date: type === 'upcoming' ? 1 : -1 })
       .lean();
+     // Convert to plain objects with string IDs
+     const serializedEvents = events.map(event => ({
+      ...event,
+      _id: event._id.toString(),
+      date: event.date.toISOString(),
+      createdAt: event.createdAt?.toISOString(),
+    }));
     
-    return NextResponse.json(events);
+    return NextResponse.json(serializedEvents);
+    // return NextResponse.json(events);
   } catch (error) {
+    console.error('Error fetching events:', error);
     return NextResponse.json(
       { error: 'Failed to fetch events' },
       { status: 500 }

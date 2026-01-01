@@ -1,15 +1,25 @@
 import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI as string;
-const MONGODB_DB = process.env.MONGODB_DB as string;
+// const MONGODB_DB = process.env.MONGODB_DB as string;
 
 if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable');
 }
 
-if (!MONGODB_DB) {
-  throw new Error('Please define the MONGODB_DB environment variable');
-}
+// Extract database name from the URI
+const MONGODB_DB = (() => {
+  try {
+    // Extract database name from connection string
+    // Format: mongodb+srv://.../DATABASE_NAME?...
+    const match = MONGODB_URI.match(/\/([^/?]+)(?:\?|$)/);
+    return match ? match[1] : 'joyjuncture';
+  } catch {
+    return 'joyjuncture';
+  }
+})();
+
+console.log(`📊 Using database: ${MONGODB_DB}`);
 
 /**
  * Global is used here to maintain a cached connection across hot reloads
