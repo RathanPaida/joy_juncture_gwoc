@@ -170,9 +170,7 @@ export default async function BlogPage({
     tag?: string;
   }
 }) {
-  const category = typeof searchParams?.category === 'string'
-  ? searchParams.category
-  : 'all';
+  const category = searchParams.category || 'all';
   const searchQuery = searchParams.q || '';
   const page = parseInt(searchParams.page || '1');
   const tag = searchParams.tag;
