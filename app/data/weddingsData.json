@@ -1,0 +1,156 @@
+{
+  "hero": {
+    "title": "Eternal Love, Perfect Celebration",
+    "subtitle": "Create your dream wedding with our bespoke planning and execution services"
+  },
+  "stats": [
+    {
+      "number": "500+",
+      "label": "Weddings Planned"
+    },
+    {
+      "number": "98%",
+      "label": "Client Satisfaction"
+    },
+    {
+      "number": "50+",
+      "label": "Destinations"
+    },
+    {
+      "number": "24/7",
+      "label": "Support"
+    }
+  ],
+  "themes": [
+    {
+      "id": 1,
+      "name": "Traditional",
+      "description": "Classic and timeless celebrations with cultural richness and traditional rituals",
+      "image": "assets/images/demo-2.jpg",
+      "color": "#ff8c00"
+    },
+    {
+      "id": 2,
+      "name": "Beach",
+      "description": "Romantic seaside ceremonies with ocean views and tropical elegance",
+      "image": "assets/images/demo-3.jpg",
+      "color": "#ffb347"
+    },
+    {
+      "id": 3,
+      "name": "Garden",
+      "description": "Blooming floral arrangements in lush green settings with natural beauty",
+      "image": "assets/images/demo-4.jpg",
+      "color": "#4CAF50"
+    },
+    {
+      "id": 4,
+      "name": "Luxury",
+      "description": "Opulent celebrations with premium venues and exquisite detailing",
+      "image": "assets/images/demo-5.jpg",
+      "color": "#ffcc00"
+    },
+    {
+      "id": 5,
+      "name": "Minimalist",
+      "description": "Clean, modern aesthetics with focus on simplicity and elegance",
+      "image": "assets/images/demo-6.jpg",
+      "color": "#f5f5f5"
+    },
+    {
+      "id": 6,
+      "name": "Destination",
+      "description": "Exotic locations turned into magical wedding destinations",
+      "image": "assets/images/demo-7.jpg",
+      "color": "#2196F3"
+    }
+  ],
+  "gallery": [
+    {
+      "id": 1,
+      "title": "Grand Ballroom Wedding",
+      "description": "Opulent celebration in a historic palace ballroom",
+      "image": "assets/images/demo-8.jpg"
+    },
+    {
+      "id": 2,
+      "title": "Befront Ceremony",
+      "description": "Sunset wedding on pristine white sands",
+      "image": "assets/images/demo-9.jpg"
+    },
+    {
+      "id": 3,
+      "title": "Garden Reception",
+      "description": "Floral paradise under starry skies",
+      "image": "assets/images/demo-10.jpg"
+    },
+    {
+      "id": 4,
+      "title": "Cultural Celebration",
+      "description": "Traditional rituals with modern touches",
+      "image": "assets/images/demo-11.jpg"
+    },
+    {
+      "id": 5,
+      "title": "Intimate Wedding",
+      "description": "Cozy celebration with closest family and friends",
+      "image": "assets/images/demo-12.jpg"
+    },
+    {
+      "id": 6,
+      "title": "Luxury Destination",
+      "description": "Exotic location wedding extravaganza",
+      "image": "assets/images/demo-13.jpg"
+    }
+  ],
+  "packages": [
+    {
+      "id": 1,
+      "name": "Essential Package",
+      "price": "₹5,99,999",
+      "bestFor": "Intimate weddings up to 100 guests",
+      "features": [
+        "Basic venue decoration",
+        "Standard photography & videography",
+        "Basic catering for 100 guests",
+        "Wedding coordinator",
+        "Sound system and basic lighting",
+        "Pre-wedding consultation"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Premium Package",
+      "price": "₹9,99,999",
+      "bestFor": "Mid-size weddings 100-250 guests",
+      "features": [
+        "Premium venue decoration",
+        "Professional photography & videography",
+        "Premium catering with multiple cuisines",
+        "Dedicated wedding planner",
+        "DJ and professional lighting",
+        "Bridal makeup and styling",
+        "Transport arrangements",
+        "Pre-wedding photoshoot"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Luxury Package",
+      "price": "₹19,99,999",
+      "bestFor": "Grand weddings 250-500 guests",
+      "features": [
+        "Luxury venue with complete transformation",
+        "Celebrity photographer & cinematographer",
+        "Five-star catering with live counters",
+        "Personal wedding director team",
+        "Live band and premium entertainment",
+        "Bridal trousseau consultation",
+        "Luxury car arrangements",
+        "Destination pre-wedding shoot",
+        "Honeymoon planning assistance",
+        "Post-wedding brunch"
+      ]
+    }
+  ]
+}
