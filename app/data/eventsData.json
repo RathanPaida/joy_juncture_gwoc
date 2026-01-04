@@ -5,12 +5,14 @@
     {
       "id": 1,
       "title": "Kids Theme Birthday",
-      "image": "https://images.unsplash.com/photo-1602631985686-1bb0e6a8696e"
+      "description": "Fun-filled celebrations for kids with themed decorations",
+      "image": "/assets/images/birthday-1.jpg"
     },
     {
       "id": 2,
       "title": "Elegant Adult Birthday",
-      "image": "https://images.unsplash.com/photo-1527529482837-4698179dc6ce"
+      "description": "Sophisticated birthday celebrations for adults",
+      "image": "/assets/images/birthday-2.jpg"
     }
   ],
 
@@ -18,12 +20,14 @@
     {
       "id": 1,
       "title": "Romantic Dinner",
-      "image": "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c4"
+      "description": "Intimate anniversary dinners with romantic setups",
+      "image": "/assets/images/aniversary-1.jpg"
     },
     {
       "id": 2,
       "title": "Anniversary Party",
-      "image": "https://images.unsplash.com/photo-1575936123452-b67c3203c357"
+      "description": "Grand anniversary celebrations with friends and family",
+      "image": "/assets/images/aniversary-2.jpg"
     }
   ],
 
@@ -32,13 +36,19 @@
       "id": 1,
       "name": "Silver Birthday",
       "price": "₹9,999",
-      "features": ["Basic Balloon Decor", "Cake Table", "2 Hours Support"]
+      "features": ["Basic Balloon Decor", "Cake Table", "2 Hours Support", "Music System"]
     },
     {
       "id": 2,
       "name": "Gold Birthday",
       "price": "₹19,999",
-      "features": ["Theme Decor", "Games", "Photography", "4 Hours Support"]
+      "features": ["Theme Decor", "Games Setup", "Professional Photography", "4 Hours Support", "Custom Cake"]
+    },
+    {
+      "id": 3,
+      "name": "Platinum Birthday",
+      "price": "₹29,999",
+      "features": ["Premium Theme Decor", "Entertainment Activities", "Videography", "6 Hours Support", "Gourmet Food"]
     }
   ],
 
@@ -47,20 +57,35 @@
       "id": 1,
       "name": "Silver Anniversary",
       "price": "₹14,999",
-      "features": ["Romantic Setup", "Cake Table", "Music", "2 Hours Support"]
+      "features": ["Romantic Setup", "Cake Table", "Music", "2 Hours Support", "Flower Decor"]
     },
     {
       "id": 2,
       "name": "Gold Anniversary",
       "price": "₹29,999",
-      "features": ["Premium Decor", "Candle Light Dinner", "Photography", "4 Hours Support"]
+      "features": ["Premium Decor", "Candle Light Dinner", "Photography", "4 Hours Support", "Special Cake"]
+    },
+    {
+      "id": 3,
+      "name": "Platinum Anniversary",
+      "price": "₹44,999",
+      "features": ["Luxury Decor", "Gourmet Dining", "Photography + Videography", "6 Hours Support", "Live Music"]
     }
   ],
 
   "demoPhotos": [
-    "https://images.unsplash.com/photo-1505575967452-0b6d4d3bde4e",
-    "https://images.unsplash.com/photo-1503437313881-503a91226419",
-    "https://images.unsplash.com/photo-1523293839835-92858b04b0d0",
-    "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    "/assets/images/demo-1.jpg",
+    "/assets/images/demo-2.jpg",
+    "/assets/images/demo-3.jpg",
+    "/assets/images/demo-4.jpg",
+    "/assets/images/demo-5.jpg",
+    "/assets/images/demo-6.jpg",
+    "/assets/images/demo-7.jpg",
+    "/assets/images/demo-8.jpg",
+    "/assets/images/demo-9.jpg",
+    "/assets/images/demo-10.jpg",
+    "/assets/images/demo-11.jpg",
+    "/assets/images/demo-12.jpg",
+    "/assets/images/demo-13.jpg"
   ]
 }
