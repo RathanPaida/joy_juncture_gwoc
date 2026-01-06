@@ -29,7 +29,7 @@ import {
 
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-export { 
+export {
   auth,
   db,
   createUserWithEmailAndPassword,
@@ -40,5 +40,5 @@ export {
   doc,
   setDoc,
   getDoc,
-  googleProvider
+  googleProvider, app
 };

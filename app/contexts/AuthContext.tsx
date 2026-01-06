@@ -1,64 +1,214 @@
-// contexts/AuthContext.tsx
+// context/AuthContext.tsx
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { 
-  User, 
+  getAuth, 
+  onAuthStateChanged, 
+  User as FirebaseUser,
+  signInWithEmailAndPassword as firebaseSignIn,
   signOut as firebaseSignOut,
-  onAuthStateChanged 
+  createUserWithEmailAndPassword as firebaseRegister,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { app } from '@/lib/firebase';
 
 interface AuthContextType {
-  user: User | null;
+  user: any;
   loading: boolean;
-  isAdmin: boolean;
-  signOut: () => Promise<void>;
+  login: (email: string, password: string, isFirebase?: boolean) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (email: string, password: string, name: string, isFirebase?: boolean) => Promise<void>;
+  loginWithGoogle: () => Promise<FirebaseUser | null>;
+  updateUserPoints: (points: number) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  isAdmin: false,
-  signOut: async () => {}
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const auth = getAuth(app);
+  const googleProvider = new GoogleAuthProvider();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
-      setUser(user);
-      
-      if (user) {
-        // Check if user is admin
-        const response = await fetch(`/api/auth/user?uid=${user.uid}`);
-        const data = await response.json();
-        setIsAdmin(data.user?.role === 'admin');
+    // Check Firebase auth first
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Firebase user is logged in, sync with MongoDB
+        try {
+          const token = await firebaseUser.getIdToken();
+          const response = await fetch('/api/auth/sync', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              name: firebaseUser.displayName,
+              avatar: firebaseUser.photoURL
+            })
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            setUser({ ...firebaseUser, ...userData });
+          } else {
+            setUser(firebaseUser);
+          }
+        } catch (error) {
+          console.error('Error syncing user:', error);
+          setUser(firebaseUser);
+        }
       } else {
-        setIsAdmin(false);
+        // Check for local auth session
+        const sessionToken = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('session='))
+          ?.split('=')[1];
+        
+        if (sessionToken) {
+          try {
+            const response = await fetch('/api/auth/me', {
+              headers: {
+                'Authorization': `Bearer ${sessionToken}`
+              }
+            });
+            
+            if (response.ok) {
+              const userData = await response.json();
+              setUser(userData);
+            }
+          } catch (error) {
+            console.error('Error fetching local user:', error);
+          }
+        } else {
+          setUser(null);
+        }
       }
-      
       setLoading(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [auth]);
 
-  const signOut = async () => {
-    await firebaseSignOut(auth);
+  const login = async (email: string, password: string, isFirebase: boolean = false) => {
+    if (isFirebase) {
+      await firebaseSignIn(auth, email, password);
+    } else {
+      // Local login
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+      
+      const data = await response.json();
+      setUser(data.user);
+    }
+  };
+
+  const logout = async () => {
+    // Try Firebase logout first
+    if (auth.currentUser) {
+      await firebaseSignOut(auth);
+    }
+    
+    // Clear local session
+    await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
-    setIsAdmin(false);
+  };
+
+  const register = async (email: string, password: string, name: string, isFirebase: boolean = false) => {
+    if (isFirebase) {
+      const userCredential = await firebaseRegister(auth, email, password);
+      await updateProfile(userCredential.user, { displayName: name });
+    } else {
+      // Local registration
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Registration failed');
+      }
+      
+      const data = await response.json();
+      setUser(data.user);
+    }
+  };
+
+  const loginWithGoogle = async (): Promise<FirebaseUser | null> => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      return result.user;
+    } catch (error) {
+      console.error('Google login failed:', error);
+      return null;
+    }
+  };
+
+  const updateUserPoints = async (points: number) => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/wallet/add-points', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': user.uid ? `Bearer ${await user.getIdToken()}` : ''
+        },
+        body: JSON.stringify({
+          type: 'manual',
+          amount: points,
+          description: 'Manual points update'
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUser({ ...user, totalPoints: data.newBalance });
+      }
+    } catch (error) {
+      console.error('Error updating points:', error);
+    }
+  };
+
+  const value: AuthContextType = {
+    user,
+    loading,
+    login,
+    logout,
+    register,
+    loginWithGoogle,
+    updateUserPoints
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, signOut }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-}
+};

@@ -1,47 +1,34 @@
-// lib/auth-utils.ts
-export const isAdminUser = (email: string, password: string): boolean => {
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-  const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
+// lib/auth-utils.js
+import { verifyIdToken } from '@/lib/firebase-admin';
+import { User } from '@/models/User';
+
+export async function authenticateRequest(req: { headers: { authorization: any; }; cookies: { session: any; }; }) {
+  let user = null;
   
-  return email === adminEmail && password === adminPassword;
-};
-
-export const setAuthSession = (email: string, isAdmin: boolean) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('userEmail', email);
-    localStorage.setItem('isAdmin', String(isAdmin));
-    localStorage.setItem('isLoggedIn', 'true');
+  // Try Firebase token first
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.split('Bearer ')[1];
+    try {
+      const decodedToken = await verifyIdToken(token);
+      user = await User.findOne({ firebaseUid: decodedToken.uid });
+    } catch (error) {
+      console.log('Firebase token invalid');
+    }
   }
-};
-
-export const clearAuthSession = () => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('isAdmin');
-    localStorage.removeItem('isLoggedIn');
+  
+  // Try local session token
+  if (!user && req.cookies?.session) {
+    // Verify your local JWT or session token
+    // user = await verifyLocalToken(req.cookies.session);
   }
-};
+  
+  return user;
+}
 
-export const getAuthSession = () => {
-  if (typeof window !== 'undefined') {
-    return {
-      userEmail: localStorage.getItem('userEmail'),
-      isAdmin: localStorage.getItem('isAdmin') === 'true',
-      isLoggedIn: localStorage.getItem('isLoggedIn') === 'true'
-    };
+export function getUserId(user: { firebaseUid: any; _id: any; }) {
+  if (user.firebaseUid) {
+    return { firebaseUid: user.firebaseUid };
   }
-  return {
-    userEmail: null,
-    isAdmin: false,
-    isLoggedIn: false
-  };
-};
-// lib/auth-utils.ts
-
-
-// Helper to check if user is admin in client components
-export const checkIsAdmin = (email: string | null | undefined): boolean => {
-  if (!email) return false;
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-  return email === adminEmail;
-};
+  return { _id: user._id };
+}

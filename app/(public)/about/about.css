@@ -1,16 +1,18 @@
-/* Joy Juncture - About Page Styling - Updated to match joyjuncture.com */
+/* Joy Juncture - About Page Styling - Updated to match Card Games page */
 
 /* ===== VARIABLES ===== */
 :root {
-  /* Updated Color Palette from joyjuncture.com */
-  --primary: #FF3366; /* Joy Juncture Pink */
-  --secondary: #00CCCC; /* Teal accent */
+  /* Updated Color Palette to match Card Games page */
+  --primary: #FF8C00; /* Orange */
+  --secondary: #FFB347; /* Light Orange */
   --accent: #FFCC00; /* Yellow accent */
-  --dark: #1A1A2E; /* Dark navy */
-  --light: #F8F9FF; /* Light background */
-  --text: #333333;
-  --text-light: #666666;
-  --border: #E0E0E0;
+  --dark: #0B0B0B; /* Dark background */
+  --light: #121212; /* Light background */
+  --text: #F5F5F5; /* Light text */
+  --text-light: #B3B3B3; /* Secondary text */
+  --border: #2A2A2A; /* Borders */
+  --background: #141414; /* Card background */
+  --input-bg: #1A1A1A; /* Input background */
   
   /* Fonts - Matching website */
   --font-heading: 'Poppins', sans-serif;
@@ -30,9 +32,9 @@
   --radius-xl: 24px;
   
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.15);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
   
   /* Transitions */
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -48,9 +50,10 @@
 .about-page {
   font-family: var(--font-body);
   color: var(--text);
-  background-color: white;
+  background: linear-gradient(135deg, var(--dark) 0%, var(--light) 100%);
   line-height: 1.6;
   overflow-x: hidden;
+  min-height: 100vh;
 }
 
 /* Container */
@@ -66,6 +69,7 @@ h1, h2, h3, h4 {
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: var(--spacing-md);
+  color: var(--text);
 }
 
 h1 {
@@ -95,21 +99,10 @@ h3 {
 }
 
 .highlight {
-  color: var(--primary);
-  position: relative;
-}
-
-.highlight::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 6px;
-  background-color: var(--accent);
-  opacity: 0.3;
-  z-index: -1;
-  border-radius: 3px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .section-subtitle {
@@ -139,26 +132,26 @@ h3 {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), #FF6699);
-  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: var(--dark);
   box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, #FF2255, #FF5588);
+  background: linear-gradient(135deg, #FF7B00, #FFA020);
 }
 
 .btn-secondary {
   background: transparent;
-  color: var(--dark);
+  color: var(--text);
   border: 2px solid var(--secondary);
 }
 
 .btn-secondary:hover {
   background: var(--secondary);
-  color: white;
+  color: var(--dark);
   transform: translateY(-2px);
 }
 
@@ -167,7 +160,7 @@ h3 {
   min-height: 80vh;
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #F8F9FF 0%, #FFFFFF 100%);
+  background: linear-gradient(135deg, var(--dark) 0%, var(--light) 100%);
   padding: var(--spacing-xl) 0;
   position: relative;
   overflow: hidden;
@@ -180,7 +173,7 @@ h3 {
   right: 0;
   width: 40%;
   height: 100%;
-  background: linear-gradient(45deg, rgba(255, 51, 102, 0.05), rgba(0, 204, 204, 0.05));
+  background: linear-gradient(45deg, rgba(255, 140, 0, 0.05), rgba(255, 179, 71, 0.05));
   clip-path: polygon(100% 0, 100% 100%, 0 100%, 20% 0);
 }
 
@@ -217,7 +210,7 @@ h3 {
 .stat {
   text-align: center;
   padding: var(--spacing-md);
-  background: white;
+  background: var(--background);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
@@ -235,7 +228,7 @@ h3 {
   font-family: var(--font-heading);
   font-size: 2.5rem;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--accent);
   margin-bottom: var(--spacing-xs);
   line-height: 1;
 }
@@ -261,7 +254,7 @@ h3 {
   width: 100%;
   max-width: 500px;
   height: 400px;
-  background: linear-gradient(135deg, #FFFFFF, #F8F9FF);
+  background: linear-gradient(135deg, var(--background), var(--light));
   border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
@@ -280,7 +273,7 @@ h3 {
   background: repeating-conic-gradient(
     from 0deg,
     transparent 0deg 10deg,
-    rgba(255, 51, 102, 0.03) 10deg 20deg
+    rgba(255, 140, 0, 0.05) 10deg 20deg
   );
   animation: rotate 20s linear infinite;
 }
@@ -292,7 +285,7 @@ h3 {
 
 .mockup-content {
   text-align: center;
-  color: var(--dark);
+  color: var(--text);
   z-index: 1;
   padding: var(--spacing-md);
 }
@@ -313,7 +306,7 @@ h3 {
 /* ===== PHILOSOPHY SECTION ===== */
 .philosophy-section {
   padding: var(--spacing-xl) 0;
-  background: white;
+  background: linear-gradient(135deg, var(--dark) 0%, var(--light) 100%);
   position: relative;
 }
 
@@ -334,7 +327,7 @@ h3 {
 }
 
 .philosophy-card {
-  background: white;
+  background: var(--background);
   padding: var(--spacing-lg);
   border-radius: var(--radius-lg);
   transition: var(--transition);
@@ -346,7 +339,7 @@ h3 {
 .philosophy-card:hover {
   transform: translateY(-10px);
   box-shadow: var(--shadow-lg);
-  border-color: transparent;
+  border-color: var(--primary);
 }
 
 .philosophy-card::before {
@@ -375,14 +368,14 @@ h3 {
   justify-content: center;
   margin-bottom: var(--spacing-md);
   font-size: 1.5rem;
-  color: white;
+  color: var(--dark);
   box-shadow: var(--shadow-sm);
 }
 
 .philosophy-card h3 {
   font-size: 1.25rem;
   margin-bottom: var(--spacing-sm);
-  color: var(--dark);
+  color: var(--text);
 }
 
 .philosophy-card p {
@@ -394,7 +387,7 @@ h3 {
 /* ===== FOUNDER STORY ===== */
 .founder-story {
   padding: var(--spacing-xl) 0;
-  background: linear-gradient(135deg, #F8F9FF 0%, #FFFFFF 100%);
+  background: linear-gradient(135deg, var(--light) 0%, var(--background) 100%);
   position: relative;
 }
 
@@ -438,16 +431,16 @@ h3 {
   top: 5px;
   width: 16px;
   height: 16px;
-  background: white;
+  background: var(--background);
   border: 3px solid var(--primary);
   border-radius: 50%;
   z-index: 2;
-  box-shadow: 0 0 0 4px rgba(255, 51, 102, 0.1);
+  box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.2);
 }
 
 .timeline-content {
   flex: 1;
-  background: white;
+  background: var(--background);
   padding: var(--spacing-md);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -459,11 +452,12 @@ h3 {
 .timeline-content:hover {
   transform: translateX(5px);
   box-shadow: var(--shadow-md);
+  border-color: var(--primary);
 }
 
 .timeline-content h3 {
   font-size: 1.1rem;
-  color: var(--dark);
+  color: var(--text);
   margin-bottom: var(--spacing-sm);
 }
 
@@ -476,7 +470,7 @@ h3 {
   max-width: 800px;
   margin: var(--spacing-xl) auto;
   padding: var(--spacing-lg);
-  background: white;
+  background: var(--background);
   border-radius: var(--radius-lg);
   border-left: 4px solid var(--primary);
   box-shadow: var(--shadow-md);
@@ -505,7 +499,7 @@ h3 {
 .founder-quote blockquote {
   font-size: 1.25rem;
   line-height: 1.8;
-  color: var(--dark);
+  color: var(--text);
   margin-bottom: var(--spacing-md);
   font-style: italic;
   position: relative;
@@ -526,7 +520,7 @@ h3 {
 /* ===== VALUES SECTION ===== */
 .values-section {
   padding: var(--spacing-xl) 0;
-  background: white;
+  background: linear-gradient(135deg, var(--dark) 0%, var(--light) 100%);
 }
 
 .values-grid {
@@ -542,14 +536,15 @@ h3 {
   padding: var(--spacing-lg);
   transition: var(--transition);
   border-radius: var(--radius-lg);
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
+  background: var(--background);
 }
 
 .value-item:hover {
   transform: translateY(-5px);
-  border-color: var(--border);
+  border-color: var(--primary);
   box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, rgba(255, 51, 102, 0.02), rgba(0, 204, 204, 0.02));
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.05), rgba(255, 179, 71, 0.05));
 }
 
 .value-icon {
@@ -562,13 +557,13 @@ h3 {
   align-items: center;
   justify-content: center;
   font-size: 1.8rem;
-  color: white;
+  color: var(--dark);
   box-shadow: var(--shadow-sm);
 }
 
 .value-item h3 {
   font-size: 1.2rem;
-  color: var(--dark);
+  color: var(--text);
   margin-bottom: var(--spacing-sm);
 }
 
@@ -581,8 +576,8 @@ h3 {
 /* ===== JOIN COMMUNITY ===== */
 .join-community {
   padding: var(--spacing-xl) 0;
-  background: linear-gradient(135deg, var(--dark), #2A2D43);
-  color: white;
+  background: linear-gradient(135deg, var(--dark), #1A1A1A);
+  color: var(--text);
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -608,7 +603,7 @@ h3 {
 
 .join-content h2 {
   font-size: 2.5rem;
-  color: white;
+  color: var(--text);
   margin-bottom: var(--spacing-md);
 }
 
@@ -620,7 +615,7 @@ h3 {
 
 .join-content p {
   font-size: 1.125rem;
-  opacity: 0.9;
+  color: var(--text-light);
   margin-bottom: var(--spacing-lg);
   line-height: 1.7;
 }
