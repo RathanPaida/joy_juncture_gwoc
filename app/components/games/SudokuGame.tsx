@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { SudokuGameData } from '@/types/games';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { auth } from '@/lib/firebase';
 import SudokuGrid from '@/app/components/games/SudokuGrid';
 

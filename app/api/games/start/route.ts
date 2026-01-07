@@ -101,9 +101,9 @@ export async function POST(req: NextRequest) {
       gameType,
       difficulty,
       puzzle: gameData.puzzle,
-      hints: gameData.hints || [],
-      maxCoins: GAME_CONFIG[gameType][difficulty].coins,
-      hasTimeBonus: GAME_CONFIG[gameType][difficulty].timeBonus
+      hints: gameData.hints ? gameData.hints  : [],
+      maxCoins: GAME_CONFIG[gameType as keyof typeof GAME_CONFIG][difficulty as keyof typeof GAME_CONFIG as keyof typeof GAME_CONFIG[keyof typeof GAME_CONFIG]].coins,
+      hasTimeBonus: GAME_CONFIG[gameType as keyof typeof GAME_CONFIG][difficulty as keyof typeof GAME_CONFIG as keyof typeof GAME_CONFIG[keyof typeof GAME_CONFIG]].timeBonus
     }, { status: 200 });
     
   } catch (error) {

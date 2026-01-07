@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/app/contexts/AuthContext';
 import SudokuGame from '@/app/components/games/SudokuGame';
 import WordGuesserGame from '@/app/components/games/WordGuesserGame';
 import CrosswordGame from '@/app/components/games/CrosswordGame';

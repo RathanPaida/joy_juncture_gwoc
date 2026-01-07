@@ -7,10 +7,11 @@ export function generateSudoku(difficulty: 'easy' | 'medium' | 'hard') {
     
     // Remove numbers based on difficulty
     const puzzle = removeNumbers(solution, difficulty);
-    
+    const hints= "";
     return {
       puzzle,
       solution,
+      hints,
       initial: JSON.parse(JSON.stringify(puzzle)) // Deep copy
     };
   }
@@ -26,70 +27,34 @@ export function generateSudoku(difficulty: 'easy' | 'medium' | 'hard') {
     const words = wordLists[difficulty];
     const word = words[Math.floor(Math.random() * words.length)];
     const scrambled = scrambleWord(word);
-    
+    const hints= `It has ${word.length} letters`;
     return {
       puzzle: scrambled,
       solution: word,
-      hint: `It has ${word.length} letters`
+      hints: hints,
+      initial:JSON.parse(JSON.stringify(scrambled))
     };
   }
   
-  // Crossword Generator (simplified)
-//   export function generateCrossword(difficulty: 'easy' | 'medium' | 'hard') {
-//     const size = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 7 : 10;
-//     const grid = Array(size).fill(null).map(() => Array(size).fill(''));
-    
-//     // Simple crossword with 3 words
-//     const words = ['HELLO', 'WORLD', 'CODE'];
-//     const clues = [
-//       { number: 1, direction: 'across', clue: 'A friendly greeting' },
-//       { number: 2, direction: 'across', clue: 'Planet we live on' },
-//       { number: 3, direction: 'down', clue: 'Programming language' }
-//     ];
-    
-//     // Place words in grid (simplified logic)
-//     words.forEach((word, index) => {
-//       for (let i = 0; i < word.length; i++) {
-//         if (index < 2) {
-//           // Across words
-//           grid[index][i] = { letter: '', correct: word[i] };
-//         } else {
-//           // Down word
-//           if (grid[i] && grid[i][index - 2]) {
-//             grid[i][index - 2] = { letter: '', correct: word[i] };
-//           }
-//         }
-//       }
-//     });
-    
-//     return {
-//       puzzle: grid,
-//       solution: grid.map(row => 
-//         row.map(cell => ({ ...cell, letter: cell.correct }))
-//       ),
-//       clues,
-//       size
-//     };
-//   }
   
   // Helper functions
   function solveSudoku(grid: number[][]) {
-    // Sudoku solving logic (implement or use a library)
-    return grid;
-  }
-  
-  function removeNumbers(grid: number[][], difficulty: string) {
-    const removalCount = {
-      easy: 30,
-      medium: 40,
-      hard: 50
-    };
+      // Sudoku solving logic (implement or use a library)
+      return grid;
+    }
     
-    const puzzle = JSON.parse(JSON.stringify(grid));
-    const cells = Array.from({ length: 81 }, (_, i) => i);
-    
-    for (let i = 0; i < removalCount[difficulty]; i++) {
-      if (cells.length === 0) break;
+    function removeNumbers(grid: number[][], difficulty: string) {
+        const removalCount = {
+            'easy': 30,
+            'medium': 40,
+            'hard': 50
+        };
+        
+        const puzzle = JSON.parse(JSON.stringify(grid));
+        const cells = Array.from({ length: 81 }, (_, i) => i);
+        
+        for (let i = 0; i < removalCount[difficulty as keyof typeof removalCount]; i++) {
+            if (cells.length === 0) break;
       const index = Math.floor(Math.random() * cells.length);
       const cellIndex = cells[index];
       const row = Math.floor(cellIndex / 9);
@@ -99,21 +64,58 @@ export function generateSudoku(difficulty: 'easy' | 'medium' | 'hard') {
     }
     
     return puzzle;
-  }
-  
-  function scrambleWord(word: string) {
+}
+
+function scrambleWord(word: string) {
     const arr = word.split('');
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr.join('');
   }
 
-  // Update the generateCrossword function
-export function generateCrossword(difficulty: 'easy' | 'medium' | 'hard') {
-    const size = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 7 : 10;
+  // Crossword Generator (simplified)
+  //   export function generateCrossword(difficulty: 'easy' | 'medium' | 'hard') {
+  //     const size = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 7 : 10;
+  //     const grid = Array(size).fill(null).map(() => Array(size).fill(''));
     
+  //     // Simple crossword with 3 words
+  //     const words = ['HELLO', 'WORLD', 'CODE'];
+  //     const clues = [
+  //       { number: 1, direction: 'across', clue: 'A friendly greeting' },
+  //       { number: 2, direction: 'across', clue: 'Planet we live on' },
+  //       { number: 3, direction: 'down', clue: 'Programming language' }
+  //     ];
+    
+  //     // Place words in grid (simplified logic)
+  //     words.forEach((word, index) => {
+  //       for (let i = 0; i < word.length; i++) {
+  //         if (index < 2) {
+  //           // Across words
+  //           grid[index][i] = { letter: '', correct: word[i] };
+  //         } else {
+  //           // Down word
+  //           if (grid[i] && grid[i][index - 2]) {
+  //             grid[i][index - 2] = { letter: '', correct: word[i] };
+  //           }
+  //         }
+  //       }
+  //     });
+    
+  //     return {
+  //       puzzle: grid,
+  //       solution: grid.map(row => 
+  //         row.map(cell => ({ ...cell, letter: cell.correct }))
+  //       ),
+  //       clues,
+  //       size
+  //     };
+  //   }
+  // Update the generateCrossword function
+  export function generateCrossword(difficulty: 'easy' | 'medium' | 'hard') {
+      const size = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 7 : 10;
+      
     // Define words based on difficulty
     const wordLists = {
       easy: [
@@ -234,7 +236,9 @@ export function generateCrossword(difficulty: 'easy' | 'medium' | 'hard') {
         }))
       ),
       clues,
-      size
+      size,
+      hints: "",
+      initial:JSON.parse(JSON.stringify(grid))
     };
   }
   

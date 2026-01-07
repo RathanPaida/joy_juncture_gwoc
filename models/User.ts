@@ -1,109 +1,185 @@
-import mongoose, { Schema, Model, HydratedDocument } from 'mongoose';
-import bcrypt from 'bcryptjs';
+// models/User.ts - UPDATED WITH ADMIN ROLES
+import mongoose, { Schema, Document } from 'mongoose';
 
-/* =========================
-   User Interface
-========================= */
-export interface IUser {
-  firebaseUid?: string;
+export interface IUser extends Document {
   email: string;
-  password: string;
+  password?: string;
   name: string;
-  role: 'admin' | 'editor' | 'viewer' | 'user';
+  role: 'viewer' | 'editor' | 'admin' | 'super_admin';
+  firebaseUid?: string;
+  authProvider: 'local' | 'firebase' | 'google';
+  totalPoints: number;
+  level: number;
+  streak: number;
+  lastActivity?: Date;
+  achievements: Array<{
+    achievementId: string;
+    unlocked: boolean;
+    progress: number;
+    unlockedAt?: Date;
+  }>;
+  walletBalance: number;
+  referralCode?: string;
   avatar?: string;
-  lastLogin?: Date;
   isActive: boolean;
+  emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
-
-  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-/* =========================
-   User Schema
-========================= */
-const UserSchema = new Schema<IUser>(
-  {
-    firebaseUid: { type: String },
-    email: {
-      type: String,
-      required: false, // not required if using firebaseUid only
-      unique: true,
-      lowercase: true,
-      trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],
-    },
-    password: {
-      type: String,
-      minlength: [8, 'Password must be at least 8 characters'],
-      required: false, // not required if using firebaseUid only
-    },
-    name: {
-      type: String,
-      required: [true, 'Name is required'],
-      trim: true,
-    },
-    role: {
-      type: String,
-      enum: ['admin', 'editor', 'viewer', 'user'],
-      default: 'user',
-    },
-    avatar: String,
-    lastLogin: Date,
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    // walletCoins: {
-    //   type: Number,
-    //   default: 0,
-    // },
+const userSchema = new Schema<IUser>({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
   },
-  {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+  password: {
+    type: String,
+    select: false
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  role: {
+    type: String,
+    enum: ['viewer', 'editor', 'admin', 'super_admin'],
+    default: 'viewer'
+  },
+  firebaseUid: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
+  authProvider: {
+    type: String,
+    enum: ['local', 'firebase', 'google'],
+    default: 'local'
+  },
+  totalPoints: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  level: {
+    type: Number,
+    default: 1,
+    min: 1
+  },
+  streak: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  lastActivity: {
+    type: Date,
+    default: Date.now
+  },
+  achievements: [{
+    achievementId: {
+      type: String,
+      required: true
+    },
+    unlocked: {
+      type: Boolean,
+      default: false
+    },
+    progress: {
+      type: Number,
+      default: 0
+    },
+    unlockedAt: Date
+  }],
+  walletBalance: {
+    type: Number,
+    default: 0
+  },
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  avatar: String,
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false
   }
-);
+}, {
+  timestamps: true
+});
 
-/* =========================
-   Pre-save: Hash Password
-========================= */
-UserSchema.pre('save', async function () {
-  const user = this as HydratedDocument<IUser>;
+// Indexes for better query performance
+userSchema.index({ email: 1 });
+userSchema.index({ firebaseUid: 1 });
+userSchema.index({ referralCode: 1 });
+userSchema.index({ role: 1 });
 
-  if (user.password && user.isModified('password')) {
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt);
+// Generate referral code before saving
+userSchema.pre('save', function(next) {
+  if (!this.referralCode) {
+    this.referralCode = `JJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   }
 });
 
-/* =========================
-   Instance Methods
-========================= */
-UserSchema.methods.comparePassword = async function (
-  this: HydratedDocument<IUser>,
-  candidatePassword: string
-): Promise<boolean> {
-  if (!this.password) return false;
-  return bcrypt.compare(candidatePassword, this.password);
-};
+// Transaction Schema
+export interface ITransaction extends Document {
+  userId: string;
+  type: 'purchase' | 'event' | 'game' | 'referral' | 'bonus' | 'redeem' | 'daily' | 'manual';
+  amount: number;
+  description: string;
+  referenceId?: string;
+  metadata?: any;
+  balanceAfter: number;
+  status: 'completed' | 'pending' | 'failed';
+  createdAt: Date;
+}
 
-/* =========================
-   Hide Password in JSON
-========================= */
-UserSchema.methods.toJSON = function () {
-  const obj = this.toObject();
-  delete obj.password;
-  return obj;
-};
+const transactionSchema = new Schema<ITransaction>({
+  userId: {
+    type: String,
+    required: true,
+    index: true
+  },
+  type: {
+    type: String,
+    required: true,
+    enum: ['purchase', 'event', 'game', 'referral', 'bonus', 'redeem', 'daily', 'manual']
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  referenceId: String,
+  metadata: Schema.Types.Mixed,
+  balanceAfter: {
+    type: Number,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['completed', 'pending', 'failed'],
+    default: 'completed'
+  }
+}, {
+  timestamps: true
+});
 
-/* =========================
-   Model Export
-========================= */
-export type UserModel = Model<IUser>;
+// Indexes
+transactionSchema.index({ userId: 1, createdAt: -1 });
+transactionSchema.index({ type: 1 });
+transactionSchema.index({ status: 1 });
 
-export const User =
-  (mongoose.models.User as UserModel) ||
-  mongoose.model<IUser, UserModel>('User', UserSchema);
-
+// Export models
+export const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+export const Transaction = mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', transactionSchema);

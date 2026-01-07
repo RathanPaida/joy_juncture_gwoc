@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import  verifyIdToken  from '@/lib/firebaseAdmin';
+import  {verifyIdToken}  from '@/lib/firebase-admin';
 import { connectDb } from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { GameSession, GameLeaderboard } from '@/models/Game';
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     let score = 0;
     
     if (isCorrect) {
-      const config = GAME_CONFIG[gameType][difficulty];
+      const config = GAME_CONFIG[gameType as keyof typeof GAME_CONFIG][difficulty as keyof typeof GAME_CONFIG as keyof typeof GAME_CONFIG[keyof typeof GAME_CONFIG]];
       
       // Calculate base coins
       coinsEarned = config.baseCoins;
@@ -186,7 +186,7 @@ function calculateScore(gameType: string, difficulty: string, timeSpent: number)
     crossword: { easy: 150, medium: 350, hard: 700 }
   };
   
-  let score = baseScores[gameType][difficulty];
+  let score = baseScores[gameType as keyof typeof baseScores][difficulty as keyof typeof baseScores as keyof typeof baseScores[keyof typeof baseScores]];
   
   // Bonus for fast completion
   if (timeSpent) {
@@ -206,5 +206,5 @@ function getMaxTimeForGame(gameType: string, difficulty: string) {
     'word-guesser': { easy: 300, medium: 600, hard: 900 },
     crossword: { easy: 1800, medium: 3600, hard: 5400 }
   };
-  return times[gameType][difficulty];
+  return times[gameType as keyof typeof times][difficulty as keyof typeof times as keyof typeof times[keyof typeof times]];
 }

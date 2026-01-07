@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import EventCard from '@/app/components/EventCard';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 interface Event {
   _id: string;

@@ -5,6 +5,10 @@ import { User } from '@/models/User';
 import { GameSession, GameLeaderboard } from '@/models/Game';
 
 export async function GET(req: NextRequest) {
+  console.log('📊 Stats API called');
+  console.log('URL:', req.url);
+  console.log('Method:', req.method);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
   try {
     await connectDb();
     
@@ -39,13 +43,13 @@ export async function GET(req: NextRequest) {
           avgScore: { $avg: '$score' }
         }
       }
-    ]);
+    ]) || [];
     
     // Get recent games
     const recentGames = await GameSession.find({ userId: user._id })
       .sort({ completedAt: -1 })
       .limit(5)
-      .lean();
+      .lean() || [];
     
     // Get leaderboard position
     const leaderboard = await GameLeaderboard.aggregate([
@@ -62,7 +66,7 @@ export async function GET(req: NextRequest) {
           users: { $push: { userId: '$_id', totalScore: '$totalScore' } }
         }
       }
-    ]);
+    ]) || [];
     
     let rank = 0;
     if (leaderboard[0]?.users) {
@@ -76,7 +80,9 @@ export async function GET(req: NextRequest) {
       gameStats,
       recentGames,
       rank,
+      // totalCoinsEarned: !!gameStats.reduce((sum, stat) => sum + stat.totalCoins, 0) ? gameStats.reduce((sum, stat) => sum + stat.totalCoins, 0) : 0,
       totalCoinsEarned: gameStats.reduce((sum, stat) => sum + stat.totalCoins, 0),
+      // totalGames: !!gameStats.reduce((sum, stat) => sum + stat.totalGames, 0) ? gameStats.reduce((sum, stat) => sum + stat.totalGames, 0) : 0
       totalGames: gameStats.reduce((sum, stat) => sum + stat.totalGames, 0)
     }, { status: 200 });
     

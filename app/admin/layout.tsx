@@ -1,14 +1,25 @@
+<<<<<<< HEAD
 'use client';
 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
+=======
+// app/admin/layout.tsx
+// This ensures admin pages have access to AuthContext
+'use client';
+import { AuthProvider } from "@/app/contexts/AuthContext";
+
+
+import React from 'react';
+>>>>>>> ce057853c8694f2e1d4bb236a5a59542fb1b3a60
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+<<<<<<< HEAD
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -50,4 +61,9 @@ export default function AdminLayout({
       <main className="container mx-auto px-4 py-8">{children}</main>
     </div>
   );
+=======
+  return <>
+  <AuthProvider>{children}
+    </AuthProvider></>;
+>>>>>>> ce057853c8694f2e1d4bb236a5a59542fb1b3a60
 }
