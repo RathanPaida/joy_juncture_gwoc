@@ -44,7 +44,7 @@ const navigation = [
     name: 'Community',
     dropdown: [
       { name: 'Blog', href: '/blog' },
-      { name: 'Wallet & Points', href: '/community/wallet' },
+      { name: 'Wallet & Points', href: '/walletandpoints' },
       { name: 'About us', href: '/about' },
     ],
   },
@@ -54,8 +54,11 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  // ✅ single source of truth
-  const { user, loading, isAdmin, signOut } = useAuth();
+  // ✅ Updated to handle missing properties gracefully
+  const { user, loading, logout } = useAuth();
+  
+  // Check if user is admin - you can implement this logic based on your user object
+  const isAdmin = user?.email?.includes('admin') || user?.role === 'admin';
 
   const adminNavigation = isAdmin ? [
     {
@@ -73,7 +76,9 @@ export default function Navbar() {
   const allNavigation = [...navigation, ...adminNavigation];
 
   const handleLogout = async () => {
-    await signOut(); // ✅ Firebase logout
+    if (logout) {
+      await logout();
+    }
     setIsUserMenuOpen(false);
   };
 
@@ -131,7 +136,7 @@ export default function Navbar() {
                   className="relative p-1 text-gray-700 hover:text-black transition-colors"
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold text-sm">
-                    {user.email?.charAt(0) || <User className="w-5 h-5" />}
+                    {user.email?.charAt(0)?.toUpperCase() || <User className="w-5 h-5" />}
                   </div>
                   {isAdmin && (
                     <Shield className="w-3 h-3 absolute -top-1 -right-1 text-red-600 bg-white rounded-full p-0.5" />
@@ -142,14 +147,21 @@ export default function Navbar() {
                   <div className="absolute right-0 mt-3 w-56 bg-white border border-gray-100 shadow-xl rounded-xl py-3 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="font-bold text-gray-900">{user.email}</p>
+                      {isAdmin && (
+                        <span className="text-xs text-red-600 font-semibold">Admin</span>
+                      )}
                     </div>
 
-                    <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50">
+                    <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50" onClick={() => setIsUserMenuOpen(false)}>
                       <User className="w-4 h-4" /> My Profile
                     </Link>
 
+                    <Link href="/walletandpoints" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50" onClick={() => setIsUserMenuOpen(false)}>
+                      <Shield className="w-4 h-4" /> Wallet & Points
+                    </Link>
+
                     {isAdmin && (
-                      <Link href="/blog/admin" className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50">
+                      <Link href="/blog/admin" className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50" onClick={() => setIsUserMenuOpen(false)}>
                         <Settings className="w-4 h-4" /> Admin Dashboard
                       </Link>
                     )}

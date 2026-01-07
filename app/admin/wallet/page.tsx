@@ -1,0 +1,933 @@
+// app/admin/wallet/page.tsx - FIXED AUTH VERSION
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import {
+  FaCoins, FaGift, FaTrophy, FaUsers, FaCog, FaPlus,
+  FaEdit, FaTrash, FaSave, FaTimes, FaChartLine, FaExclamationCircle
+} from 'react-icons/fa';
+import './admin-wallet.css';
+
+interface PointsCriteria {
+  _id?: string;
+  type: string;
+  pointsPerUnit: number;
+  description: string;
+  isActive: boolean;
+}
+
+interface Reward {
+  _id: string;
+  name: string;
+  description: string;
+  points: number;
+  category: string;
+  icon: string;
+  color: string;
+  stock: number;
+  isActive: boolean;
+}
+
+interface Achievement {
+  _id: string;
+  name: string;
+  description: string;
+  icon: string;
+  points: number;
+  requirement: number;
+  category: string;
+  isActive: boolean;
+}
+
+interface UserStats {
+  totalUsers: number;
+  totalPointsIssued: number;
+  totalPointsRedeemed: number;
+  activeRewards: number;
+}
+
+const AdminWalletPage: React.FC = () => {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [accessError, setAccessError] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'criteria' | 'rewards' | 'achievements' | 'stats'>('criteria');
+  
+  // Data states
+  const [pointsCriteria, setPointsCriteria] = useState<PointsCriteria[]>([]);
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [stats, setStats] = useState<UserStats | null>(null);
+  
+  // Edit states
+  const [editingCriteria, setEditingCriteria] = useState<PointsCriteria | null>(null);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
+  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null);
+  
+  // Modal states
+  const [showCriteriaModal, setShowCriteriaModal] = useState(false);
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [showAchievementModal, setShowAchievementModal] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (user) {
+        console.log('User authenticated, checking admin access...');
+        checkAdminAccess();
+      } else {
+        console.log('No user, redirecting to login...');
+        router.push('/login?redirect=/admin/wallet');
+      }
+    }
+  }, [user, authLoading]);
+
+  const checkAdminAccess = async () => {
+    if (!user) {
+      setAccessDenied(true);
+      setAccessError('Please login to access admin panel');
+      return;
+    }
+
+    try {
+      console.log('Getting Firebase token...');
+      const token = await user.getIdToken();
+      
+      console.log('Checking admin access...');
+      const response = await fetch('/api/admin/check-access', {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Admin check response:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Access denied:', errorData);
+        
+        setAccessDenied(true);
+        setAccessError(errorData.error || 'Access denied. Admin privileges required.');
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Admin access granted:', data);
+      
+      // Access granted, fetch all data
+      fetchAllData();
+    } catch (error: any) {
+      console.error('Error checking admin access:', error);
+      setAccessDenied(true);
+      setAccessError(`Error: ${error.message}`);
+      setLoading(false);
+    }
+  };
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const token = await user!.getIdToken();
+      
+      console.log('Fetching admin data...');
+      
+      // Fetch points criteria
+      try {
+        const criteriaRes = await fetch('/api/admin/wallet/criteria', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (criteriaRes.ok) {
+          const data = await criteriaRes.json();
+          setPointsCriteria(data.criteria || []);
+          console.log('Criteria loaded:', data.criteria?.length);
+        }
+      } catch (err) {
+        console.error('Error fetching criteria:', err);
+      }
+
+      // Fetch rewards
+      try {
+        const rewardsRes = await fetch('/api/admin/wallet/rewards', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (rewardsRes.ok) {
+          const data = await rewardsRes.json();
+          setRewards(data.rewards || []);
+          console.log('Rewards loaded:', data.rewards?.length);
+        }
+      } catch (err) {
+        console.error('Error fetching rewards:', err);
+      }
+
+      // Fetch achievements
+      try {
+        const achievementsRes = await fetch('/api/admin/wallet/achievements', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (achievementsRes.ok) {
+          const data = await achievementsRes.json();
+          setAchievements(data.achievements || []);
+          console.log('Achievements loaded:', data.achievements?.length);
+        }
+      } catch (err) {
+        console.error('Error fetching achievements:', err);
+      }
+
+      // Fetch stats
+      try {
+        const statsRes = await fetch('/api/admin/wallet/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          setStats(data);
+          console.log('Stats loaded');
+        }
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Points Criteria Management
+  const handleSaveCriteria = async (criteria: PointsCriteria) => {
+    try {
+      const token = await user!.getIdToken();
+      const method = criteria._id ? 'PUT' : 'POST';
+      const url = criteria._id 
+        ? `/api/admin/wallet/criteria/${criteria._id}`
+        : '/api/admin/wallet/criteria';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(criteria)
+      });
+
+      if (response.ok) {
+        alert('Points criteria saved successfully!');
+        setShowCriteriaModal(false);
+        setEditingCriteria(null);
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error saving criteria:', error);
+      alert('Failed to save criteria');
+    }
+  };
+
+  const handleDeleteCriteria = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this criteria?')) return;
+
+    try {
+      const token = await user!.getIdToken();
+      const response = await fetch(`/api/admin/wallet/criteria/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        alert('Criteria deleted successfully!');
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error deleting criteria:', error);
+    }
+  };
+
+  // Reward Management
+  const handleSaveReward = async (reward: Reward) => {
+    try {
+      const token = await user!.getIdToken();
+      const method = reward._id ? 'PUT' : 'POST';
+      const url = reward._id 
+        ? `/api/admin/wallet/rewards/${reward._id}`
+        : '/api/admin/wallet/rewards';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reward)
+      });
+
+      if (response.ok) {
+        alert('Reward saved successfully!');
+        setShowRewardModal(false);
+        setEditingReward(null);
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error saving reward:', error);
+      alert('Failed to save reward');
+    }
+  };
+
+  const handleDeleteReward = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this reward?')) return;
+
+    try {
+      const token = await user!.getIdToken();
+      const response = await fetch(`/api/admin/wallet/rewards/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        alert('Reward deleted successfully!');
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error deleting reward:', error);
+    }
+  };
+
+  // Achievement Management
+  const handleSaveAchievement = async (achievement: Achievement) => {
+    try {
+      const token = await user!.getIdToken();
+      const method = achievement._id ? 'PUT' : 'POST';
+      const url = achievement._id 
+        ? `/api/admin/wallet/achievements/${achievement._id}`
+        : '/api/admin/wallet/achievements';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(achievement)
+      });
+
+      if (response.ok) {
+        alert('Achievement saved successfully!');
+        setShowAchievementModal(false);
+        setEditingAchievement(null);
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error saving achievement:', error);
+      alert('Failed to save achievement');
+    }
+  };
+
+  const handleDeleteAchievement = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this achievement?')) return;
+
+    try {
+      const token = await user!.getIdToken();
+      const response = await fetch(`/api/admin/wallet/achievements/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        alert('Achievement deleted successfully!');
+        fetchAllData();
+      }
+    } catch (error) {
+      console.error('Error deleting achievement:', error);
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="admin-wallet-page">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading admin panel...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="admin-wallet-page">
+        <div className="access-denied">
+          <FaExclamationCircle className="error-icon" />
+          <h1>Access Denied</h1>
+          <p>{accessError}</p>
+          <div className="access-denied-actions">
+            <button onClick={() => router.push('/')}>Go Home</button>
+            <button onClick={() => router.push('/login')}>Login</button>
+            <button onClick={() => router.push('/admin/setup')}>Setup Admin</button>
+          </div>
+          <div className="help-text">
+            <h3>Need admin access?</h3>
+            <p>1. Make sure you're logged in</p>
+            <p>2. Your account must have 'admin' or 'super_admin' role</p>
+            <p>3. Visit /admin/setup to make yourself admin (first time only)</p>
+            <p>4. Or update your role in MongoDB directly</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-wallet-page">
+      <div className="admin-header">
+        <h1><FaCog /> Wallet System Management</h1>
+        <p>Manage points criteria, rewards, and achievements</p>
+      </div>
+
+      <div className="admin-tabs">
+        <button
+          className={activeTab === 'criteria' ? 'active' : ''}
+          onClick={() => setActiveTab('criteria')}
+        >
+          <FaCoins /> Points Criteria
+        </button>
+        <button
+          className={activeTab === 'rewards' ? 'active' : ''}
+          onClick={() => setActiveTab('rewards')}
+        >
+          <FaGift /> Rewards
+        </button>
+        <button
+          className={activeTab === 'achievements' ? 'active' : ''}
+          onClick={() => setActiveTab('achievements')}
+        >
+          <FaTrophy /> Achievements
+        </button>
+        <button
+          className={activeTab === 'stats' ? 'active' : ''}
+          onClick={() => setActiveTab('stats')}
+        >
+          <FaChartLine /> Statistics
+        </button>
+      </div>
+
+      <div className="admin-content">
+        {/* Points Criteria Tab */}
+        {activeTab === 'criteria' && (
+          <div className="criteria-section">
+            <div className="section-header">
+              <h2>Points Earning Criteria</h2>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setEditingCriteria({
+                    type: '',
+                    pointsPerUnit: 0,
+                    description: '',
+                    isActive: true
+                  });
+                  setShowCriteriaModal(true);
+                }}
+              >
+                <FaPlus /> Add New Criteria
+              </button>
+            </div>
+
+            <div className="criteria-list">
+              {pointsCriteria.length === 0 ? (
+                <div className="empty-state">
+                  <p>No criteria yet. Add your first one!</p>
+                </div>
+              ) : (
+                pointsCriteria.map((criteria) => (
+                  <div key={criteria._id} className="criteria-card">
+                    <div className="criteria-info">
+                      <h3>{criteria.type}</h3>
+                      <p>{criteria.description}</p>
+                      <span className="points-badge">
+                        {criteria.pointsPerUnit} points
+                      </span>
+                      <span className={`status-badge ${criteria.isActive ? 'active' : 'inactive'}`}>
+                        {criteria.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="criteria-actions">
+                      <button
+                        onClick={() => {
+                          setEditingCriteria(criteria);
+                          setShowCriteriaModal(true);
+                        }}
+                      >
+                        <FaEdit /> Edit
+                      </button>
+                      <button
+                        className="btn-danger"
+                        onClick={() => handleDeleteCriteria(criteria._id!)}
+                      >
+                        <FaTrash /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Rewards Tab */}
+        {activeTab === 'rewards' && (
+          <div className="rewards-section">
+            <div className="section-header">
+              <h2>Available Rewards</h2>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setEditingReward({
+                    _id: '',
+                    name: '',
+                    description: '',
+                    points: 0,
+                    category: 'discount',
+                    icon: 'FaGift',
+                    color: '#FF8C00',
+                    stock: 100,
+                    isActive: true
+                  });
+                  setShowRewardModal(true);
+                }}
+              >
+                <FaPlus /> Add New Reward
+              </button>
+            </div>
+
+            <div className="rewards-grid">
+              {rewards.length === 0 ? (
+                <div className="empty-state">
+                  <p>No rewards yet. Add your first one!</p>
+                </div>
+              ) : (
+                rewards.map((reward) => (
+                  <div key={reward._id} className="reward-admin-card">
+                    <div className="reward-header">
+                      <h3>{reward.name}</h3>
+                      <span className={`status-badge ${reward.isActive ? 'active' : 'inactive'}`}>
+                        {reward.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <p>{reward.description}</p>
+                    <div className="reward-details">
+                      <span>Points: {reward.points}</span>
+                      <span>Stock: {reward.stock}</span>
+                      <span>Category: {reward.category}</span>
+                    </div>
+                    <div className="reward-actions">
+                      <button onClick={() => {
+                        setEditingReward(reward);
+                        setShowRewardModal(true);
+                      }}>
+                        <FaEdit /> Edit
+                      </button>
+                      <button
+                        className="btn-danger"
+                        onClick={() => handleDeleteReward(reward._id)}
+                      >
+                        <FaTrash /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Achievements Tab */}
+        {activeTab === 'achievements' && (
+          <div className="achievements-section">
+            <div className="section-header">
+              <h2>Achievements</h2>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setEditingAchievement({
+                    _id: '',
+                    name: '',
+                    description: '',
+                    icon: 'FaTrophy',
+                    points: 0,
+                    requirement: 1,
+                    category: 'general',
+                    isActive: true
+                  });
+                  setShowAchievementModal(true);
+                }}
+              >
+                <FaPlus /> Add New Achievement
+              </button>
+            </div>
+
+            <div className="achievements-grid">
+              {achievements.length === 0 ? (
+                <div className="empty-state">
+                  <p>No achievements yet. Add your first one!</p>
+                </div>
+              ) : (
+                achievements.map((achievement) => (
+                  <div key={achievement._id} className="achievement-admin-card">
+                    <div className="achievement-header">
+                      <h3>{achievement.name}</h3>
+                      <span className={`status-badge ${achievement.isActive ? 'active' : 'inactive'}`}>
+                        {achievement.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <p>{achievement.description}</p>
+                    <div className="achievement-details">
+                      <span>Reward: {achievement.points} points</span>
+                      <span>Requirement: {achievement.requirement}</span>
+                    </div>
+                    <div className="achievement-actions">
+                      <button onClick={() => {
+                        setEditingAchievement(achievement);
+                        setShowAchievementModal(true);
+                      }}>
+                        <FaEdit /> Edit
+                      </button>
+                      <button
+                        className="btn-danger"
+                        onClick={() => handleDeleteAchievement(achievement._id)}
+                      >
+                        <FaTrash /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Statistics Tab */}
+        {activeTab === 'stats' && stats && (
+          <div className="stats-section">
+            <h2>Wallet System Statistics</h2>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <FaUsers className="stat-icon" />
+                <h3>Total Users</h3>
+                <p className="stat-value">{stats.totalUsers}</p>
+              </div>
+              <div className="stat-card">
+                <FaCoins className="stat-icon" />
+                <h3>Points Issued</h3>
+                <p className="stat-value">{stats.totalPointsIssued.toLocaleString()}</p>
+              </div>
+              <div className="stat-card">
+                <FaGift className="stat-icon" />
+                <h3>Points Redeemed</h3>
+                <p className="stat-value">{stats.totalPointsRedeemed.toLocaleString()}</p>
+              </div>
+              <div className="stat-card">
+                <FaTrophy className="stat-icon" />
+                <h3>Active Rewards</h3>
+                <p className="stat-value">{stats.activeRewards}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modals - Same as before */}
+      {showCriteriaModal && editingCriteria && (
+        <CriteriaModal
+          criteria={editingCriteria}
+          onSave={handleSaveCriteria}
+          onClose={() => {
+            setShowCriteriaModal(false);
+            setEditingCriteria(null);
+          }}
+        />
+      )}
+
+      {showRewardModal && editingReward && (
+        <RewardModal
+          reward={editingReward}
+          onSave={handleSaveReward}
+          onClose={() => {
+            setShowRewardModal(false);
+            setEditingReward(null);
+          }}
+        />
+      )}
+
+      {showAchievementModal && editingAchievement && (
+        <AchievementModal
+          achievement={editingAchievement}
+          onSave={handleSaveAchievement}
+          onClose={() => {
+            setShowAchievementModal(false);
+            setEditingAchievement(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Modal Components (same as before - keeping them for completeness)
+const CriteriaModal: React.FC<{
+  criteria: PointsCriteria;
+  onSave: (criteria: PointsCriteria) => void;
+  onClose: () => void;
+}> = ({ criteria, onSave, onClose }) => {
+  const [formData, setFormData] = useState(criteria);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{criteria._id ? 'Edit' : 'Add'} Points Criteria</h3>
+          <button onClick={onClose}><FaTimes /></button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label>Type</label>
+            <input
+              type="text"
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              placeholder="e.g., purchase, event, game"
+            />
+          </div>
+          <div className="form-group">
+            <label>Points Per Unit</label>
+            <input
+              type="number"
+              value={formData.pointsPerUnit}
+              onChange={(e) => setFormData({ ...formData, pointsPerUnit: Number(e.target.value) })}
+            />
+          </div>
+          <div className="form-group">
+            <label>Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+            />
+          </div>
+          <div className="form-group checkbox">
+            <label>
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              />
+              Active
+            </label>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={() => onSave(formData)}>
+            <FaSave /> Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RewardModal: React.FC<{
+  reward: Reward;
+  onSave: (reward: Reward) => void;
+  onClose: () => void;
+}> = ({ reward, onSave, onClose }) => {
+  const [formData, setFormData] = useState(reward);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{reward._id ? 'Edit' : 'Add'} Reward</h3>
+          <button onClick={onClose}><FaTimes /></button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label>Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label>Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+            />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Points Required</label>
+              <input
+                type="number"
+                value={formData.points}
+                onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })}
+              />
+            </div>
+            <div className="form-group">
+              <label>Stock</label>
+              <input
+                type="number"
+                value={formData.stock}
+                onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Category</label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              >
+                <option value="discount">Discount</option>
+                <option value="ticket">Event Ticket</option>
+                <option value="bundle">Game Bundle</option>
+                <option value="premium">Premium Access</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Icon</label>
+              <input
+                type="text"
+                value={formData.icon}
+                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                placeholder="FaGift"
+              />
+            </div>
+          </div>
+          <div className="form-group">
+            <label>Color</label>
+            <input
+              type="color"
+              value={formData.color}
+              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+            />
+          </div>
+          <div className="form-group checkbox">
+            <label>
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              />
+              Active
+            </label>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={() => onSave(formData)}>
+            <FaSave /> Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AchievementModal: React.FC<{
+  achievement: Achievement;
+  onSave: (achievement: Achievement) => void;
+  onClose: () => void;
+}> = ({ achievement, onSave, onClose }) => {
+  const [formData, setFormData] = useState(achievement);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{achievement._id ? 'Edit' : 'Add'} Achievement</h3>
+          <button onClick={onClose}><FaTimes /></button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label>Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label>Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+            />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Points Reward</label>
+              <input
+                type="number"
+                value={formData.points}
+                onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })}
+              />
+            </div>
+            <div className="form-group">
+              <label>Requirement</label>
+              <input
+                type="number"
+                value={formData.requirement}
+                onChange={(e) => setFormData({ ...formData, requirement: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Category</label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              />
+            </div>
+                        <div className="form-group">
+              <label>Icon</label>
+              <input
+                type="text"
+                value={formData.icon}
+                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                placeholder="FaTrophy"
+              />
+            </div>
+          </div>
+          <div className="form-group checkbox">
+            <label>
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              />
+              Active
+            </label>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={() => onSave(formData)}>
+            <FaSave /> Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminWalletPage;

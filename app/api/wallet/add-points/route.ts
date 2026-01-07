@@ -15,7 +15,7 @@ async function checkAchievements(userId: string, type: string, metadata?: any) {
     switch (type) {
       case 'purchase':
         // First purchase achievement
-        const purchaseAchievement = achievements.find(a => 
+        const purchaseAchievement = achievements.find((a: { achievementId: string; }) => 
           a.achievementId === 'first_purchase'
         );
         if (!purchaseAchievement?.unlocked) {
@@ -32,11 +32,11 @@ async function checkAchievements(userId: string, type: string, metadata?: any) {
       case 'event':
         // Event attendance achievement
         const eventCount = achievements
-          .filter(a => a.achievementId === 'event_regular')
-          .reduce((sum, a) => sum + (a.progress || 0), 0);
+          .filter((a: { achievementId: string; }) => a.achievementId === 'event_regular')
+          .reduce((sum: any, a: { progress: any; }) => sum + (a.progress || 0), 0);
         
         if (eventCount < 5) {
-          const eventAchievement = achievements.find(a => 
+          const eventAchievement = achievements.find((a: { achievementId: string; }) => 
             a.achievementId === 'event_regular'
           );
           if (eventAchievement) {
@@ -58,7 +58,7 @@ async function checkAchievements(userId: string, type: string, metadata?: any) {
       case 'daily':
         // Streak achievement
         if (user.streak >= 7) {
-          const streakAchievement = achievements.find(a => 
+          const streakAchievement = achievements.find((a: { achievementId: string; }) => 
             a.achievementId === 'streak_champion'
           );
           if (!streakAchievement?.unlocked) {

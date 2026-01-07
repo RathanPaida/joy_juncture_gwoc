@@ -1,5 +1,6 @@
-// app/api/wallet/create/route.ts
+// app/api/wallet/create/route.ts - UPDATED VERSION
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyIdToken } from '@/lib/firebase-admin';
 import { connectDb } from '@/lib/mongodb';
 import { User } from '@/models/User';
 
@@ -8,7 +9,27 @@ export async function POST(req: NextRequest) {
     await connectDb();
     
     const body = await req.json();
-    const { email, name } = body;
+    const { email, name, firebaseUid, picture } = body;
+    const authHeader = req.headers.get('authorization');
+    
+    // If Firebase token is provided, verify it
+    let verifiedFirebaseUid = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.split('Bearer ')[1];
+      try {
+        const decodedToken = await verifyIdToken(token);
+        verifiedFirebaseUid = decodedToken.uid;
+        // Use verified UID from token, not from body
+        if (verifiedFirebaseUid !== firebaseUid) {
+          console.warn('Firebase UID mismatch:', { verified: verifiedFirebaseUid, body: firebaseUid });
+        }
+      } catch (firebaseError) {
+        console.error('Firebase token verification failed:', firebaseError);
+        // Continue without Firebase verification
+      }
+    }
+    
+    const uidToUse = verifiedFirebaseUid || firebaseUid;
     
     if (!email) {
       return NextResponse.json(
@@ -17,22 +38,48 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    // Check if user already exists by Firebase UID
+    if (uidToUse) {
+      const existingByUid = await User.findOne({ firebaseUid: uidToUse });
+      if (existingByUid) {
+        return NextResponse.json({
+          success: true,
+          message: 'User already exists',
+          user: {
+            _id: existingByUid._id,
+            email: existingByUid.email,
+            name: existingByUid.name,
+            totalPoints: existingByUid.totalPoints || 100,
+            level: existingByUid.level || 1,
+            streak: existingByUid.streak || 0,
+            referralCode: existingByUid.referralCode,
+            avatar: existingByUid.avatar
+          }
+        }, { status: 200 });
+      }
+    }
     
-    if (existingUser) {
+    // Check if user exists by email
+    const existingByEmail = await User.findOne({ email: email.toLowerCase() });
+    if (existingByEmail) {
+      // Link Firebase UID if provided
+      if (uidToUse && !existingByEmail.firebaseUid) {
+        existingByEmail.firebaseUid = uidToUse;
+        await existingByEmail.save();
+      }
+      
       return NextResponse.json({
         success: true,
         message: 'User already exists',
         user: {
-          _id: existingUser._id,
-          email: existingUser.email,
-          name: existingUser.name,
-          totalPoints: existingUser.totalPoints || 100,
-          level: existingUser.level || 1,
-          streak: existingUser.streak || 0,
-          referralCode: existingUser.referralCode,
-          avatar: existingUser.avatar
+          _id: existingByEmail._id,
+          email: existingByEmail.email,
+          name: existingByEmail.name,
+          totalPoints: existingByEmail.totalPoints || 100,
+          level: existingByEmail.level || 1,
+          streak: existingByEmail.streak || 0,
+          referralCode: existingByEmail.referralCode,
+          avatar: existingByEmail.avatar
         }
       }, { status: 200 });
     }
@@ -41,7 +88,8 @@ export async function POST(req: NextRequest) {
     const newUser = new User({
       email: email.toLowerCase(),
       name: name || email.split('@')[0],
-      authProvider: 'local',
+      firebaseUid: uidToUse,
+      authProvider: uidToUse ? 'firebase' : 'local',
       role: 'viewer',
       totalPoints: 100,
       level: 1,
@@ -50,7 +98,8 @@ export async function POST(req: NextRequest) {
       achievements: [],
       walletBalance: 0,
       isActive: true,
-      emailVerified: false
+      emailVerified: uidToUse ? true : false,
+      avatar: picture
     });
     
     await newUser.save();

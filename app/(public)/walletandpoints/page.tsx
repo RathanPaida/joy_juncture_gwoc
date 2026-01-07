@@ -1,4 +1,4 @@
-// app/(public)/walletandpoints/page.tsx
+// app/(public)/walletandpoints/page.tsx - PRODUCTION VERSION
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -85,14 +85,49 @@ const WalletPointsPage: React.FC = () => {
     { id: 'premium', name: 'Premium Access', color: '#3498DB' }
   ];
 
+  // Create wallet for new user
+  const createWalletForUser = async () => {
+    if (!user) throw new Error('No user found');
+    
+    try {
+      const token = await user.getIdToken();
+      
+      const response = await fetch('/api/wallet/create', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.displayName || user.email?.split('@')[0] || 'User',
+          firebaseUid: user.uid,
+          picture: user.photoURL || null
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create wallet: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      throw new Error(`Wallet creation failed: ${error.message}`);
+    }
+  };
+
   // Fetch wallet data
   const fetchWalletData = async () => {
-    if (!user) return;
+    if (!user) {
+      setPageLoading(false);
+      return;
+    }
     
     try {
       setPageLoading(true);
+      setError(null);
       
-      // Get Firebase token for authentication
       const token = await user.getIdToken();
       
       // Fetch user wallet data
@@ -102,93 +137,74 @@ const WalletPointsPage: React.FC = () => {
         }
       });
       
-      if (!walletRes.ok) {
-        if (walletRes.status === 401) {
-          // User doesn't have a wallet yet, create one
-          await createWalletForUser();
-          fetchWalletData(); // Retry fetching
-          return;
+      if (walletRes.status === 401 || walletRes.status === 404) {
+        // Create wallet if not found
+        await createWalletForUser();
+        
+        // Retry fetching after creation
+        const retryRes = await fetch('/api/wallet', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!retryRes.ok) {
+          throw new Error('Failed to load wallet after creation');
         }
-        throw new Error('Failed to fetch wallet data');
+        
+        const walletData = await retryRes.json();
+        updateUserData(walletData);
+      } else if (walletRes.ok) {
+        const walletData = await walletRes.json();
+        updateUserData(walletData);
+      } else {
+        throw new Error('Failed to load wallet data');
       }
-      
-      const walletData = await walletRes.json();
-      
-      setWalletUser(walletData.user);
-      setUserPoints(walletData.user.totalPoints);
-      setLevel(walletData.user.level);
-      setStreak(walletData.user.streak);
-      setUserName(walletData.user.name);
-      setTransactions(walletData.transactions || []);
       
       // Fetch rewards
       const rewardsRes = await fetch('/api/wallet/rewards');
       if (rewardsRes.ok) {
         const rewardsData = await rewardsRes.json();
-        setRewards(rewardsData);
+        setRewards(rewardsData.rewards || rewardsData || []);
       }
       
       // Fetch achievements
-      const achievementsRes = await fetch('/api/wallet/achievements');
+      const achievementsRes = await fetch('/api/wallet/achievements', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (achievementsRes.ok) {
         const achievementsData = await achievementsRes.json();
-        setAchievements(achievementsData);
+        setAchievements(achievementsData.achievements || achievementsData || []);
       }
       
-      setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to load wallet data');
-      console.error('Error fetching wallet data:', err);
+      setError(err.message || 'Failed to load wallet data. Please try refreshing.');
     } finally {
       setPageLoading(false);
     }
   };
 
-  // Create wallet for new user
-  // In app/(public)/walletandpoints/page.tsx
-const createWalletForUser = async () => {
-  if (!user) return;
-  
-  try {
-    const response = await fetch('/api/wallet/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        email: user.email,
-        name: user.displayName || user.email?.split('@')[0]
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to create wallet');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error creating wallet:', error);
-    throw error;
-  }
-};
+  const updateUserData = (walletData: any) => {
+    setWalletUser(walletData.user);
+    setUserPoints(walletData.user?.totalPoints || 0);
+    setLevel(walletData.user?.level || 1);
+    setStreak(walletData.user?.streak || 0);
+    setUserName(walletData.user?.name || user?.displayName || user?.email?.split('@')[0] || 'Player');
+    setTransactions(walletData.transactions || []);
+  };
 
   // Initial data fetch
   useEffect(() => {
-    if (user) {
-      fetchWalletData();
-    } else {
-      setPageLoading(false);
+    if (!authLoading) {
+      if (user) {
+        fetchWalletData();
+      } else {
+        setPageLoading(false);
+      }
     }
-  }, [user]);
-
-  // Refresh data every 30 seconds when user is logged in
-  useEffect(() => {
-    if (user) {
-      const interval = setInterval(fetchWalletData, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [user]);
+  }, [user, authLoading]);
 
   const filteredRewards = selectedCategory === 'all' 
     ? rewards 
@@ -226,15 +242,12 @@ const createWalletForUser = async () => {
         throw new Error(data.error || 'Redemption failed');
       }
       
-      // Update local state
       setUserPoints(data.newBalance);
       setShowRedeemModal(false);
       setShowConfetti(true);
       
-      // Refresh data
       fetchWalletData();
       
-      // Show success message
       alert(`🎉 Success! You've redeemed ${selectedReward.name}. Your new balance is ${data.newBalance} points.`);
       
       setTimeout(() => {
@@ -250,10 +263,9 @@ const createWalletForUser = async () => {
 
   const getLevelProgress = () => {
     if (!walletUser) return 0;
-    
     const levelThresholds = [0, 1000, 2000, 3000, 5000, 7500, 10000];
-    const currentLevelPoints = levelThresholds[walletUser.level - 1];
-    const nextLevelPoints = levelThresholds[walletUser.level] || levelThresholds[walletUser.level - 1];
+    const currentLevelPoints = levelThresholds[walletUser.level - 1] || 0;
+    const nextLevelPoints = levelThresholds[walletUser.level] || levelThresholds[walletUser.level - 1] || 10000;
     const progress = ((walletUser.totalPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
     return Math.min(Math.max(progress, 0), 100);
   };
@@ -263,73 +275,6 @@ const createWalletForUser = async () => {
     return names[level - 1] || names[names.length - 1];
   };
 
-  // Activity trigger functions (to be called from other components)
-  const addPoints = async (type: string, amount: number, description: string, metadata?: any) => {
-    if (!user) {
-      alert('Please login to earn points!');
-      return null;
-    }
-    
-    try {
-      const token = await user.getIdToken();
-      
-      const response = await fetch('/api/wallet/add-points', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type,
-          amount,
-          description,
-          metadata
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Update local state
-        setUserPoints(data.newBalance);
-        fetchWalletData(); // Refresh all data
-        return data;
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error: any) {
-      console.error('Error adding points:', error);
-      alert(`Failed to add points: ${error.message}`);
-      return null;
-    }
-  };
-
-  // Example functions for other components
-  const triggerGamePurchase = async (gameId: string, gameName: string, price: number) => {
-    const points = Math.floor(price * 10); // 10 points per rupee
-    return await addPoints('purchase', points, `Game Purchase: ${gameName}`, {
-      gameId,
-      gameName,
-      price,
-      pointsAwarded: points
-    });
-  };
-
-  const triggerEventAttendance = async (eventId: string, eventName: string) => {
-    return await addPoints('event', 200, `Event Attendance: ${eventName}`, {
-      eventId,
-      eventName
-    });
-  };
-
-  const triggerPuzzleComplete = async (puzzleId: string, puzzleName: string) => {
-    return await addPoints('game', 50, `Puzzle Complete: ${puzzleName}`, {
-      puzzleId,
-      puzzleName
-    });
-  };
-
-  // Render icon from string
   const renderIcon = (iconName: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
       'FaGamepad': <FaGamepad />,
@@ -389,6 +334,9 @@ const createWalletForUser = async () => {
           <button onClick={fetchWalletData} className="retry-btn">
             <FaSync /> Retry
           </button>
+          <p className="error-help">
+            If the issue persists, please try logging out and back in.
+          </p>
         </div>
       </div>
     );
@@ -462,7 +410,7 @@ const createWalletForUser = async () => {
                   />
                 </div>
                 <p className="level-progress">
-                  {userPoints} / {level * 1000} points to next level
+                  {userPoints} / {(level * 1000)} points to next level
                 </p>
               </div>
             </div>
@@ -523,7 +471,7 @@ const createWalletForUser = async () => {
             </div>
 
             <div className="method-card" onClick={() => {
-              const referralCode = `JJ-${user.email?.split('@')[0].toUpperCase()}`;
+              const referralCode = walletUser?._id?.slice(-6).toUpperCase() || `JJ-${user.email?.split('@')[0].toUpperCase()}`;
               navigator.clipboard.writeText(`Join Joy Juncture using my referral code: ${referralCode}`);
               alert('Referral code copied! Share with friends to earn 250 points each!');
             }}>
@@ -625,45 +573,52 @@ const createWalletForUser = async () => {
           </div>
 
           <div className="achievements-grid">
-            {achievements.map(achievement => (
-              <div 
-                key={achievement._id} 
-                className={`achievement-card ${achievement.unlocked ? 'unlocked' : 'locked'}`}
-              >
+            {achievements.length === 0 ? (
+              <div className="empty-state">
+                <FaTrophy className="empty-icon" />
+                <p>No achievements yet. Start playing to unlock achievements!</p>
+              </div>
+            ) : (
+              achievements.map(achievement => (
                 <div 
-                  className="achievement-icon"
-                  style={{ backgroundColor: achievement.unlocked ? '#FF8C00' : '#2A2A2A' }}
+                  key={achievement._id} 
+                  className={`achievement-card ${achievement.unlocked ? 'unlocked' : 'locked'}`}
                 >
-                  {renderIcon(achievement.icon)}
-                </div>
-                <div className="achievement-content">
-                  <div className="achievement-header">
-                    <h4>{achievement.name}</h4>
-                    {achievement.unlocked && (
-                      <span className="achievement-badge">Unlocked!</span>
+                  <div 
+                    className="achievement-icon"
+                    style={{ backgroundColor: achievement.unlocked ? '#FF8C00' : '#2A2A2A' }}
+                  >
+                    {renderIcon(achievement.icon)}
+                  </div>
+                  <div className="achievement-content">
+                    <div className="achievement-header">
+                      <h4>{achievement.name}</h4>
+                      {achievement.unlocked && (
+                        <span className="achievement-badge">Unlocked!</span>
+                      )}
+                    </div>
+                    <p className="achievement-desc">{achievement.description}</p>
+                    {!achievement.unlocked && (
+                      <div className="achievement-progress">
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill" 
+                            style={{ width: `${(achievement.progress / achievement.requirement) * 100}%` }}
+                          />
+                        </div>
+                        <span className="progress-text">
+                          {achievement.progress} / {achievement.requirement}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  <p className="achievement-desc">{achievement.description}</p>
-                  {!achievement.unlocked && (
-                    <div className="achievement-progress">
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill" 
-                          style={{ width: `${(achievement.progress / achievement.requirement) * 100}%` }}
-                        />
-                      </div>
-                      <span className="progress-text">
-                        {achievement.progress} / {achievement.requirement}
-                      </span>
-                    </div>
-                  )}
+                  <div className="achievement-points">
+                    <FaCoins />
+                    <span>+{achievement.points}</span>
+                  </div>
                 </div>
-                <div className="achievement-points">
-                  <FaCoins />
-                  <span>+{achievement.points}</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </section>
