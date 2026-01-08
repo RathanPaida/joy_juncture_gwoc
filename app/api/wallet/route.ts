@@ -1,8 +1,9 @@
-// app/api/wallet/route.ts - FINAL FIX
+// app/api/wallet/route.ts - CORRECTED VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-admin';
 import { connectDb } from '@/lib/mongodb';
 import { User, Transaction } from '@/models/User';
+import { updateUserStreak } from '@/lib/streak-manager';
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,7 +14,6 @@ export async function GET(req: NextRequest) {
     let user = null;
     const authHeader = req.headers.get('authorization');
     
-    // Check for Firebase token first
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split('Bearer ')[1];
       console.log('Firebase token found, verifying...');
@@ -27,41 +27,29 @@ export async function GET(req: NextRequest) {
         const name = decodedToken.name || email.split('@')[0];
         const picture = decodedToken.picture;
         
-        // STEP 1: Find user by Firebase UID
+        // Find user by Firebase UID
         user = await User.findOne({ firebaseUid });
         console.log('User found by Firebase UID:', !!user);
         
-        // STEP 2: If not found by UID, try by email
+        // If not found by UID, try by email
         if (!user) {
           console.log('User not found by UID, searching by email:', email);
           user = await User.findOne({ email: email.toLowerCase() });
           console.log('User found by email:', !!user);
           
-          // STEP 3: If found by email, link the Firebase UID (THIS IS THE FIX!)
+          // Link the Firebase UID
           if (user) {
             console.log('⚠️ IMPORTANT: User found by email but missing firebaseUid. Linking now...');
-            
-            // Link the Firebase UID to this existing user
             user.firebaseUid = firebaseUid;
             user.authProvider = 'firebase';
-            
-            // Update avatar if provided and not set
-            if (picture && !user.avatar) {
-              user.avatar = picture;
-            }
-            
-            // Update name if provided and different
-            if (name && user.name !== name) {
-              user.name = name;
-            }
-            
-            // Save the updated user
+            if (picture && !user.avatar) user.avatar = picture;
+            if (name && user.name !== name) user.name = name;
             await user.save();
             console.log('✅ Firebase UID linked successfully to existing user');
           }
         }
         
-        // STEP 4: If still no user found, return 401 to trigger creation
+        // If still no user found, return 401
         if (!user) {
           console.log('❌ User not found by UID or email - returning 401');
           return NextResponse.json(
@@ -76,10 +64,17 @@ export async function GET(req: NextRequest) {
           );
         }
         
-        // STEP 5: Update last activity
-        user.lastActivity = new Date();
-        await user.save();
-        console.log('✅ User last activity updated');
+        // ✅ UPDATE STREAK ON EVERY WALLET ACCESS
+        try {
+          const streakResult = await updateUserStreak(user._id.toString());
+          console.log('✅ Streak updated:', streakResult);
+          
+          // Refresh user data to get updated streak and points
+          user = await User.findById(user._id);
+        } catch (streakError) {
+          console.error('⚠️ Failed to update streak:', streakError);
+          // Continue anyway - don't block wallet access
+        }
         
       } catch (firebaseError: any) {
         console.error('❌ Firebase auth error:', firebaseError.message);
@@ -90,16 +85,10 @@ export async function GET(req: NextRequest) {
       }
     } else {
       console.log('⚠️ No Firebase token found');
-      
-      // Check session/local auth
-      const sessionToken = req.cookies.get('session')?.value;
-      if (sessionToken) {
-        console.log('Session token found (not implemented)');
-        return NextResponse.json(
-          { error: 'Session authentication not implemented' },
-          { status: 401 }
-        );
-      }
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
     }
     
     if (!user) {
@@ -116,7 +105,7 @@ export async function GET(req: NextRequest) {
     // Get recent transactions
     const transactions = await Transaction.find({ userId: user._id })
       .sort({ createdAt: -1 })
-      .limit(10)
+      .limit(20)
       .lean();
     
     console.log('✅ Transactions found:', transactions.length);
@@ -135,7 +124,7 @@ export async function GET(req: NextRequest) {
         avatar: user.avatar,
         authProvider: user.authProvider,
         lastActivity: user.lastActivity,
-        firebaseUid: user.firebaseUid // Include this for debugging
+        firebaseUid: user.firebaseUid
       },
       transactions
     };

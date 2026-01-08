@@ -1,4 +1,4 @@
-// app/(public)/walletandpoints/page.tsx - PRODUCTION VERSION
+// app/(public)/walletandpoints/page.tsx - DYNAMIC VERSION
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -7,7 +7,7 @@ import {
   FaWallet, FaCoins, FaTrophy, FaGift, FaHistory, 
   FaGamepad, FaUsers, FaCalendarAlt, FaShoppingCart,
   FaStar, FaFire, FaCrown, FaBolt, FaMedal, FaGem,
-  FaSync, FaExclamationCircle, FaSignInAlt
+  FaSync, FaExclamationCircle, FaSignInAlt, FaInfoCircle
 } from 'react-icons/fa';
 import './wallet.css';
 
@@ -30,6 +30,7 @@ interface Reward {
   color: string;
   category: string;
   stock: number;
+  isActive: boolean;
 }
 
 interface Achievement {
@@ -41,6 +42,16 @@ interface Achievement {
   unlocked: boolean;
   progress: number;
   requirement: number;
+  category: string;
+  isActive: boolean;
+}
+
+interface PointsCriteria {
+  _id: string;
+  type: string;
+  pointsPerUnit: number;
+  description: string;
+  isActive: boolean;
 }
 
 interface WalletUser {
@@ -70,6 +81,7 @@ const WalletPointsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [pointsCriteria, setPointsCriteria] = useState<PointsCriteria[]>([]);
   
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
@@ -161,14 +173,18 @@ const WalletPointsPage: React.FC = () => {
         throw new Error('Failed to load wallet data');
       }
       
-      // Fetch rewards
+      // Fetch active rewards (public endpoint)
       const rewardsRes = await fetch('/api/wallet/rewards');
       if (rewardsRes.ok) {
         const rewardsData = await rewardsRes.json();
-        setRewards(rewardsData.rewards || rewardsData || []);
+        // Filter only active rewards for public view
+        const activeRewards = (rewardsData.rewards || rewardsData || []).filter(
+          (r: Reward) => r.isActive !== false
+        );
+        setRewards(activeRewards);
       }
       
-      // Fetch achievements
+      // Fetch achievements (requires auth)
       const achievementsRes = await fetch('/api/wallet/achievements', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -176,10 +192,27 @@ const WalletPointsPage: React.FC = () => {
       });
       if (achievementsRes.ok) {
         const achievementsData = await achievementsRes.json();
-        setAchievements(achievementsData.achievements || achievementsData || []);
+        // Filter only active achievements
+        const activeAchievements = (achievementsData.achievements || achievementsData || []).filter(
+          (a: Achievement) => a.isActive !== false
+        );
+        setAchievements(activeAchievements);
+      }
+      
+      // Fetch points criteria (public endpoint for display)
+      const criteriaRes = await fetch('/api/wallet/points-criteria');
+      if (criteriaRes.ok) {
+        const criteriaData = await criteriaRes.json();
+        // Filter only active criteria
+        const activeCriteria = (criteriaData.criteria || criteriaData || []).filter(
+          (c: PointsCriteria) => c.isActive !== false
+        );
+        setPointsCriteria(activeCriteria);
+        console.log('✅ Loaded points criteria:', activeCriteria.length);
       }
       
     } catch (err: any) {
+      console.error('❌ Error fetching wallet data:', err);
       setError(err.message || 'Failed to load wallet data. Please try refreshing.');
     } finally {
       setPageLoading(false);
@@ -289,8 +322,38 @@ const WalletPointsPage: React.FC = () => {
       'FaGem': <FaGem />,
       'FaGift': <FaGift />,
       'FaHistory': <FaHistory />,
+      'FaTrophy': <FaTrophy />,
+      'FaCoins': <FaCoins />,
+      'FaInfoCircle': <FaInfoCircle />,
     };
     return iconMap[iconName] || <FaStar />;
+  };
+
+  // Map criteria type to appropriate icon and action
+  const getCriteriaIcon = (type: string) => {
+    const lowerType = type.toLowerCase();
+    if (lowerType.includes('purchase') || lowerType.includes('shop')) return <FaShoppingCart />;
+    if (lowerType.includes('event')) return <FaCalendarAlt />;
+    if (lowerType.includes('game') || lowerType.includes('play')) return <FaGamepad />;
+    if (lowerType.includes('refer') || lowerType.includes('friend')) return <FaUsers />;
+    return <FaStar />;
+  };
+
+  const getCriteriaColor = (type: string) => {
+    const lowerType = type.toLowerCase();
+    if (lowerType.includes('purchase') || lowerType.includes('shop')) return '#FF8C00';
+    if (lowerType.includes('event')) return '#4ECDC4';
+    if (lowerType.includes('game') || lowerType.includes('play')) return '#FFCC00';
+    if (lowerType.includes('refer') || lowerType.includes('friend')) return '#9B59B6';
+    return '#3498DB';
+  };
+
+  const getCriteriaAction = (type: string) => {
+    const lowerType = type.toLowerCase();
+    if (lowerType.includes('purchase') || lowerType.includes('shop')) return '/shop';
+    if (lowerType.includes('event')) return '/events';
+    if (lowerType.includes('game') || lowerType.includes('play')) return '/play';
+    return null;
   };
 
   if (authLoading || pageLoading) {
@@ -434,7 +497,7 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* How to Earn Points */}
+      {/* How to Earn Points - DYNAMIC */}
       <section className="earn-points">
         <div className="container">
           <div className="section-header">
@@ -442,47 +505,36 @@ const WalletPointsPage: React.FC = () => {
             <p className="section-subtitle">Multiple ways to grow your Joy Points balance</p>
           </div>
 
-          <div className="earn-methods">
-            <div className="method-card" onClick={() => window.location.href = '/shop'}>
-              <div className="method-icon" style={{ backgroundColor: '#FF8C00' }}>
-                <FaShoppingCart />
-              </div>
-              <h4>Shop Games</h4>
-              <p className="method-points">10 points per ₹1 spent</p>
-              <p className="method-desc">Earn points with every purchase</p>
+          {pointsCriteria.length === 0 ? (
+            <div className="empty-state">
+              <FaInfoCircle className="empty-icon" />
+              <p>Points criteria will be available soon!</p>
             </div>
-
-            <div className="method-card" onClick={() => window.location.href = '/events'}>
-              <div className="method-icon" style={{ backgroundColor: '#4ECDC4' }}>
-                <FaCalendarAlt />
-              </div>
-              <h4>Attend Events</h4>
-              <p className="method-points">200-500 points</p>
-              <p className="method-desc">Join game nights & workshops</p>
+          ) : (
+            <div className="earn-methods">
+              {pointsCriteria.map((criteria) => {
+                const actionUrl = getCriteriaAction(criteria.type);
+                const icon = getCriteriaIcon(criteria.type);
+                const color = getCriteriaColor(criteria.type);
+                
+                return (
+                  <div 
+                    key={criteria._id} 
+                    className="method-card"
+                    onClick={() => actionUrl && (window.location.href = actionUrl)}
+                    style={{ cursor: actionUrl ? 'pointer' : 'default' }}
+                  >
+                    <div className="method-icon" style={{ backgroundColor: color }}>
+                      {icon}
+                    </div>
+                    <h4>{criteria.type}</h4>
+                    <p className="method-points">{criteria.pointsPerUnit} points</p>
+                    <p className="method-desc">{criteria.description}</p>
+                  </div>
+                );
+              })}
             </div>
-
-            <div className="method-card" onClick={() => window.location.href = '/play'}>
-              <div className="method-icon" style={{ backgroundColor: '#FFCC00' }}>
-                <FaGamepad />
-              </div>
-              <h4>Play Online</h4>
-              <p className="method-points">50-150 points</p>
-              <p className="method-desc">Complete puzzles & challenges</p>
-            </div>
-
-            <div className="method-card" onClick={() => {
-              const referralCode = walletUser?._id?.slice(-6).toUpperCase() || `JJ-${user.email?.split('@')[0].toUpperCase()}`;
-              navigator.clipboard.writeText(`Join Joy Juncture using my referral code: ${referralCode}`);
-              alert('Referral code copied! Share with friends to earn 250 points each!');
-            }}>
-              <div className="method-icon" style={{ backgroundColor: '#9B59B6' }}>
-                <FaUsers />
-              </div>
-              <h4>Refer Friends</h4>
-              <p className="method-points">250 points each</p>
-              <p className="method-desc">Share the Joy</p>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -564,7 +616,7 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Achievements */}
+      {/* Achievements - DYNAMIC */}
       <section className="achievements-section">
         <div className="container">
           <div className="section-header">

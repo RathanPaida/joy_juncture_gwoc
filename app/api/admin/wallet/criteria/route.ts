@@ -13,81 +13,92 @@ const criteriaSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+criteriaSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+});
+
 const PointsCriteria = mongoose.models.PointsCriteria || 
   mongoose.model('PointsCriteria', criteriaSchema);
 
 export async function GET(req: NextRequest) {
   try {
+    console.log('=== GET Points Criteria ===');
+    
     const { authorized, error } = await checkAdminAccess(req);
+    
     if (!authorized) {
-      return NextResponse.json({ error: error || 'Unauthorized' }, { status: 403 });
+      console.log('❌ Unauthorized:', error);
+      return NextResponse.json(
+        { error: error || 'Unauthorized' },
+        { status: 403 }
+      );
     }
+
+    console.log('✅ Admin verified, fetching criteria...');
     
     await connectDb();
-    let criteria = await PointsCriteria.find().sort({ createdAt: -1 });
+    const criteria = await PointsCriteria.find().sort({ createdAt: -1 }).lean();
     
-    // Create default criteria if none exist
-    if (criteria.length === 0) {
-      const defaults = [
-        {
-          type: 'purchase',
-          pointsPerUnit: 10,
-          description: 'Points earned per ₹1 spent on purchases',
-          isActive: true
-        },
-        {
-          type: 'event',
-          pointsPerUnit: 300,
-          description: 'Points for attending events',
-          isActive: true
-        },
-        {
-          type: 'game',
-          pointsPerUnit: 100,
-          description: 'Points for completing online games',
-          isActive: true
-        },
-        {
-          type: 'referral',
-          pointsPerUnit: 250,
-          description: 'Points for each successful referral',
-          isActive: true
-        },
-        {
-          type: 'daily_login',
-          pointsPerUnit: 50,
-          description: 'Points for daily login',
-          isActive: true
-        }
-      ];
-      
-      await PointsCriteria.insertMany(defaults);
-      criteria = await PointsCriteria.find();
-    }
+    console.log(`Found ${criteria.length} criteria`);
     
-    return NextResponse.json({ criteria });
+    return NextResponse.json({ 
+      success: true,
+      criteria,
+      count: criteria.length
+    });
   } catch (error: any) {
-    console.error('Error fetching criteria:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('❌ Error fetching criteria:', error);
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { authorized, error } = await checkAdminAccess(req);
-    if (!authorized) {
-      return NextResponse.json({ error: error || 'Unauthorized' }, { status: 403 });
-    }
+    console.log('=== POST New Criteria ===');
     
+    const { authorized, error } = await checkAdminAccess(req);
+    
+    if (!authorized) {
+      console.log('❌ Unauthorized:', error);
+      return NextResponse.json(
+        { error: error || 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    console.log('✅ Admin verified, creating criteria...');
+
     await connectDb();
     const body = await req.json();
     
+    console.log('Creating criteria:', body);
+    
+    // Validate required fields
+    if (!body.type || body.pointsPerUnit === undefined || !body.description) {
+      return NextResponse.json(
+        { error: 'Missing required fields: type, pointsPerUnit, description' },
+        { status: 400 }
+      );
+    }
+
     const criteria = new PointsCriteria(body);
     await criteria.save();
     
-    return NextResponse.json({ success: true, criteria }, { status: 201 });
+    console.log('✅ Criteria created:', criteria._id);
+    
+    return NextResponse.json({ 
+      success: true, 
+      criteria,
+      message: 'Criteria created successfully'
+    }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating criteria:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('❌ Error creating criteria:', error);
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
-}  
+}
