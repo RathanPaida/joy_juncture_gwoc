@@ -76,12 +76,11 @@
 //   );
 // }
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
-// Remove the faulty import of EventList as a module
-import EventList from '@/app/components/admin/EventList'; // Make sure this path is correct and that EventList is a valid component
+import EventList from '@/app/components/admin/EventList';
+import AddEventForm from '@/app/components/admin/AddEventForm';
 
 interface Event {
   _id: string;
@@ -96,8 +95,9 @@ interface Event {
 }
 
 export default function AdminEventsPage() {
-  const [events, setEvents] = useState<Event[]>([]); // Add Event[] type
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const fetchEvents = async () => {
     try {
@@ -110,7 +110,7 @@ export default function AdminEventsPage() {
       
       const data = await response.json();
       
-      console.log('Fetched data:', data); // Debug log
+      console.log('Fetched data:', data);
       
       // Handle both formats: direct array or nested in object
       if (Array.isArray(data)) {
@@ -136,6 +136,11 @@ export default function AdminEventsPage() {
     fetchEvents();
   }, []);
 
+  const handleAddSuccess = () => {
+    setShowAddForm(false);
+    fetchEvents();
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-8">
@@ -148,8 +153,31 @@ export default function AdminEventsPage() {
 
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-6">Event Management</h1>
-      <EventList events={events} onUpdate={fetchEvents} />
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Event Management</h1>
+        {!showAddForm && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Add New Event</span>
+          </button>
+        )}
+      </div>
+
+      {showAddForm ? (
+        <div className="mb-8">
+          <AddEventForm 
+            onSuccess={handleAddSuccess}
+            onCancel={() => setShowAddForm(false)}
+          />
+        </div>
+      ) : (
+        <EventList events={events} onUpdate={fetchEvents} />
+      )}
     </div>
   );
 }

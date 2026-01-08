@@ -86,17 +86,43 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const collection = await getEventsCollection();
+    console.log('📝 Creating new event:', body);
     
+    // Validate required fields
+    if (!body.name || !body.description || !body.date) {
+      return NextResponse.json(
+        { error: 'Missing required fields: name, description, and date are required' },
+        { status: 400 }
+      );
+    }
+    const collection = await getEventsCollection();
+    // Prepare event data
+    const eventData = {
+      name: body.name,
+      description: body.description,
+      date: new Date(body.date),
+      price: body.price || 0,
+      coins: body.coins || 0,
+      registrationLink: body.registrationLink || '',
+      collabWith: body.collabWith || '',
+      isActive: body.isActive !== undefined ? body.isActive : true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }; 
     const result = await collection.insertOne({
       ...body,
       createdAt: new Date(),
       updatedAt: new Date()
     });
+    console.log('✅ Event created with ID:', result.insertedId);
     
     return NextResponse.json({ 
       success: true, 
-      id: result.insertedId.toString()
+      id: result.insertedId.toString(),
+      event: {
+        ...eventData,
+        _id: result.insertedId.toString()
+      }
     });
   } catch (error) {
     console.error('❌ Database error:', error);

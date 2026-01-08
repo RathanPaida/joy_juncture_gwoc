@@ -13,6 +13,7 @@ interface Event {
   coins: number;
   registrationLink: string;
   collabWith: string;
+  isActive: boolean;
 }
 
 export default function EventsPage() {
@@ -27,22 +28,49 @@ export default function EventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const [upcomingRes, pastRes] = await Promise.all([
-        fetch('/api/events?type=upcoming'),
-        fetch('/api/events?type=past'),
-      ]);
+      setLoading(true);
       
-      if (!upcomingRes.ok || !pastRes.ok) {
+      // Fetch all events from the API
+      const response = await fetch('/api/events');
+      
+      if (!response.ok) {
         throw new Error('Failed to fetch events');
       }
       
-      const upcomingData = await upcomingRes.json();
-      const pastData = await pastRes.json();
+      const data = await response.json();
       
-      setUpcomingEvents(upcomingData);
-      setPastEvents(pastData);
+      // Handle both array and object responses
+      const allEvents = Array.isArray(data) ? data : (data.events || []);
+      
+      // Filter only active events
+      const activeEvents = allEvents.filter((event: Event) => event.isActive);
+      
+      // Separate into upcoming and past events
+      const now = new Date();
+      const upcoming: Event[] = [];
+      const past: Event[] = [];
+      
+      activeEvents.forEach((event: Event) => {
+        const eventDate = new Date(event.date);
+        if (eventDate >= now) {
+          upcoming.push(event);
+        } else {
+          past.push(event);
+        }
+      });
+      
+      // Sort upcoming events by date (earliest first)
+      upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      
+      // Sort past events by date (most recent first)
+      past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      setUpcomingEvents(upcoming);
+      setPastEvents(past);
     } catch (error) {
       console.error('Error fetching events:', error);
+      setUpcomingEvents([]);
+      setPastEvents([]);
     } finally {
       setLoading(false);
     }
@@ -78,7 +106,7 @@ export default function EventsPage() {
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div>
                 <h3 className="text-xl font-semibold text-gray-800">
-                  Welcome back, {user.name}!
+                  Welcome back, {user.name || user.displayName || 'Guest'}!
                 </h3>
                 <p className="text-gray-600 mt-1">
                   Ready for your next gaming adventure?
@@ -88,7 +116,7 @@ export default function EventsPage() {
                 <div className="bg-white px-6 py-3 rounded-lg shadow-sm border">
                   <span className="text-gray-700">Your coins: </span>
                   <span className="text-2xl font-bold text-yellow-600 ml-2">
-                    {user.coins} 🪙
+                    {user.totalPoints || user.coins || 0} 🪙
                   </span>
                 </div>
               </div>
