@@ -27,7 +27,7 @@ interface Blog {
   createdBy: {
     userId: string;
     userName: string;
-    userRole: 'admin' | 'user';
+    userRole: 'admin' | 'user' | 'viewer' | 'editor' | 'super_admin';
   };
   status: 'draft' | 'published';
   featured: boolean;
@@ -120,7 +120,7 @@ const AdminBlogPage: React.FC = () => {
 
       const data = await response.json();
       console.log('Admin access granted:', data);
-      setIsAdmin(data.role === 'admin' || data.role === 'super_admin');
+      setIsAdmin(data.role === 'admin' || data.role === 'super_admin' || data.role === 'editor');
       
       // Access granted, fetch all data
       fetchAllData();
@@ -173,71 +173,84 @@ const AdminBlogPage: React.FC = () => {
     }
   };
 
-  const handleSaveBlog = async (blog: Blog) => {
-    try {
-      const token = await user!.getIdToken();
-      const method = blog._id ? 'PUT' : 'POST';
-      const url = blog._id 
-        ? `/api/admin/blog/${blog._id}`
-        : '/api/admin/blog';
 
-      console.log('Saving blog:', { method, url, blog });
+const handleSaveBlog = async (blog: Blog) => {
+  try {
+    const token = await user!.getIdToken();
+    const method = blog._id ? 'PUT' : 'POST';
+    const url = blog._id 
+      ? `/api/admin/blog/${blog._id}`
+      : '/api/admin/blog';
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(blog)
-      });
+    console.log('Saving blog:', { method, url, blogId: blog._id });
 
-      const data = await response.json();
-      console.log('Save response:', data);
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(blog)
+    });
 
-      if (response.ok) {
-        alert('Blog saved successfully!');
-        setShowBlogModal(false);
-        setEditingBlog(null);
-        fetchAllData();
-      } else {
-        alert(`Failed to save blog: ${data.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Error saving blog:', error);
-      alert('Failed to save blog');
+    const data = await response.json();
+    console.log('Save response:', { status: response.status, data });
+
+    // Check for success based on your API response structure
+    if (response.ok && data.success) {
+      alert(blog._id ? 'Blog updated successfully!' : 'Blog created successfully!');
+      setShowBlogModal(false);
+      setEditingBlog(null);
+      fetchAllData();
+    } else {
+      // Handle error
+      const errorMessage = data.error || 'Unknown error occurred';
+      console.error('Save failed:', errorMessage);
+      alert(`Failed to save blog: ${errorMessage}`);
     }
-  };
+  } catch (error: any) {
+    console.error('Error saving blog:', error);
+    alert(`Failed to save blog: ${error.message}`);
+  }
+};
 
-  const handleDeleteBlog = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this blog?')) return;
 
-    try {
-      const token = await user!.getIdToken();
-      console.log('Deleting blog:', id);
+const handleDeleteBlog = async (id: string) => {
+  if (!confirm('Are you sure you want to delete this blog? This action cannot be undone.')) {
+    return;
+  }
 
-      const response = await fetch(`/api/admin/blog/${id}`, {
-        method: 'DELETE',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  try {
+    const token = await user!.getIdToken();
+    console.log('Deleting blog:', id);
 
-      const data = await response.json();
-      console.log('Delete response:', data);
-
-      if (response.ok) {
-        alert('Blog deleted successfully!');
-        fetchAllData();
-      } else {
-        alert(`Failed to delete blog: ${data.error || 'Unknown error'}`);
+    const response = await fetch(`/api/admin/blog/${id}`, {
+      method: 'DELETE',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-    } catch (error) {
-      console.error('Error deleting blog:', error);
-      alert('Failed to delete blog');
+    });
+
+    const data = await response.json();
+    console.log('Delete response:', { status: response.status, data });
+
+    // Check for success based on your API response structure
+    if (response.ok && data.success) {
+      alert('Blog deleted successfully!');
+      fetchAllData();
+    } else {
+      // Handle error
+      const errorMessage = data.error || 'Unknown error occurred';
+      console.error('Delete failed:', errorMessage);
+      alert(`Failed to delete blog: ${errorMessage}`);
     }
-  };
+  } catch (error: any) {
+    console.error('Error deleting blog:', error);
+    alert(`Failed to delete blog: ${error.message}`);
+  }
+};
+
 
   const canEditBlog = (blog: Blog) => {
     if (isAdmin) return true;
@@ -363,7 +376,7 @@ const AdminBlogPage: React.FC = () => {
                       createdBy: {
                         userId: user!.uid,
                         userName: user?.displayName || user?.email || 'User',
-                        userRole: isAdmin ? 'admin' : 'user'
+                        userRole: isAdmin ? 'admin' : 'viewer'
                       },
                       status: 'draft',
                       featured: false
@@ -439,7 +452,7 @@ const AdminBlogPage: React.FC = () => {
                             {blog.status}
                           </span>
                           <span className={`creator-badge ${blog.createdBy.userRole}`}>
-                            {blog.createdBy.userRole === 'admin' ? (
+                            {['admin', 'super_admin', 'editor'].includes(blog.createdBy.userRole) ? (
                               <>
                                 <FaCrown /> Admin
                               </>
