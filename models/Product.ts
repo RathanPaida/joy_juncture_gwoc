@@ -1,4 +1,4 @@
-// models/Product.ts
+// models/Product.ts - COMPLETE SCHEMA
 import mongoose, { Schema, model, models } from "mongoose";
 
 const howToPlaySchema = new Schema(
@@ -84,9 +84,9 @@ const productSchema = new Schema(
     media: { type: mediaSchema, required: true },
     stock: { type: stockSchema, default: () => ({ available: true, quantity: 0 }) },
 
-    keyFeatures: [{ type: String }],  // NEW
-    faqs: [faqSchema],  // NEW
-    whatYouGet: [{ type: String }],  // NEW
+    keyFeatures: [{ type: String }],
+    faqs: [faqSchema],
+    whatYouGet: [{ type: String }],
 
     category: [{ type: String }],
     relatedSlugs: [{ type: String }],

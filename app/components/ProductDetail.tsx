@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Heart, ShoppingBag, Share2, Plus, ArrowRight, ShieldCheck, Zap, Trophy } from "lucide-react";
+import { Heart, ShoppingBag, Share2, Plus, ArrowRight, ShieldCheck, Zap, Trophy, ChevronDown, Package, Sparkles } from "lucide-react";
 
 interface Product {
   _id: string;
@@ -30,6 +30,9 @@ interface Product {
     gameplay: string;
     winning: string;
   };
+  keyFeatures?: string[];
+  whatYouGet?: string[];
+  faqs?: { question: string; answer: string }[];
   category: string[];
 }
 
@@ -37,6 +40,7 @@ export default function ProductDetail({ product }: { product: Product }) {
   const [selectedImage, setSelectedImage] = useState(product.media.thumbnail);
   const [mainImageError, setMainImageError] = useState(false);
   const [thumbnailErrors, setThumbnailErrors] = useState<Record<string, boolean>>({});
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   const handleThumbnailError = (img: string) => {
     setThumbnailErrors((prev) => ({ ...prev, [img]: true }));
@@ -44,7 +48,7 @@ export default function ProductDetail({ product }: { product: Product }) {
 
   return (
     <main className="min-h-screen bg-white text-[#1a1a1a] selection:bg-purple-100 font-sans">
-      {/* 1. The Ghost Header */}
+      {/* The Ghost Header */}
       <nav className="border-b border-zinc-100 py-6 px-8 lg:px-16">
         <div className="max-w-screen-2xl mx-auto flex justify-between items-center">
           <div className="flex gap-4 text-[9px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
@@ -61,7 +65,7 @@ export default function ProductDetail({ product }: { product: Product }) {
       <section className="max-w-screen-2xl mx-auto px-8 lg:px-16 py-12 lg:py-20">
         <div className="grid gap-16 lg:grid-cols-12 items-start">
           
-          {/* 2. Editorial Gallery - Balanced Height */}
+          {/* Editorial Gallery - Balanced Height */}
           <div className="lg:col-span-7 space-y-6">
             <div className="relative aspect-[4/3] overflow-hidden bg-[#F6F6F6] group border border-zinc-50">
               <img
@@ -93,7 +97,7 @@ export default function ProductDetail({ product }: { product: Product }) {
             </div>
           </div>
 
-          {/* 3. The Boutique Console - Approx 10cm Visual Height */}
+          {/* The Boutique Console */}
           <div className="lg:col-span-5 lg:sticky lg:top-32 flex flex-col border-l border-zinc-100 pl-12 min-h-[400px] justify-between">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
@@ -159,7 +163,7 @@ export default function ProductDetail({ product }: { product: Product }) {
         </div>
       </section>
 
-      {/* 4. The Narrative Reveal */}
+      {/* The Narrative Reveal */}
       <section className="bg-[#0a0a0a] text-white py-32 overflow-hidden">
         <div className="max-w-3xl mx-auto px-8 relative">
           <span className="text-[9px] uppercase tracking-[1em] text-zinc-600 block text-center mb-16 font-bold">The Narrative</span>
@@ -172,9 +176,33 @@ export default function ProductDetail({ product }: { product: Product }) {
         </div>
       </section>
 
-      {/* 5. The Methodology - Clean Sans Text */}
+      {/* Key Features Section */}
+      {product.keyFeatures && product.keyFeatures.length > 0 && (
+        <section className="max-w-screen-2xl mx-auto px-8 lg:px-16 py-32 bg-zinc-50/50">
+          <div className="flex items-center justify-center gap-4 mb-20">
+            <Sparkles size={20} className="text-purple-600" strokeWidth={1} />
+            <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-400 text-center font-black">Why You'll Love It</h2>
+            <Sparkles size={20} className="text-purple-600" strokeWidth={1} />
+          </div>
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {product.keyFeatures.map((feature, idx) => (
+              <div key={idx} className="p-10 border border-zinc-200 hover:border-black transition-all group relative bg-white">
+                <div className="absolute top-6 left-6 text-[40px] font-serif italic text-zinc-100 group-hover:text-purple-50 transition-colors leading-none">
+                  {String(idx + 1).padStart(2, '0')}
+                </div>
+                <p className="text-sm leading-relaxed text-zinc-600 group-hover:text-black transition-colors mt-16">
+                  {feature}
+                </p>
+                <div className="absolute bottom-0 left-0 w-0 h-1 bg-purple-600 group-hover:w-full transition-all duration-700" />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* The Methodology */}
       <section className="max-w-screen-2xl mx-auto px-8 lg:px-16 py-32">
-        <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-400 text-center mb-20 font-black italic underline underline-offset-[12px] decoration-zinc-100">Methodology</h2>
+        <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-400 text-center mb-20 font-black italic underline underline-offset-[12px] decoration-zinc-100">How to Play</h2>
         <div className="grid lg:grid-cols-3 gap-12">
           {[
             { id: "01", title: "Configuration", content: product.howToPlay.setup, icon: <ShieldCheck size={20} strokeWidth={1}/> },
@@ -187,7 +215,6 @@ export default function ProductDetail({ product }: { product: Product }) {
                 <span className="text-zinc-300 group-hover:text-black transition-colors">{item.icon}</span>
               </div>
               <h3 className="text-[11px] font-black uppercase tracking-[0.4em] mb-6 text-black border-b border-zinc-100 pb-4">{item.title}</h3>
-              {/* Using a highly readable font weight and line height for instructions */}
               <p className="text-[13px] leading-[1.8] text-zinc-600 font-normal whitespace-pre-line flex-1">
                 {item.content}
               </p>
@@ -197,19 +224,83 @@ export default function ProductDetail({ product }: { product: Product }) {
         </div>
       </section>
 
-      {/* 6. Footer Call to Action */}
-      <section className="border-t border-zinc-100 py-32 px-8">
+           {/* What You Get Section */}
+      {product.whatYouGet && product.whatYouGet.length > 0 && (
+        <section className="max-w-screen-2xl mx-auto px-8 lg:px-16 py-32 border-t border-zinc-100">
+          <div className="flex items-center justify-center gap-4 mb-20">
+            <Package size={20} className="text-purple-600" strokeWidth={1} />
+            <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-400 text-center font-black">What's in the Box</h2>
+            <Package size={20} className="text-purple-600" strokeWidth={1} />
+          </div>
+          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
+            {product.whatYouGet.map((item, idx) => (
+              <div key={idx} className="flex items-start gap-5 p-8 border border-zinc-100 hover:border-zinc-300 transition-all group bg-white">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+                  <span className="text-xs font-bold text-purple-600">{idx + 1}</span>
+                </div>
+                <p className="text-sm text-zinc-600 leading-relaxed group-hover:text-black transition-colors pt-2">
+                  {item}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* FAQs Section */}
+      {product.faqs && product.faqs.length > 0 && (
+        <section className="bg-zinc-50 py-32 px-8 border-y border-zinc-100">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-serif italic text-center mb-6">Got Doubts? Let's Dare You to Ask!</h2>
+            <p className="text-center text-sm text-zinc-500 mb-16 uppercase tracking-[0.3em]">Decode the Deck</p>
+            <div className="space-y-4">
+              {product.faqs.map((faq, idx) => (
+                <div key={idx} className="bg-white border border-zinc-200 overflow-hidden transition-all hover:border-black">
+                  <button
+                    onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
+                    className="w-full p-8 flex justify-between items-center hover:bg-zinc-50 transition-all text-left"
+                  >
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-black pr-4">
+                      {faq.question}
+                    </h3>
+                    <ChevronDown 
+                      size={20} 
+                      strokeWidth={1.5}
+                      className={`flex-shrink-0 transition-transform duration-300 ${openFaqIndex === idx ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  <div 
+                    className={`overflow-hidden transition-all duration-300 ${
+                      openFaqIndex === idx ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <div className="px-8 pb-8 pt-2 border-t border-zinc-100">
+                      <p className="text-sm text-zinc-600 leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Footer Call to Action */}
+      <section className="border-t border-zinc-100 py-32 px-8 bg-white">
         <div className="max-w-screen-2xl mx-auto flex flex-col items-center">
            <button className="flex items-center gap-10 text-5xl md:text-7xl font-serif italic hover:gap-16 transition-all group tracking-tighter">
              Ready to Play <ArrowRight size={64} className="text-purple-600 group-hover:text-black transition-transform group-hover:translate-x-4" strokeWidth={1} />
            </button>
            <div className="mt-16 flex gap-12 text-[9px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
-             <span className="hover:text-black cursor-crosshair">In Stock</span>
-             <span className="hover:text-black cursor-crosshair">Global Shipping</span>
-             <span className="hover:text-black cursor-crosshair">Curated Quality</span>
+             <span className="hover:text-black cursor-crosshair transition-colors">In Stock</span>
+             <span className="hover:text-black cursor-crosshair transition-colors">Global Shipping</span>
+             <span className="hover:text-black cursor-crosshair transition-colors">Curated Quality</span>
            </div>
         </div>
       </section>
     </main>
   );
 }
+
