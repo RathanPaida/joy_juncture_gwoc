@@ -1,11 +1,10 @@
 // app/api/wallet/redeem/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyIdToken } from '@/lib/firebase-admin';
 import { connectDb } from '@/lib/mongodb';
+import { verifyIdToken } from '@/lib/firebase-admin';
 import { User, Transaction } from '@/models/User';
 import mongoose from 'mongoose';
 
-// Reward model (reuse from rewards route)
 const rewardSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
@@ -22,204 +21,108 @@ const Reward = mongoose.models.Reward || mongoose.model('Reward', rewardSchema);
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('=== Redeem Request Started ===');
+    console.log('=== Processing Reward Redemption ===');
+    
+    // Verify authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'No authorization header' }, { status: 401 });
+    }
+    
+    const token = authHeader.replace('Bearer ', '');
+    const decodedToken = await verifyIdToken(token);
+    const userId = decodedToken.uid;
+    
     await connectDb();
     
-    // Authenticate user
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
-    const token = authHeader.split('Bearer ')[1];
-    let user;
-    
-    try {
-      const decodedToken = await verifyIdToken(token);
-      console.log('Token verified for:', decodedToken.email);
-      
-      user = await User.findOne({ firebaseUid: decodedToken.uid });
-      
-      if (!user) {
-        user = await User.findOne({ email: decodedToken.email?.toLowerCase() });
-      }
-      
-      if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
-      }
-    } catch (authError: any) {
-      console.error('Authentication error:', authError);
-      return NextResponse.json(
-        { error: 'Invalid authentication token', details: authError.message },
-        { status: 401 }
-      );
-    }
-    
     // Get request body
-    const body = await req.json();
-    const { rewardId } = body;
+    const { rewardId } = await req.json();
     
     if (!rewardId) {
-      return NextResponse.json(
-        { error: 'Reward ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Reward ID is required' }, { status: 400 });
     }
-    
-    console.log('Redeeming reward:', rewardId, 'for user:', user.email);
     
     // Find the reward
     const reward = await Reward.findById(rewardId);
-    
     if (!reward) {
-      return NextResponse.json(
-        { error: 'Reward not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Reward not found' }, { status: 404 });
     }
     
     if (!reward.isActive) {
-      return NextResponse.json(
-        { error: 'This reward is no longer available' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Reward is not available' }, { status: 400 });
     }
     
     if (reward.stock <= 0) {
-      return NextResponse.json(
-        { error: 'This reward is out of stock' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Reward is out of stock' }, { status: 400 });
+    }
+    
+    // Find user
+    const user = await User.findOne({ firebaseUid: userId });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
     // Check if user has enough points
-    const userPoints = user.totalPoints || 0;
-    if (userPoints < reward.points) {
-      return NextResponse.json(
-        { 
-          error: 'Insufficient points',
-          required: reward.points,
-          current: userPoints,
-          needed: reward.points - userPoints
-        },
-        { status: 400 }
-      );
+    if (user.totalPoints < reward.points) {
+      return NextResponse.json({ 
+        error: 'Insufficient points',
+        required: reward.points,
+        current: user.totalPoints
+      }, { status: 400 });
     }
     
-    // Perform the redemption in a transaction-like manner
+    // Start transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
     try {
       // Deduct points from user
-      user.totalPoints = userPoints - reward.points;
-      
-      // Update last activity
-      user.lastActivity = new Date();
+      user.totalPoints -= reward.points;
+      await user.save({ session });
       
       // Decrease reward stock
       reward.stock -= 1;
-      
-      // Save both
-      await user.save();
-      await reward.save();
-      
-      // Validate user ID
-      const userId = user._id?.toString();
-      if (!userId) {
-        return NextResponse.json(
-          { error: 'Invalid user ID' },
-          { status: 400 }
-        );
-      }
+      await reward.save({ session });
       
       // Create transaction record
       const transaction = new Transaction({
-        userId: userId,
+        userId: user._id,
         type: 'redeem',
         amount: -reward.points,
         description: `Redeemed: ${reward.name}`,
-        referenceId: rewardId,
         metadata: {
+          rewardId: reward._id,
           rewardName: reward.name,
-          rewardCategory: reward.category,
-          rewardDescription: reward.description
-        },
-        balanceAfter: user.totalPoints,
-        status: 'completed'
-      });
-      
-      await transaction.save();
-      
-      console.log('Redemption successful');
-      
-      // Check if this is first redemption achievement
-      const hasRedeemedBefore = await Transaction.countDocuments({
-        userId: userId,
-        type: 'redeem'
-      });
-      
-      if (hasRedeemedBefore === 1) {
-        // First redemption! Unlock achievement
-        const existingAch = user.achievements.find(
-          (a: any) => a.achievementId === 'reward_redeemer'
-        );
-        
-        if (!existingAch) {
-          user.achievements.push({
-            achievementId: 'reward_redeemer',
-            unlocked: true,
-            progress: 1,
-            unlockedAt: new Date()
-          });
-          
-          // Award achievement points
-          user.totalPoints += 100;
-          await user.save();
+          rewardCategory: reward.category
         }
-      }
+      });
+      await transaction.save({ session });
+      
+      await session.commitTransaction();
+      
+      console.log(`Redemption successful - User: ${user.email}, Reward: ${reward.name}`);
       
       return NextResponse.json({
         success: true,
-        message: `Successfully redeemed ${reward.name}`,
+        message: 'Reward redeemed successfully',
         newBalance: user.totalPoints,
         reward: {
           name: reward.name,
-          description: reward.description,
-          points: reward.points
-        },
-        transaction: {
-          _id: transaction._id,
-          createdAt: transaction.createdAt
+          description: reward.description
         }
-      }, { status: 200 });
+      });
       
-    } catch (saveError: any) {
-      console.error('Error during redemption:', saveError);
-      
-      // Rollback might be needed here in production
-      // For now, just return error
-      return NextResponse.json(
-        { 
-          error: 'Failed to complete redemption',
-          details: saveError.message
-        },
-        { status: 500 }
-      );
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
     
   } catch (error: any) {
-    console.error('=== Redeem Request Error ===');
-    console.error(error);
-    
+    console.error('Error redeeming reward:', error);
     return NextResponse.json(
-      { 
-        error: 'Server error',
-        details: error.message
-      },
+      { error: error.message || 'Failed to redeem reward' },
       { status: 500 }
     );
   }

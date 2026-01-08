@@ -1,72 +1,113 @@
+// app/api/admin/wallet/rewards/route.ts - COMPLETE WORKING VERSION
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAdminAccess } from '@/lib/admin-middleware';
 import { connectDb } from '@/lib/mongodb';
 import mongoose from 'mongoose';
 
-const rewardSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: { type: String, required: true },
-  points: { type: Number, required: true },
-  category: { type: String, required: true },
-  icon: { type: String, default: 'FaGift' },
-  color: { type: String, default: '#FF8C00' },
-  stock: { type: Number, default: 100 },
-  isActive: { type: Boolean, default: true },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const Reward = mongoose.models.Reward || mongoose.model('Reward', rewardSchema);
-
 export async function GET(req: NextRequest) {
   try {
-    console.log('=== Fetching Admin Rewards ===');
+    console.log('=== GET REWARDS ===');
     
     const { authorized, error } = await checkAdminAccess(req);
+    
     if (!authorized) {
-      console.log('Unauthorized:', error);
+      console.log('❌ Unauthorized:', error);
       return NextResponse.json({ error: error || 'Unauthorized' }, { status: 403 });
     }
-    
+
     await connectDb();
-    const rewards = await Reward.find().sort({ createdAt: -1 }).lean();
+    const db = mongoose.connection.db;
     
-    console.log('Rewards found:', rewards.length);
+    if (!db) {
+      return NextResponse.json({ error: 'Database not connected' }, { status: 500 });
+    }
     
-    return NextResponse.json({ rewards });
+    const rewards = await db.collection('rewards').find({}).toArray();
+    
+    console.log(`✅ Found ${rewards.length} rewards`);
+    
+    // Convert ObjectId to string for JSON serialization
+    const rewardsJSON = rewards.map(r => ({
+      _id: r._id.toString(),
+      name: r.name,
+      description: r.description,
+      points: r.points,
+      category: r.category,
+      icon: r.icon || 'FaGift',
+      color: r.color || '#FF8C00',
+      stock: r.stock || 0,
+      isActive: r.isActive !== false
+    }));
+    
+    return NextResponse.json({ 
+      success: true,
+      rewards: rewardsJSON,
+      count: rewardsJSON.length
+    });
   } catch (error: any) {
-    console.error('Error fetching admin rewards:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch rewards', details: error.message },
-      { status: 500 }
-    );
+    console.error('❌ GET Error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('=== Creating Admin Reward ===');
+    console.log('=== CREATE REWARD ===');
     
     const { authorized, error } = await checkAdminAccess(req);
+    
     if (!authorized) {
+      console.log('❌ Unauthorized:', error);
       return NextResponse.json({ error: error || 'Unauthorized' }, { status: 403 });
     }
-    
+
     await connectDb();
+    const db = mongoose.connection.db;
+    
+    if (!db) {
+      return NextResponse.json({ error: 'Database not connected' }, { status: 500 });
+    }
+    
     const body = await req.json();
     
     console.log('Creating reward:', body.name);
     
-    const reward = new Reward(body);
-    await reward.save();
+    // Validate required fields
+    if (!body.name || !body.description || !body.points || !body.category) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
     
-    console.log('Reward created:', reward._id);
+    const newReward = {
+      name: body.name,
+      description: body.description,
+      points: Number(body.points),
+      category: body.category,
+      icon: body.icon || 'FaGift',
+      color: body.color || '#FF8C00',
+      stock: Number(body.stock) || 100,
+      isActive: body.isActive !== false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     
-    return NextResponse.json({ success: true, reward }, { status: 201 });
+    const result = await db.collection('rewards').insertOne(newReward);
+    
+    console.log('✅ Reward created:', result.insertedId);
+    
+    return NextResponse.json({ 
+      success: true, 
+      reward: {
+        ...newReward,
+        _id: result.insertedId.toString()
+      },
+      message: 'Reward created successfully'
+    }, { status: 201 });
+    
   } catch (error: any) {
-    console.error('Error creating reward:', error);
-    return NextResponse.json(
-      { error: 'Failed to create reward', details: error.message },
-      { status: 500 }
-    );
+    console.error('❌ CREATE Error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -1,188 +1,248 @@
-// app/admin/test/page.tsx
-// SIMPLEST POSSIBLE PAGE - NO DEPENDENCIES
+'use client';
+import React, { useState } from 'react';
+import { useAuth } from '@/app/contexts/AuthContext'; // Use your existing auth
 
-export default function TestPage() {
+export default function AdminTestPage() {
+  const { user } = useAuth(); // Get user from context
+  const [logs, setLogs] = useState<string[]>([]);
+  const [testing, setTesting] = useState(false);
+
+  const addLog = (message: string) => {
+    setLogs(prev => [...prev, `${new Date().toLocaleTimeString()} - ${message}`]);
+  };
+
+  const testCreateReward = async () => {
+    setTesting(true);
+    setLogs([]);
+    
+    try {
+      addLog('🔍 Step 1: Checking authentication...');
+      
+      if (!user) {
+        addLog('❌ No user logged in!');
+        addLog('💡 Please login first at /login');
+        setTesting(false);
+        return;
+      }
+      
+      addLog(`✅ User logged in: ${user.email}`);
+      
+      // Get token
+      addLog('🔑 Step 2: Getting Firebase token...');
+      const token = await user.getIdToken(true); // Force refresh
+      addLog(`✅ Token obtained (${token.substring(0, 20)}...)`);
+      
+      // Test creating a reward
+      addLog('🎁 Step 3: Creating test reward...');
+      
+      const testReward = {
+        name: 'Test Reward ' + Date.now(),
+        description: 'This is a test reward created for debugging',
+        points: 100,
+        category: 'discount',
+        icon: 'FaGift',
+        color: '#FF8C00',
+        stock: 50,
+        isActive: true
+      };
+      
+      addLog(`📦 Sending: ${JSON.stringify(testReward, null, 2)}`);
+      
+      const response = await fetch('/api/admin/wallet/rewards', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(testReward)
+      });
+      
+      addLog(`📡 Response status: ${response.status} ${response.statusText}`);
+      
+      const data = await response.json();
+      addLog(`📥 Response data: ${JSON.stringify(data, null, 2)}`);
+      
+      if (response.ok) {
+        addLog('✅ ✅ ✅ SUCCESS! Reward created!');
+        addLog('🎉 Your admin panel should be working now!');
+      } else {
+        addLog(`❌ FAILED: ${data.error}`);
+        addLog(`💡 Check server console for more details`);
+      }
+      
+    } catch (error: any) {
+      addLog(`❌ ERROR: ${error.message}`);
+      addLog(`Stack: ${error.stack}`);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const testFetchRewards = async () => {
+    setTesting(true);
+    setLogs([]);
+    
+    try {
+      addLog('🔍 Testing GET rewards...');
+      
+      if (!user) {
+        addLog('❌ Not logged in');
+        setTesting(false);
+        return;
+      }
+      
+      const token = await user.getIdToken(true);
+      
+      const response = await fetch('/api/admin/wallet/rewards', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      addLog(`Response: ${response.status}`);
+      
+      const data = await response.json();
+      addLog(`Data: ${JSON.stringify(data, null, 2)}`);
+      
+      if (response.ok) {
+        addLog(`✅ Found ${data.rewards?.length || 0} rewards`);
+      } else {
+        addLog(`❌ Failed: ${data.error}`);
+      }
+      
+    } catch (error: any) {
+      addLog(`❌ Error: ${error.message}`);
+    } finally {
+      setTesting(false);
+    }
+  };
+
   return (
     <div style={{
-      minHeight: '100vh',
-      background: '#0B0B0B',
-      color: 'white',
-      padding: '2rem',
-      fontFamily: 'sans-serif'
+      maxWidth: '1000px',
+      margin: '50px auto',
+      padding: '30px',
+      fontFamily: 'monospace'
     }}>
+      <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>
+        🔧 Admin Panel Test Tool
+      </h1>
+      <p style={{ color: '#666', marginBottom: '30px' }}>
+        Use this to debug your admin panel issues
+      </p>
+
       <div style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-        background: '#1a1a1a',
-        padding: '2rem',
-        borderRadius: '12px',
-        border: '2px solid #2ECC71'
+        display: 'flex',
+        gap: '15px',
+        marginBottom: '30px'
       }}>
-        <h1 style={{ color: '#2ECC71', marginBottom: '1rem' }}>
-          ✅ SUCCESS!
-        </h1>
-        <p style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>
-          If you can see this page, your admin routes are working!
-        </p>
-        
-        <div style={{
-          background: '#0B0B0B',
-          padding: '1.5rem',
-          borderRadius: '8px',
-          marginBottom: '2rem'
-        }}>
-          <h2 style={{ color: '#FF8C00', marginBottom: '1rem' }}>Next Steps:</h2>
-          <ol style={{ lineHeight: '2' }}>
-            <li>Open browser console (F12)</li>
-            <li>Check if you're logged in to Firebase</li>
-            <li>Copy and paste this code in console:</li>
-          </ol>
-          <pre style={{
-            background: '#000',
-            padding: '1rem',
-            borderRadius: '6px',
-            overflow: 'auto',
-            marginTop: '1rem',
-            fontSize: '0.9rem'
-          }}>
-{`// Check Firebase Auth
-import { getAuth } from 'firebase/auth';
-const auth = getAuth();
-const user = auth.currentUser;
-console.log('User:', user);
-console.log('Email:', user?.email);
-console.log('UID:', user?.uid);
+        <button
+          onClick={testCreateReward}
+          disabled={testing}
+          style={{
+            padding: '15px 30px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            backgroundColor: testing ? '#ccc' : '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: testing ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {testing ? '⏳ Testing...' : '🧪 Test Create Reward'}
+        </button>
 
-// If logged in, get token and check MongoDB
-if (user) {
-  const token = await user.getIdToken();
-  console.log('Token obtained!');
-  
-  // Check wallet API
-  const res = await fetch('/api/wallet', {
-    headers: { 'Authorization': \`Bearer \${token}\` }
-  });
-  const data = await res.json();
-  console.log('Wallet API:', res.status);
-  console.log('User Role:', data.user?.role);
-  console.log('Firebase UID:', data.user?.firebaseUid);
-  
-  // Check admin access
-  const adminRes = await fetch('/api/admin/check-access', {
-    headers: { 'Authorization': \`Bearer \${token}\` }
-  });
-  console.log('Admin Check:', adminRes.status);
-  const adminData = await adminRes.json();
-  console.log('Admin Response:', adminData);
-}`}
-          </pre>
-        </div>
+        <button
+          onClick={testFetchRewards}
+          disabled={testing}
+          style={{
+            padding: '15px 30px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            backgroundColor: testing ? '#ccc' : '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: testing ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {testing ? '⏳ Testing...' : '📥 Test Fetch Rewards'}
+        </button>
 
-        <div style={{
-          background: 'rgba(255, 140, 0, 0.1)',
-          border: '1px solid #FF8C00',
-          padding: '1.5rem',
-          borderRadius: '8px'
-        }}>
-          <h3 style={{ color: '#FF8C00', marginBottom: '1rem' }}>Manual Checks:</h3>
-          
-          <div style={{ marginBottom: '1.5rem' }}>
-            <strong>1. Check MongoDB User Role:</strong>
-            <pre style={{
-              background: '#000',
-              padding: '1rem',
-              borderRadius: '6px',
-              marginTop: '0.5rem',
-              fontSize: '0.85rem'
-            }}>
-{`// In MongoDB Compass or shell:
-db.users.findOne({ email: "your-email@example.com" })`}
-            </pre>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#888' }}>
-              Make sure 'role' is 'admin' or 'super_admin'
-            </p>
+        <button
+          onClick={() => setLogs([])}
+          style={{
+            padding: '15px 30px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            backgroundColor: '#999',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer'
+          }}
+        >
+          🗑️ Clear Logs
+        </button>
+      </div>
+
+      <div style={{
+        backgroundColor: '#1e1e1e',
+        color: '#d4d4d4',
+        padding: '20px',
+        borderRadius: '8px',
+        minHeight: '400px',
+        maxHeight: '600px',
+        overflow: 'auto',
+        fontSize: '14px',
+        lineHeight: '1.6'
+      }}>
+        {logs.length === 0 ? (
+          <div style={{ color: '#666', textAlign: 'center', paddingTop: '100px' }}>
+            Click a button above to start testing
           </div>
+        ) : (
+          logs.map((log, index) => (
+            <div key={index} style={{ marginBottom: '5px' }}>
+              {log}
+            </div>
+          ))
+        )}
+      </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <strong>2. Update Role if Needed:</strong>
-            <pre style={{
-              background: '#000',
-              padding: '1rem',
-              borderRadius: '6px',
-              marginTop: '0.5rem',
-              fontSize: '0.85rem'
-            }}>
-{`db.users.updateOne(
-  { email: "your-email@example.com" },
-  { $set: { role: "admin" } }
-)`}
-            </pre>
-          </div>
+      <div style={{
+        marginTop: '30px',
+        padding: '20px',
+        backgroundColor: '#fff3cd',
+        borderLeft: '4px solid #ffc107',
+        borderRadius: '4px'
+      }}>
+        <h3 style={{ marginTop: 0 }}>📋 Instructions:</h3>
+        <ol style={{ lineHeight: '1.8' }}>
+          <li><strong>Make sure you're logged in</strong></li>
+          <li><strong>Click "Test Create Reward"</strong></li>
+          <li><strong>Watch the logs</strong> - it will show exactly where it fails</li>
+          <li><strong>Check your server console</strong> for matching logs</li>
+          <li><strong>Copy the error message</strong> and we'll fix it</li>
+        </ol>
+      </div>
 
-          <div>
-            <strong>3. Check if Firebase UID is Linked:</strong>
-            <pre style={{
-              background: '#000',
-              padding: '1rem',
-              borderRadius: '6px',
-              marginTop: '0.5rem',
-              fontSize: '0.85rem'
-            }}>
-{`// In MongoDB, your user should have:
-{
-  email: "your-email@example.com",
-  role: "admin",
-  firebaseUid: "some-long-uid-here" // <-- Must exist!
-}`}
-            </pre>
-          </div>
-        </div>
-
-        <div style={{ marginTop: '2rem' }}>
-          <h3 style={{ color: '#2ECC71', marginBottom: '1rem' }}>Try These Links:</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <a href="/login" style={{
-              padding: '1rem',
-              background: '#FF8C00',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              textAlign: 'center'
-            }}>
-              Login Page
-            </a>
-            <a href="/walletandpoints" style={{
-              padding: '1rem',
-              background: '#4ECDC4',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              textAlign: 'center'
-            }}>
-              Wallet Page (Creates/Links User)
-            </a>
-            <a href="/admin/setup" style={{
-              padding: '1rem',
-              background: '#9B59B6',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              textAlign: 'center'
-            }}>
-              Admin Setup Page
-            </a>
-            <a href="/admin/wallet" style={{
-              padding: '1rem',
-              background: '#2ECC71',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              textAlign: 'center'
-            }}>
-              Admin Dashboard
-            </a>
-          </div>
-        </div>
+      <div style={{
+        marginTop: '20px',
+        padding: '20px',
+        backgroundColor: '#d4edda',
+        borderLeft: '4px solid #28a745',
+        borderRadius: '4px'
+      }}>
+        <h3 style={{ marginTop: 0 }}>✅ What to Look For:</h3>
+        <ul style={{ lineHeight: '1.8' }}>
+          <li><strong>If fails at Step 1:</strong> Firebase not initialized</li>
+          <li><strong>If fails at Step 2:</strong> Token issue</li>
+          <li><strong>If fails at Step 3 with 403:</strong> Admin check failing</li>
+          <li><strong>If fails at Step 3 with 500:</strong> Database/server error</li>
+          <li><strong>If succeeds:</strong> Your admin panel will work! 🎉</li>
+        </ul>
       </div>
     </div>
   );
