@@ -11,7 +11,7 @@ interface Product {
   shortDescription: string;
   story: string;
   price: { amount: number; currency: string };
-  points: { purchase: number };
+  points?: { purchase: number }; // Made optional
   media: {
     thumbnail: string;
     images: string[];
@@ -137,11 +137,13 @@ export default function ProductDetail({ product }: { product: Product }) {
                   <span className="text-[9px] uppercase tracking-[0.4em] text-zinc-400 mb-1">Valuation</span>
                   <span className="text-4xl font-light tracking-tighter text-black">₹{product.price.amount.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="pb-1">
-                  <span className="text-[10px] text-purple-600 font-black tracking-widest uppercase bg-purple-50 px-3 py-1">
-                    +{product.points.purchase} JJ Points
-                  </span>
-                </div>
+                {product.points?.purchase !== undefined && (
+                  <div className="pb-1">
+                    <span className="text-[10px] text-purple-600 font-black tracking-widest uppercase bg-purple-50 px-3 py-1">
+                      +{product.points.purchase} JJ Points
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -224,7 +226,7 @@ export default function ProductDetail({ product }: { product: Product }) {
         </div>
       </section>
 
-           {/* What You Get Section */}
+        {/* What You Get Section */}
       {product.whatYouGet && product.whatYouGet.length > 0 && (
         <section className="max-w-screen-2xl mx-auto px-8 lg:px-16 py-32 border-t border-zinc-100">
           <div className="flex items-center justify-center gap-4 mb-20">
@@ -290,17 +292,16 @@ export default function ProductDetail({ product }: { product: Product }) {
       {/* Footer Call to Action */}
       <section className="border-t border-zinc-100 py-32 px-8 bg-white">
         <div className="max-w-screen-2xl mx-auto flex flex-col items-center">
-           <button className="flex items-center gap-10 text-5xl md:text-7xl font-serif italic hover:gap-16 transition-all group tracking-tighter">
-             Ready to Play <ArrowRight size={64} className="text-purple-600 group-hover:text-black transition-transform group-hover:translate-x-4" strokeWidth={1} />
-           </button>
-           <div className="mt-16 flex gap-12 text-[9px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
-             <span className="hover:text-black cursor-crosshair transition-colors">In Stock</span>
-             <span className="hover:text-black cursor-crosshair transition-colors">Global Shipping</span>
-             <span className="hover:text-black cursor-crosshair transition-colors">Curated Quality</span>
-           </div>
+          <button className="flex items-center gap-10 text-5xl md:text-7xl font-serif italic hover:gap-16 transition-all group tracking-tighter">
+            Ready to Play <ArrowRight size={64} className="text-purple-600 group-hover:text-black transition-transform group-hover:translate-x-4" strokeWidth={1} />
+          </button>
+          <div className="mt-16 flex gap-12 text-[9px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
+            <span className="hover:text-black cursor-crosshair transition-colors">In Stock</span>
+            <span className="hover:text-black cursor-crosshair transition-colors">Global Shipping</span>
+            <span className="hover:text-black cursor-crosshair transition-colors">Curated Quality</span>
+          </div>
         </div>
       </section>
     </main>
   );
 }
-
