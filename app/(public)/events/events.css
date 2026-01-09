@@ -1,0 +1,50 @@
+:root {
+  --card-black: 0 0% 8%;
+  --orange-1: 25 95% 53%;
+  --orange-2: 30 100% 50%;
+}
+
+/* Card base */
+.event-card {
+  background: hsl(var(--card-black));
+  border-radius: 1rem;
+  transition:
+    background 0.35s ease,
+    transform 0.35s ease,
+    box-shadow 0.35s ease,
+    color 0.35s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Lift effect */
+.event-card:hover {
+  transform: translateY(-10px);
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.6),
+    0 0 35px hsl(var(--orange-1) / 0.35);
+}
+
+/* Orange hover */
+.event-card:hover {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--orange-1)) 0%,
+    hsl(var(--orange-2)) 100%
+  );
+  color: black;
+}
+
+/* Text color on hover */
+.event-card:hover h1,
+.event-card:hover h2,
+.event-card:hover h3,
+.event-card:hover p,
+.event-card:hover span {
+  color: black;
+}
+
+/* Button contrast */
+.event-card:hover button {
+  background-color: black;
+  color: white;
+}

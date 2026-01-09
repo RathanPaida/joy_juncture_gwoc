@@ -1,4 +1,4 @@
-// models/User.ts - UPDATED WITH ADMIN ROLES
+// models/User.ts - UPDATED WITH ADMIN ROLES AND BLOG FEATURES
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
@@ -23,6 +23,9 @@ export interface IUser extends Document {
   avatar?: string;
   isActive: boolean;
   emailVerified: boolean;
+  // Blog-related fields
+  likedBlogs: string[];
+  bookmarkedBlogs: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -110,6 +113,15 @@ const userSchema = new Schema<IUser>({
   emailVerified: {
     type: Boolean,
     default: false
+  },
+  // Blog-related fields
+  likedBlogs: {
+    type: [String],
+    default: []
+  },
+  bookmarkedBlogs: {
+    type: [String],
+    default: []
   }
 }, {
   timestamps: true
