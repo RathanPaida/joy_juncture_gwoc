@@ -23,6 +23,7 @@ interface AuthContextType {
   register: (email: string, password: string, name: string, isFirebase?: boolean) => Promise<void>;
   loginWithGoogle: () => Promise<FirebaseUser | null>;
   updateUserPoints: (points: number) => Promise<void>;
+  
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

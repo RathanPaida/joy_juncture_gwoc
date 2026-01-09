@@ -160,7 +160,32 @@ export default function TicketPage() {
               Code: {registration.verificationCode}
             </p>
           </div>
+          // Add this section after the QR code in the ticket page:
 
+          {/* Verification Code - Easy to Copy */}
+          <div className="mt-6 bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+            <p className="text-sm text-gray-600 text-center mb-2">Verification Code</p>
+            <div className="flex items-center justify-center space-x-2">
+              <code className="text-xl font-mono font-bold text-gray-900 bg-white px-4 py-2 rounded border-2 border-blue-300">
+                {registration.verificationCode}
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(registration.verificationCode);
+                  alert('Code copied to clipboard!');
+                }}
+                className="p-2 bg-blue-100 hover:bg-blue-200 rounded-lg"
+                title="Copy code"
+              >
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 text-center mt-2">
+              Show this code to staff for verification
+            </p>
+          </div>
           {/* Event Details */}
           <div className="p-8 space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
