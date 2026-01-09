@@ -1,9 +1,10 @@
-// app/blog/page.tsx
+// app/blog/page.tsx - FIXED getIdToken
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { getAuth } from 'firebase/auth'; // ADDED
 import { 
   Search, Heart, MessageCircle, Share2, Eye, Clock, 
   User, Tag, Filter, Calendar, Star, RefreshCw, Plus, 
@@ -64,6 +65,7 @@ const POPULAR_TAGS = [
 export default function BlogPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const auth = getAuth(); // ADDED
   
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
@@ -81,6 +83,15 @@ export default function BlogPage() {
   const [likedBlogs, setLikedBlogs] = useState<Set<string>>(new Set());
   const [bookmarkedBlogs, setBookmarkedBlogs] = useState<Set<string>>(new Set());
 
+  // ADDED: Helper function
+  const getFirebaseToken = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('Not authenticated');
+    }
+    return await currentUser.getIdToken();
+  };
+
   useEffect(() => {
     fetchBlogs();
     fetchStats();
@@ -95,7 +106,7 @@ export default function BlogPage() {
 
   const fetchBlogs = async () => {
     try {
-      const response = await fetch('/api/blogs'); // CHANGED: blog -> blogs
+      const response = await fetch('/api/blogs');
       const data = await response.json();
       if (response.ok) {
         setBlogs(data.blogs || []);
@@ -109,7 +120,7 @@ export default function BlogPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/blogs/stats'); // CHANGED: blog -> blogs
+      const response = await fetch('/api/blogs/stats');
       const data = await response.json();
       if (response.ok) {
         setStats(data);
@@ -122,8 +133,8 @@ export default function BlogPage() {
   const fetchUserInteractions = async () => {
     if (!user) return;
     try {
-      const token = await user.getIdToken();
-      const response = await fetch('/api/blogs/interactions', { // CHANGED: blog -> blogs
+      const token = await getFirebaseToken(); // CHANGED
+      const response = await fetch('/api/blogs/interactions', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -180,10 +191,10 @@ export default function BlogPage() {
     }
 
     try {
-      const token = await user.getIdToken();
+      const token = await getFirebaseToken(); // CHANGED
       const isLiked = likedBlogs.has(blogId);
       
-      const response = await fetch('/api/blogs/like', { // CHANGED: blog -> blogs
+      const response = await fetch('/api/blogs/like', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -221,10 +232,10 @@ export default function BlogPage() {
     }
 
     try {
-      const token = await user.getIdToken();
+      const token = await getFirebaseToken(); // CHANGED
       const isBookmarked = bookmarkedBlogs.has(blogId);
       
-      const response = await fetch('/api/blogs/bookmark', { // CHANGED: blog -> blogs
+      const response = await fetch('/api/blogs/bookmark', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -262,35 +273,35 @@ export default function BlogPage() {
     }
   };
 
-const handleDelete = async (blogId: string) => {
-  if (!user || !confirm('Are you sure you want to delete this article?')) return;
+  const handleDelete = async (blogId: string) => {
+    if (!user || !confirm('Are you sure you want to delete this article?')) return;
 
-  try {
-    const token = await user.getIdToken();
-    const response = await fetch(`/api/admin/blog/${blogId}`, { // CHANGED: blogs -> admin/blog
-      method: 'DELETE',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    try {
+      const token = await getFirebaseToken(); // CHANGED
+      const response = await fetch(`/api/admin/blog/${blogId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setBlogs(blogs.filter(b => b._id !== blogId));
+        alert('Article deleted successfully!');
+      } else {
+        const data = await response.json();
+        alert(`Failed to delete: ${data.error || 'Unknown error'}`);
       }
-    });
-
-    if (response.ok) {
-      setBlogs(blogs.filter(b => b._id !== blogId));
-      alert('Article deleted successfully!');
-    } else {
-      const data = await response.json();
-      alert(`Failed to delete: ${data.error || 'Unknown error'}`);
+    } catch (error) {
+      console.error('Error deleting blog:', error);
+      alert('Failed to delete article');
     }
-  } catch (error) {
-    console.error('Error deleting blog:', error);
-    alert('Failed to delete article');
-  }
-};
+  };
 
   const canEditBlog = (blog: Blog) => {
     if (!user) return false;
-    return blog.createdBy.userId === user.uid || user.email === 'admin@joyjuncture.com';
+    return blog.createdBy.userId === user.uid || user.email === 'paidarajarathan@gmail.com';
   };
 
   const featuredBlogs = blogs.filter(b => b.featured).slice(0, 3);
@@ -305,7 +316,6 @@ const handleDelete = async (blogId: string) => {
       </div>
     );
   }
-
   return (
     <div className="blog-page">
       {/* Hero Section */}
@@ -582,22 +592,49 @@ const handleDelete = async (blogId: string) => {
                             <Share2 size={16} />
                           </button>
                           
-                          {canEditBlog(blog) && (
-                            <>
-                              <button 
-                                className="action-btn edit-btn"
-                                onClick={() => router.push(`/admin/blog?edit=${blog._id}`)}
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button 
-                                className="action-btn delete-btn"
-                                onClick={() => handleDelete(blog._id)}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </>
-                          )}
+                          {user && (
+    <>
+      {/* Case 1: User's own blog - always show buttons */}
+      {blog.createdBy.userId === user.uid ? (
+        <>
+          {/* <button 
+            className="action-btn edit-btn"
+            onClick={() => router.push(`/admin/blog?edit=${blog._id}`)}
+          >
+            <Edit size={16} />
+          </button> */}
+          <button 
+            className="action-btn delete-btn"
+            onClick={() => handleDelete(blog._id)}
+          >
+            <Trash2 size={16} />
+          </button>
+        </>
+      ) : (null
+        // /* Case 2: Admin reviewing user-created draft */
+        // ['admin', 'super_admin', 'editor'].includes(role) && 
+        // blog.createdBy.userRole === 'user' && 
+        // blog.status === 'draft' ? (
+        //   <>
+        //     <button 
+        //       className="action-btn edit-btn"
+        //       onClick={() => router.push(`/admin/blog?edit=${blog._id}`)}
+        //       title="Review user-submitted draft"
+        //     >
+        //       <Edit size={16} />
+        //     </button>
+        //     <button 
+        //       className="action-btn delete-btn"
+        //       onClick={() => handleDelete(blog._id)}
+        //       title="Delete user-submitted draft"
+        //     >
+        //       <Trash2 size={16} />
+        //     </button>
+        //   </>
+        // ) : null
+      )}
+    </>
+  )}
                         </div>
                       </div>
                     </div>

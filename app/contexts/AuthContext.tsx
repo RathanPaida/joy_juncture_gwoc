@@ -1,4 +1,4 @@
-// context/AuthContext.tsx
+// app/contexts/AuthContext.tsx - ADD DAILY LOGIN LOGIC
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -18,6 +18,7 @@ import { app } from '@/lib/firebase';
 interface AuthContextType {
   user: any;
   loading: boolean;
+  isAdmin: boolean; // ADDED
   login: (email: string, password: string, isFirebase?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   register: (email: string, password: string, name: string, isFirebase?: boolean) => Promise<void>;
@@ -45,6 +46,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const auth = getAuth(app);
   const googleProvider = new GoogleAuthProvider();
 
+  // ADDED: Check and claim daily login bonus
+  const checkDailyLogin = async (firebaseUser: FirebaseUser) => {
+    try {
+      const token = await firebaseUser.getIdToken();
+      const response = await fetch('/api/wallet/daily-login', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Show notification if new login bonus was claimed
+        if (data.newLogin && data.pointsEarned) {
+          // You can show a toast/notification here
+          console.log(`🎉 Daily login bonus: +${data.pointsEarned} points! (${data.currentStreak} day streak)`);
+          
+          // Optional: Show browser notification
+          if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission === 'granted') {
+              new Notification('Daily Login Bonus! 🎉', {
+                body: `You earned ${data.pointsEarned} points! Current streak: ${data.currentStreak} days`,
+                icon: '/logo.png'
+              });
+            }
+          }
+          
+          // Optional: Show alert (you can replace with a better toast notification)
+          setTimeout(() => {
+            if (typeof window !== 'undefined') {
+              alert(`🎉 Daily Login Bonus!\n\nYou earned ${data.pointsEarned} points!\nCurrent streak: ${data.currentStreak} days\nTotal points: ${data.currentPoints}`);
+            }
+          }, 1000);
+        }
+        
+        return data;
+      }
+    } catch (error) {
+      console.error('Error checking daily login:', error);
+    }
+    return null;
+  };
+
   useEffect(() => {
     // Check Firebase auth first
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -69,6 +116,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (response.ok) {
             const userData = await response.json();
             setUser({ ...firebaseUser, ...userData });
+            
+            // ADDED: Check and claim daily login bonus
+            await checkDailyLogin(firebaseUser);
           } else {
             setUser(firebaseUser);
           }
@@ -111,6 +161,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string, isFirebase: boolean = false) => {
     if (isFirebase) {
       await firebaseSignIn(auth, email, password);
+      // Daily login will be checked automatically in onAuthStateChanged
     } else {
       // Local login
       const response = await fetch('/api/auth/login', {
@@ -143,6 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (isFirebase) {
       const userCredential = await firebaseRegister(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
+      // Daily login will be checked automatically in onAuthStateChanged
     } else {
       // Local registration
       const response = await fetch('/api/auth/register', {
@@ -163,6 +215,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithGoogle = async (): Promise<FirebaseUser | null> => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
+      // Daily login will be checked automatically in onAuthStateChanged
       return result.user;
     } catch (error) {
       console.error('Google login failed:', error);
@@ -203,7 +256,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     register,
     loginWithGoogle,
-    updateUserPoints
+    updateUserPoints,
+    isAdmin: false
   };
 
   return (

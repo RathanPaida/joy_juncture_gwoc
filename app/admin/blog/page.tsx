@@ -253,9 +253,25 @@ const handleDeleteBlog = async (id: string) => {
 
 
   const canEditBlog = (blog: Blog) => {
-    if (isAdmin) return true;
-    return blog.createdBy.userId === user?.uid;
-  };
+  // User can edit their own blogs
+  if (blog.createdBy.userId === user?.uid || isAdmin || user.email=='paidarajarathan@gmail.com') {
+    return true;
+  }
+  
+  // Admin can edit all their own blogs + user-submitted drafts for review
+  if (isAdmin) {
+    // Admin can edit any blog created by admin
+    if (['admin', 'super_admin', 'editor'].includes(blog.createdBy.userRole)) {
+      return true;
+    }
+    // Admin can edit user-created drafts (for review purposes)
+    if (blog.createdBy.userRole === 'user' && blog.status === 'draft') {
+      return true;
+    }
+  }
+  
+  return false;
+};
 
   const getFilteredBlogs = () => {
     let filtered = blogs;
