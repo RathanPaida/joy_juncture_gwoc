@@ -1,4 +1,4 @@
-// models/Product.ts - COMPLETE SCHEMA
+// models/Product.ts - COMPLETE SCHEMA WITH MULTIPLE IMAGES
 import mongoose, { Schema, model, models } from "mongoose";
 
 const howToPlaySchema = new Schema(
@@ -18,6 +18,15 @@ const videoSchema = new Schema(
   { _id: false }
 );
 
+// NEW: Multiple Images Schema
+const imageSchema = new Schema(
+  {
+    url: { type: String, required: true },
+    isPrimary: { type: Boolean, default: false }
+  },
+  { _id: false }
+);
+
 const mediaSchema = new Schema(
   {
     thumbnail: { type: String, required: true },
@@ -32,7 +41,11 @@ const metaSchema = new Schema(
     players: { type: String, required: true },
     duration: { type: String, required: true },
     age: { type: String, required: true },
-    difficulty: { type: String, required: true },
+    difficulty: { 
+      type: String, 
+      required: true,
+      enum: ['Very Easy', 'Easy', 'Medium', 'Hard']
+    },
     moods: [{ type: String }],
     badges: [{ type: String }],
   },
@@ -77,6 +90,9 @@ const productSchema = new Schema(
     shortDescription: { type: String, required: true },
     story: { type: String, required: true },
 
+    // NEW: Multiple Images Support
+    images: [imageSchema],
+
     howToPlay: { type: howToPlaySchema, required: true },
     meta: { type: metaSchema, required: true },
     price: { type: priceSchema, required: true },
@@ -94,10 +110,28 @@ const productSchema = new Schema(
   { timestamps: true }
 );
 
+// Text search index
 productSchema.index({
   name: "text",
   shortDescription: "text",
   story: "text",
+});
+
+// Pre-save hook to ensure at least one primary image
+productSchema.pre('save', function(next) {
+  if (this.images && this.images.length > 0) {
+    const hasPrimary = this.images.some(img => img.isPrimary);
+    if (!hasPrimary) {
+      this.images[0].isPrimary = true;
+    }
+    
+    // Update media.thumbnail with primary image for backward compatibility
+    const primaryImage = this.images.find(img => img.isPrimary);
+    if (primaryImage && this.media) {
+      this.media.thumbnail = primaryImage.url;
+    }
+  }
+  next();
 });
 
 const Product = models.Product || model("Product", productSchema);
