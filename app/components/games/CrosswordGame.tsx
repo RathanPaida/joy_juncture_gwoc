@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { auth } from '@/lib/firebase';
 
 interface Cell {
   letter: string;
@@ -23,6 +24,8 @@ interface CrosswordGameProps {
       clue: string;
     }>;
     size: number;
+    maxCoins?: number;
+    hasTimeBonus?: boolean;
   };
   onComplete: (result: any) => void;
 }
@@ -34,13 +37,15 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
   const [selectedDirection, setSelectedDirection] = useState<'across' | 'down'>('across');
   const [time, setTime] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
+  const [mistakes, setMistakes] = useState(0);
+  const [revealedCells, setRevealedCells] = useState(0);
   const [currentClue, setCurrentClue] = useState<{
     number: number;
     direction: 'across' | 'down';
     clue: string;
   } | null>(null);
   
-  const inputRefs = useRef<HTMLInputElement[][]>([]);
+  const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
 
   // Initialize refs
   useEffect(() => {
@@ -51,13 +56,13 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
 
   // Timer
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (!gameComplete) {
+    if (!gameComplete) {
+      const timer = setInterval(() => {
         setTime(prev => prev + 1);
-      }
-    }, 1000);
+      }, 1000);
 
-    return () => clearInterval(timer);
+      return () => clearInterval(timer);
+    }
   }, [gameComplete]);
 
   // Find clue for selected cell
@@ -72,13 +77,11 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
     
     if (cell.isBlack) return;
 
-    const clueNumber = cell.number;
+    const clueNumber = selectedDirection === 'across' ? cell.across : cell.down;
     if (!clueNumber) return;
 
     const clue = gameData.clues.find(c => 
-      c.number === clueNumber && 
-      ((selectedDirection === 'across' && c.direction === 'across') || 
-       (selectedDirection === 'down' && c.direction === 'down'))
+      c.number === clueNumber && c.direction === selectedDirection
     );
 
     if (clue) {
@@ -90,44 +93,61 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
     const cell = grid[row][col];
     if (cell.isBlack) return;
 
-    setSelectedCell([row, col]);
-    
-    // Auto-select direction based on available clues
-    const cellHasAcross = cell.across !== undefined;
-    const cellHasDown = cell.down !== undefined;
-    
-    if (cellHasAcross && cellHasDown) {
-      // Keep current direction or switch if clicked cell is different
-      if (selectedCell && selectedCell[0] === row && selectedCell[1] === col) {
-        // Switch direction on same cell click
+    // If clicking the same cell, toggle direction
+    if (selectedCell && selectedCell[0] === row && selectedCell[1] === col) {
+      const cellHasAcross = cell.across !== undefined;
+      const cellHasDown = cell.down !== undefined;
+      
+      if (cellHasAcross && cellHasDown) {
         setSelectedDirection(prev => prev === 'across' ? 'down' : 'across');
       }
-    } else if (cellHasAcross) {
-      setSelectedDirection('across');
-    } else if (cellHasDown) {
-      setSelectedDirection('down');
+    } else {
+      // Select new cell
+      setSelectedCell([row, col]);
+      
+      // Auto-select appropriate direction
+      const cellHasAcross = cell.across !== undefined;
+      const cellHasDown = cell.down !== undefined;
+      
+      if (cellHasAcross && !cellHasDown) {
+        setSelectedDirection('across');
+      } else if (cellHasDown && !cellHasAcross) {
+        setSelectedDirection('down');
+      }
     }
 
     // Focus the input
     setTimeout(() => {
-      if (inputRefs.current[row] && inputRefs.current[row][col]) {
-        inputRefs.current[row][col]?.focus();
-        inputRefs.current[row][col]?.select();
+      const inputEl = inputRefs.current[row]?.[col];
+      if (inputEl) {
+        inputEl.focus();
+        inputEl.select();
       }
     }, 0);
   };
 
   const handleLetterInput = (row: number, col: number, letter: string) => {
-    if (gameComplete || letter.length > 1 || !/^[A-Za-z]$/.test(letter)) return;
+    if (gameComplete || letter.length > 1) return;
+    
+    // Only allow letters
+    if (letter && !/^[A-Za-z]$/.test(letter)) return;
 
     const newGrid = [...grid];
-    newGrid[row][col] = { ...newGrid[row][col], letter: letter.toUpperCase() };
+    const upperLetter = letter.toUpperCase();
+    newGrid[row][col] = { ...newGrid[row][col], letter: upperLetter };
     setGrid(newGrid);
 
-    // Auto-move to next cell
-    setTimeout(() => {
-      moveToNextCell(row, col);
-    }, 10);
+    // Check if this letter is incorrect
+    if (upperLetter && upperLetter !== gameData.solution[row][col].letter) {
+      setMistakes(prev => prev + 1);
+    }
+
+    // Auto-move to next cell if letter was entered
+    if (letter) {
+      setTimeout(() => {
+        moveToNextCell(row, col);
+      }, 10);
+    }
 
     // Check completion
     checkCompletion(newGrid);
@@ -142,53 +162,33 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
 
     if (selectedDirection === 'across') {
       nextCol++;
-      // Find next non-black cell in same row
+      // Skip black cells
       while (nextCol < gameData.size && grid[selRow][nextCol]?.isBlack) {
         nextCol++;
       }
       if (nextCol >= gameData.size) {
-        // Move to next row or wrap
-        nextRow++;
-        nextCol = 0;
-        while (nextRow < gameData.size && grid[nextRow] && 
-               (grid[nextRow][nextCol]?.isBlack || !grid[nextRow][nextCol])) {
-          nextCol++;
-          if (nextCol >= gameData.size) {
-            nextRow++;
-            nextCol = 0;
-          }
-        }
+        return; // Stay at current position
       }
     } else {
       nextRow++;
-      // Find next non-black cell in same column
-      while (nextRow < gameData.size && grid[nextRow] && 
-             (grid[nextRow][selCol]?.isBlack || !grid[nextRow][selCol])) {
+      // Skip black cells
+      while (nextRow < gameData.size && grid[nextRow]?.[selCol]?.isBlack) {
         nextRow++;
       }
       if (nextRow >= gameData.size) {
-        // Move to next column or wrap
-        nextRow = 0;
-        nextCol++;
-        while (nextCol < gameData.size && grid[nextRow] && 
-               (grid[nextRow][nextCol]?.isBlack || !grid[nextRow][nextCol])) {
-          nextRow++;
-          if (nextRow >= gameData.size) {
-            nextRow = 0;
-            nextCol++;
-          }
-        }
+        return; // Stay at current position
       }
     }
 
-    // Ensure within bounds and not black cell
+    // Ensure within bounds and valid cell
     if (nextRow < gameData.size && nextCol < gameData.size && 
-        grid[nextRow] && grid[nextRow][nextCol] && !grid[nextRow][nextCol].isBlack) {
+        grid[nextRow]?.[nextCol] && !grid[nextRow][nextCol].isBlack) {
       setSelectedCell([nextRow, nextCol]);
       setTimeout(() => {
-        if (inputRefs.current[nextRow] && inputRefs.current[nextRow][nextCol]) {
-          inputRefs.current[nextRow][nextCol]?.focus();
-          inputRefs.current[nextRow][nextCol]?.select();
+        const inputEl = inputRefs.current[nextRow]?.[nextCol];
+        if (inputEl) {
+          inputEl.focus();
+          inputEl.select();
         }
       }, 0);
     }
@@ -201,18 +201,22 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
       case 'ArrowUp':
         e.preventDefault();
         moveDirection(row, col, -1, 0);
+        setSelectedDirection('down');
         break;
       case 'ArrowDown':
         e.preventDefault();
         moveDirection(row, col, 1, 0);
+        setSelectedDirection('down');
         break;
       case 'ArrowLeft':
         e.preventDefault();
         moveDirection(row, col, 0, -1);
+        setSelectedDirection('across');
         break;
       case 'ArrowRight':
         e.preventDefault();
         moveDirection(row, col, 0, 1);
+        setSelectedDirection('across');
         break;
       case 'Backspace':
       case 'Delete':
@@ -220,6 +224,14 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
         const newGrid = [...grid];
         newGrid[row][col] = { ...newGrid[row][col], letter: '' };
         setGrid(newGrid);
+        // Move back one cell on backspace if current cell is empty
+        if (!grid[row][col].letter) {
+          if (selectedDirection === 'across' && col > 0) {
+            moveDirection(row, col, 0, -1);
+          } else if (selectedDirection === 'down' && row > 0) {
+            moveDirection(row, col, -1, 0);
+          }
+        }
         break;
       case 'Tab':
         e.preventDefault();
@@ -244,8 +256,7 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
     while (
       newRow >= 0 && newRow < gameData.size &&
       newCol >= 0 && newCol < gameData.size &&
-      grid[newRow] && grid[newRow][newCol] && 
-      grid[newRow][newCol].isBlack
+      grid[newRow]?.[newCol]?.isBlack
     ) {
       newRow += rowDelta;
       newCol += colDelta;
@@ -254,14 +265,14 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
     if (
       newRow >= 0 && newRow < gameData.size &&
       newCol >= 0 && newCol < gameData.size &&
-      grid[newRow] && grid[newRow][newCol]
+      grid[newRow]?.[newCol]
     ) {
       setSelectedCell([newRow, newCol]);
-      setSelectedDirection(rowDelta !== 0 ? 'down' : 'across');
       setTimeout(() => {
-        if (inputRefs.current[newRow] && inputRefs.current[newRow][newCol]) {
-          inputRefs.current[newRow][newCol]?.focus();
-          inputRefs.current[newRow][newCol]?.select();
+        const inputEl = inputRefs.current[newRow]?.[newCol];
+        if (inputEl) {
+          inputEl.focus();
+          inputEl.select();
         }
       }, 0);
     }
@@ -271,7 +282,7 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
     const isComplete = currentGrid.every((row, rowIndex) =>
       row.every((cell, colIndex) => {
         if (cell.isBlack) return true;
-        return cell.letter === gameData.solution[rowIndex][colIndex].letter;
+        return cell.letter && cell.letter === gameData.solution[rowIndex][colIndex].letter;
       })
     );
 
@@ -281,10 +292,18 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
   };
 
   const handleComplete = async (completedGrid: Cell[][]) => {
+    if (gameComplete) return; // Prevent double submission
+    
     setGameComplete(true);
     
     try {
-      const token = await user.getIdToken();
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        console.error('User not authenticated');
+        return;
+      }
+      
+      const token = await firebaseUser.getIdToken();
       const response = await fetch('/api/games/complete', {
         method: 'POST',
         headers: {
@@ -293,43 +312,60 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
         },
         body: JSON.stringify({
           gameId: gameData.gameId,
+          gameType: 'crossword',
           solution: completedGrid,
-          timeSpent: time
+          timeSpent: time,
+          metadata: {
+            mistakes,
+            revealedCells,
+            gridSize: gameData.size
+          }
         })
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to complete game');
+      }
       
       const result = await response.json();
       onComplete(result);
     } catch (error) {
       console.error('Error completing game:', error);
+      setGameComplete(false);
     }
   };
 
   const handleCheckSolution = () => {
     const solutionGrid = gameData.solution;
     const newGrid = [...grid];
-    let hasErrors = false;
+    let errorCount = 0;
 
     solutionGrid.forEach((row, rowIndex) => {
       row.forEach((solutionCell, colIndex) => {
         const userCell = newGrid[rowIndex][colIndex];
         if (!solutionCell.isBlack && userCell.letter) {
-          if (userCell.letter === solutionCell.letter) {
-            // Correct - mark as correct (optional visual feedback)
-            userCell.correct = solutionCell.letter;
-          } else {
-            // Incorrect - mark as incorrect
-            hasErrors = true;
-            // You could add visual feedback here
+          if (userCell.letter !== solutionCell.letter) {
+            errorCount++;
           }
         }
       });
     });
 
-    setGrid(newGrid);
-    
-    if (!hasErrors) {
-      handleComplete(newGrid);
+    if (errorCount === 0) {
+      const allFilled = newGrid.every((row, rowIndex) =>
+        row.every((cell, colIndex) => {
+          if (gameData.solution[rowIndex][colIndex].isBlack) return true;
+          return cell.letter !== '';
+        })
+      );
+      
+      if (allFilled) {
+        handleComplete(newGrid);
+      } else {
+        alert('All cells are correct so far! Keep filling in the remaining cells.');
+      }
+    } else {
+      alert(`You have ${errorCount} incorrect letter${errorCount !== 1 ? 's' : ''}. Keep trying!`);
     }
   };
 
@@ -342,6 +378,7 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
     const newGrid = [...grid];
     newGrid[row][col] = { ...newGrid[row][col], letter: solutionLetter };
     setGrid(newGrid);
+    setRevealedCells(prev => prev + 1);
     
     // Check if complete after reveal
     checkCompletion(newGrid);
@@ -353,32 +390,33 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
   const getCellClass = (row: number, col: number) => {
     const cell = grid[row][col];
     const isSelected = selectedCell && selectedCell[0] === row && selectedCell[1] === col;
-    const isInWord = selectedCell && (
-      (selectedDirection === 'across' && cell.across === grid[selectedCell[0]][selectedCell[1]].across) ||
-      (selectedDirection === 'down' && cell.down === grid[selectedCell[0]][selectedCell[1]].down)
-    );
+    
+    let isInWord = false;
+    if (selectedCell && !cell.isBlack) {
+      const selectedClueNum = selectedDirection === 'across' 
+        ? grid[selectedCell[0]][selectedCell[1]].across 
+        : grid[selectedCell[0]][selectedCell[1]].down;
+      const currentClueNum = selectedDirection === 'across' ? cell.across : cell.down;
+      isInWord = selectedClueNum === currentClueNum && selectedClueNum !== undefined;
+    }
 
     const baseClasses = [
-      'w-10 h-10 md:w-12 md:h-12',
+      'w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12',
       'flex items-center justify-center',
       'border border-gray-300',
-      'text-lg font-bold',
-      'relative'
+      'text-sm sm:text-base md:text-lg font-bold',
+      'relative',
+      'transition-colors duration-150'
     ];
 
     if (cell.isBlack) {
-      baseClasses.push('bg-gray-800');
+      baseClasses.push('bg-gray-900');
     } else if (isSelected) {
-      baseClasses.push('bg-blue-200 ring-2 ring-blue-500');
+      baseClasses.push('bg-blue-300 ring-2 ring-blue-600 z-10');
     } else if (isInWord) {
-      baseClasses.push('bg-blue-50');
+      baseClasses.push('bg-blue-100');
     } else {
-      baseClasses.push('bg-white');
-    }
-
-    // Add red border for incorrect cells (optional feature)
-    if (!cell.isBlack && cell.letter && cell.letter !== gameData.solution[row][col].letter) {
-      baseClasses.push('border-2 border-red-500');
+      baseClasses.push('bg-white hover:bg-gray-50 cursor-pointer');
     }
 
     return baseClasses.join(' ');
@@ -389,39 +427,60 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
   const downClues = gameData.clues.filter(clue => clue.direction === 'down');
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <div className="mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Crossword Puzzle</h2>
-          <div className="text-lg font-semibold">
-            Time: {Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Crossword Puzzle</h2>
+          <div className="flex gap-3 items-center flex-wrap">
+            <div className="text-base md:text-lg font-semibold bg-blue-50 px-4 py-2 rounded-lg">
+              ⏱️ {Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}
+            </div>
+            {mistakes > 0 && (
+              <div className="text-base md:text-lg font-semibold bg-red-50 px-4 py-2 rounded-lg">
+                ❌ {mistakes} mistakes
+              </div>
+            )}
+            {revealedCells > 0 && (
+              <div className="text-base md:text-lg font-semibold bg-yellow-50 px-4 py-2 rounded-lg">
+                💡 {revealedCells} revealed
+              </div>
+            )}
           </div>
         </div>
         
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-medium text-purple-800">
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 sm:p-6 rounded-xl mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <p className="text-base sm:text-lg font-medium text-purple-800">
                 Fill in all the white squares to complete the crossword!
               </p>
-              <p className="text-purple-600 mt-1">
-                Use <span className="font-semibold">Tab</span> or <span className="font-semibold">Space</span> to switch direction
+              <p className="text-purple-600 mt-1 text-sm">
+                Use <kbd className="px-2 py-0.5 bg-white rounded font-mono text-xs">Tab</kbd> or <kbd className="px-2 py-0.5 bg-white rounded font-mono text-xs">Space</kbd> to switch direction
               </p>
             </div>
-            <div className="text-sm bg-white px-4 py-2 rounded-lg shadow">
-              <span className="font-semibold text-purple-700">
-                Grid: {gameData.size} × {gameData.size}
-              </span>
+            <div className="flex flex-wrap gap-2">
+              <div className="text-sm bg-white px-4 py-2 rounded-lg shadow">
+                <span className="font-semibold text-purple-700">
+                  Grid: {gameData.size} × {gameData.size}
+                </span>
+              </div>
+              {gameData.maxCoins && (
+                <div className="text-sm bg-amber-50 px-4 py-2 rounded-lg shadow border border-amber-200">
+                  <span className="font-semibold text-amber-700">
+                    🪙 Up to {gameData.maxCoins} coins
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-6 xl:gap-8">
         {/* Crossword Grid */}
-        <div className="lg:flex-1">
-          <div className="bg-white p-4 rounded-xl shadow-lg mb-6">
-            <div className="grid gap-0.5 w-fit mx-auto" 
+        <div className="flex-1 lg:max-w-3xl">
+          <div className="bg-white p-3 sm:p-4 rounded-xl shadow-lg mb-6">
+            <div className="grid gap-0 w-fit mx-auto border-2 border-gray-700 rounded" 
                  style={{ gridTemplateColumns: `repeat(${gameData.size}, minmax(0, 1fr))` }}>
               {grid.map((row, rowIndex) => (
                 row.map((cell, colIndex) => (
@@ -433,14 +492,14 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
                     {!cell.isBlack && (
                       <>
                         {cell.number && (
-                          <div className="absolute top-0.5 left-0.5 text-xs font-normal text-gray-600">
+                          <div className="absolute top-0 left-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-normal text-gray-600 leading-none">
                             {cell.number}
                           </div>
                         )}
                         <input
                           ref={el => {
                             if (inputRefs.current[rowIndex]) {
-                              inputRefs.current[rowIndex][colIndex] = el!;
+                              inputRefs.current[rowIndex][colIndex] = el;
                             }
                           }}
                           type="text"
@@ -448,7 +507,7 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
                           onChange={(e) => handleLetterInput(rowIndex, colIndex, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
                           disabled={gameComplete}
-                          className="w-full h-full bg-transparent border-0 text-center text-lg font-bold uppercase focus:outline-none focus:ring-0"
+                          className="w-full h-full bg-transparent border-0 text-center text-sm sm:text-base md:text-lg font-bold uppercase focus:outline-none focus:ring-0 p-0"
                           maxLength={1}
                           aria-label={`Cell ${rowIndex + 1},${colIndex + 1}`}
                         />
@@ -461,10 +520,10 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
           </div>
 
           {/* Controls */}
-          <div className="flex flex-wrap gap-3 mb-8">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <button
               onClick={() => setSelectedDirection('across')}
-              className={`px-4 py-2 rounded-lg font-medium ${
+              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-colors ${
                 selectedDirection === 'across'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -474,7 +533,7 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
             </button>
             <button
               onClick={() => setSelectedDirection('down')}
-              className={`px-4 py-2 rounded-lg font-medium ${
+              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-colors ${
                 selectedDirection === 'down'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -485,62 +544,55 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
             <button
               onClick={handleRevealCell}
               disabled={!selectedCell || gameComplete}
-              className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="px-3 sm:px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base transition-colors"
             >
-              💡 Reveal Letter
+              💡 Reveal
             </button>
             <button
               onClick={handleCheckSolution}
               disabled={gameComplete}
-              className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="px-3 sm:px-4 py-2 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base transition-colors"
             >
-              ✓ Check Solution
+              ✓ Check
             </button>
           </div>
         </div>
 
         {/* Clues Panel */}
-        <div className="lg:w-96">
-          <div className="bg-white rounded-xl shadow-lg p-6 sticky top-6">
-            {currentClue ? (
-              <div className="mb-8">
-                <div className="flex items-center mb-4">
-                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold mr-3">
+        <div className="w-full lg:w-96 xl:w-[420px]">
+          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:sticky lg:top-6">
+            {currentClue && (
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <div className="flex items-center mb-3">
+                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-semibold mr-3">
                     {currentClue.number} {currentClue.direction === 'across' ? 'Across' : 'Down'}
                   </span>
-                  <span className="text-gray-600">
-                    Selected cell clue
+                  <span className="text-xs sm:text-sm text-gray-600">
+                    Selected clue
                   </span>
                 </div>
-                <p className="text-lg text-gray-800 italic border-l-4 border-blue-500 pl-4 py-2">
+                <p className="text-sm sm:text-base text-gray-800 italic border-l-4 border-blue-500 pl-3 sm:pl-4 py-2">
                   "{currentClue.clue}"
-                </p>
-              </div>
-            ) : (
-              <div className="mb-8 p-4 bg-blue-50 rounded-lg">
-                <p className="text-blue-700">
-                  Click on any white square to see the clue.
                 </p>
               </div>
             )}
 
             <div className="space-y-6">
               <div>
-                <h3 className="font-bold text-lg text-gray-800 mb-3 pb-2 border-b">
-                  Across Clues
+                <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-3 pb-2 border-b">
+                  Across
                 </h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                   {acrossClues.map((clue) => (
-                    <div
+                    <button
                       key={`across-${clue.number}`}
-                      className={`p-2 rounded cursor-pointer hover:bg-gray-50 ${
+                      className={`w-full text-left p-2 rounded transition-colors ${
                         currentClue?.number === clue.number && 
                         currentClue.direction === 'across' 
                           ? 'bg-blue-50 border-l-4 border-blue-500' 
-                          : ''
+                          : 'hover:bg-gray-50'
                       }`}
                       onClick={() => {
-                        // Find first cell with this clue number for across
                         for (let r = 0; r < gameData.size; r++) {
                           for (let c = 0; c < gameData.size; c++) {
                             const cell = grid[r][c];
@@ -553,31 +605,32 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
                         }
                       }}
                     >
-                      <div className="flex items-start">
-                        <span className="text-sm font-semibold text-blue-600 w-6">{clue.number}.</span>
-                        <span className="text-sm text-gray-700 flex-1">{clue.clue}</span>
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs sm:text-sm font-semibold text-blue-600 w-5 sm:w-6 flex-shrink-0">
+                          {clue.number}.
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-700 flex-1">{clue.clue}</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <h3 className="font-bold text-lg text-gray-800 mb-3 pb-2 border-b">
-                  Down Clues
+                <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-3 pb-2 border-b">
+                  Down
                 </h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                   {downClues.map((clue) => (
-                    <div
+                    <button
                       key={`down-${clue.number}`}
-                      className={`p-2 rounded cursor-pointer hover:bg-gray-50 ${
+                      className={`w-full text-left p-2 rounded transition-colors ${
                         currentClue?.number === clue.number && 
                         currentClue.direction === 'down' 
                           ? 'bg-blue-50 border-l-4 border-blue-500' 
-                          : ''
+                          : 'hover:bg-gray-50'
                       }`}
                       onClick={() => {
-                        // Find first cell with this clue number for down
                         for (let r = 0; r < gameData.size; r++) {
                           for (let c = 0; c < gameData.size; c++) {
                             const cell = grid[r][c];
@@ -590,39 +643,31 @@ export default function CrosswordGame({ gameData, onComplete }: CrosswordGamePro
                         }
                       }}
                     >
-                      <div className="flex items-start">
-                        <span className="text-sm font-semibold text-blue-600 w-6">{clue.number}.</span>
-                        <span className="text-sm text-gray-700 flex-1">{clue.clue}</span>
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs sm:text-sm font-semibold text-blue-600 w-5 sm:w-6 flex-shrink-0">
+                          {clue.number}.
+                        </span>
+                        <span className="text-xs sm:text-sm text-gray-700 flex-1">{clue.clue}</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h4 className="font-medium text-gray-700 mb-2">Controls Guide:</h4>
-              <ul className="text-xs text-gray-600 space-y-1">
-                <li>• <span className="font-semibold">Click</span> on a cell to select it</li>
-                <li>• <span className="font-semibold">Type letters</span> to fill cells</li>
-                <li>• <span className="font-semibold">Arrow keys</span> to move between cells</li>
-                <li>• <span className="font-semibold">Tab/Space</span> to switch direction</li>
-                <li>• <span className="font-semibold">Backspace</span> to clear a cell</li>
-                <li>• <span className="font-semibold">Click clues</span> to jump to that word</li>
-              </ul>
             </div>
           </div>
         </div>
       </div>
 
       {gameComplete && (
-        <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-100 rounded-xl shadow-lg">
+        <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-100 rounded-xl shadow-lg border-2 border-green-200">
           <div className="flex items-center justify-center">
             <div className="text-4xl mr-4">🎉</div>
             <div>
               <h3 className="text-xl font-bold text-green-800 mb-1">Crossword Completed!</h3>
               <p className="text-green-700">
-                All letters are correct! Coins have been added to your wallet.
+                Time: {Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}, 
+                Mistakes: {mistakes}, Revealed: {revealedCells}.
+                Coins have been added to your wallet!
               </p>
             </div>
           </div>

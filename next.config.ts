@@ -12,7 +12,11 @@ const nextConfig = {
         hostname: 'joyjuncture.com',
         pathname: '/**',
       },
-      // Add your image host domains here
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
     ],
   },
   env: {

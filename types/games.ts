@@ -71,6 +71,7 @@ export interface GameSessionType {
     gameId: string;
     maxCoins: number;
     hasTimeBonus: boolean;
+    difficulty: string;
   }
   
   // Word Guesser types
@@ -181,3 +182,4 @@ export interface GameSessionType {
   export interface GameStatsProps {
     stats: GameStats;
   }
+
