@@ -416,4 +416,3 @@ export default function EventList({ events, onUpdate }: EventListProps) {
     </div>
   );
 }
-

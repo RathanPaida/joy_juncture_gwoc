@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // export const loadRazorpay = (): Promise<boolean> => {
 //     return new Promise((resolve) => {
 //       const script = document.createElement('script');
@@ -36,3 +37,25 @@ export const loadRazorpay = async () => {
     document.body.appendChild(script);
   });
 };
+=======
+export const loadRazorpay = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => {
+        resolve(true);
+      };
+      script.onerror = () => {
+        resolve(false);
+      };
+      document.body.appendChild(script);
+    });
+  };
+  
+  export const initializeRazorpay = () => {
+    if (typeof window !== 'undefined' && !(window as any).Razorpay) {
+      return loadRazorpay();
+    }
+    return Promise.resolve(true);
+  };
+>>>>>>> f402353e3d9bc9db2626e5bed64a4681434eac37

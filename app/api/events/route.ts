@@ -69,7 +69,8 @@ export async function GET() {
     
     // Return events array directly, not nested in an object
     return NextResponse.json(
-      events.map(event => ({
+      // events.map(event => ({
+      events.map((event: { _id: { toString: () => any; }; }) => ({
         ...event,
         _id: event._id.toString()
       }))

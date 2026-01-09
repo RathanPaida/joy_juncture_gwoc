@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import EventCard from '@/app/components/EventCard';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { Calendar, MapPin, Users } from 'lucide-react';
+import './events.css';
 
 interface Event {
   _id: string;
