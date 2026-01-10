@@ -465,6 +465,7 @@ export default function EventsPage() {
           <div className="coins-display">
             <span>Your coins: </span>
             <span className="coins-amount">{user.totalPoints || user.coins || 0} 🪙</span>
+            
           </div>
         </div>
       )}
