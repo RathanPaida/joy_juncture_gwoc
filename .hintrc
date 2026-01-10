@@ -16,7 +16,10 @@
       {
         "ignore": [
           "backdrop-filter",
-          "user-select"
+          "user-select",
+          "text-wrap",
+          "text-wrap: pretty",
+          "text-wrap: balance"
         ]
       }
     ],

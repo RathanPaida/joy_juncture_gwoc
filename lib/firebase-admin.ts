@@ -1,4 +1,4 @@
-// lib/firebase-admin.ts - FIXED VERSION
+// lib/firebase-admin.ts - UPDATED VERSION
 import * as admin from 'firebase-admin';
 
 // Check if Firebase Admin is already initialized

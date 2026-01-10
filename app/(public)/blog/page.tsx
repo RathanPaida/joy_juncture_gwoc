@@ -1,452 +1,650 @@
-import BlogGrid from '../../components/blog/BlogGrid';
-import CategoryFilter from '../../components/blog/CategoryFilter';
-import SearchBar from '../../components/blog/SarchBar';
-import FeaturedBlogs from '../../components/blog/FeaturedBlogs';
-import Newsletter from '../../components/blog/NewsLetter';
-import connectDb from '@/lib/mongodb';
-import { Blog } from '../../../models/Blog';
-import { Metadata } from 'next';
+// app/blog/page.tsx - FIXED getIdToken
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Blog & Gameplay Guides | JoyJuncture',
-  description: 'Discover expert gameplay guides, event highlights, community stories, and strategy tips for all your favorite JoyJuncture games.',
-  keywords: ['game guides', 'strategy tips', 'gameplay', 'board games', 'card games', 'events', 'community'],
-  openGraph: {
-    title: 'Blog & Gameplay Guides | JoyJuncture',
-    description: 'Master your favorite games with our comprehensive gameplay guides and community stories.',
-    type: 'website',
-    images: ['/og-blog.jpg'],
-    url: 'https://joyjuncture.com/blog',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Blog & Gameplay Guides | JoyJuncture',
-    description: 'Master your favorite games with our comprehensive gameplay guides and community stories.',
-    images: ['/og-blog.jpg'],
-  },
-};
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { getAuth } from 'firebase/auth'; // ADDED
+import { 
+  Search, Heart, MessageCircle, Share2, Eye, Clock, 
+  User, Tag, Filter, Calendar, Star, RefreshCw, Plus, 
+  Edit, Trash2, Bookmark 
+} from 'lucide-react';
+import './blog.css';
 
-const BLOG_CATEGORIES = [
+interface Blog {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  coverImage?: string;
+  category: string;
+  tags: string[];
+  author: {
+    name: string;
+    avatar?: string;
+    role: string;
+  };
+  createdBy: {
+    userId: string;
+    userName: string;
+    userRole: 'admin' | 'user';
+  };
+  status: 'draft' | 'published';
+  featured: boolean;
+  readTime?: number;
+  publishedDate: string;
+  likes: number;
+  comments: number;
+  views: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface BlogStats {
+  totalBlogs: number;
+  publishedBlogs: number;
+  totalViews: number;
+  totalLikes: number;
+}
+
+const CATEGORIES = [
+  'All Categories',
   'Game Stories & Experiences',
-  'Event Highlights', 
+  'Event Highlights',
   'Strategy & Storytelling',
   'Community Features'
 ];
 
 const POPULAR_TAGS = [
-  'Strategy',
-  'Events', 
-  'Community',
-  'Tips',
-  'Beginners',
-  'Advanced',
-  'Game Night',
-  'Corporate',
-  'Weddings',
-  'Team Building'
+  'Strategy', 'Events', 'Community', 'Tips', 'Beginners', 
+  'Advanced', 'Game Night', 'Corporate', 'Team Building'
 ];
 
-async function getBlogs(category?: string, searchQuery?: string, page: number = 1, limit: number = 12) {
-  try {
-    await connectDb();
-    
-    const query: any = { status: 'published' };
-    const skip = (page - 1) * limit;
-    
-    if (searchQuery && searchQuery.length >= 2) {
-      // Text search across multiple fields
-      query.$or = [
-        { title: { $regex: searchQuery, $options: 'i' } },
-        { excerpt: { $regex: searchQuery, $options: 'i' } },
-        { tags: { $regex: searchQuery, $options: 'i' } },
-        { 'author.name': { $regex: searchQuery, $options: 'i' } },
-        { category: { $regex: searchQuery, $options: 'i' } }
-      ];
-    } else if (category && category !== 'all') {
-      query.category = category;
-    }
-    
-    // Get total count for pagination
-    const total = await Blog.countDocuments(query);
-    
-    // Get blogs with pagination
-    const blogs = await Blog.find(query)
-      .sort({ featured: -1, publishedDate: -1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .select('-content')
-      .lean();
-    
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
-    
-    return {
-      blogs: JSON.parse(JSON.stringify(blogs)),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
-        hasNextPage,
-        hasPrevPage
-      }
-    };
-  } catch (error) {
-    console.error('Error fetching blogs:', error);
-    return {
-      blogs: [],
-      pagination: {
-        page: 1,
-        limit: 12,
-        total: 0,
-        totalPages: 0,
-        hasNextPage: false,
-        hasPrevPage: false
-      }
-    };
-  }
-}
-
-async function getFeaturedBlogs() {
-  try {
-    await connectDb();
-    
-    const featuredBlogs = await Blog.find({ 
-      status: 'published',
-      featured: true 
-    })
-    .sort({ publishedDate: -1 })
-    .limit(3)
-    .select('-content')
-    .lean();
-    
-    return JSON.parse(JSON.stringify(featuredBlogs));
-  } catch (error) {
-    console.error('Error fetching featured blogs:', error);
-    return [];
-  }
-}
-
-async function getBlogStats() {
-  try {
-    await connectDb();
-    
-    const totalBlogs = await Blog.countDocuments({ status: 'published' });
-    const totalCategories = BLOG_CATEGORIES.length;
-    
-    // Get most popular tags count
-    const tagCounts = await Blog.aggregate([
-      { $match: { status: 'published' } },
-      { $unwind: '$tags' },
-      { $group: { _id: '$tags', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 }
-    ]);
-    
-    return {
-      totalBlogs,
-      totalCategories,
-      popularTags: tagCounts.map(tag => ({ name: tag._id, count: tag.count }))
-    };
-  } catch (error) {
-    console.error('Error fetching blog stats:', error);
-    return {
-      totalBlogs: 0,
-      totalCategories: 0,
-      popularTags: []
-    };
-  }
-}
-
-export default async function BlogPage({
-  searchParams
-}: {
-  searchParams: { 
-    category?: string; 
-    q?: string;
-    page?: string;
-    tag?: string;
-  }
-}) {
-  const category = searchParams.category || 'all';
-  const searchQuery = searchParams.q || '';
-  const page = parseInt(searchParams.page || '1');
-  const tag = searchParams.tag;
+export default function BlogPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const auth = getAuth(); // ADDED
   
-  const [{ blogs, pagination }, featuredBlogs, stats] = await Promise.all([
-    getBlogs(category !== 'all' ? category : undefined, searchQuery, page),
-    getFeaturedBlogs(),
-    getBlogStats()
-  ]);
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
+  const [stats, setStats] = useState<BlogStats>({
+    totalBlogs: 0,
+    publishedBlogs: 0,
+    totalViews: 0,
+    totalLikes: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [selectedTag, setSelectedTag] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [likedBlogs, setLikedBlogs] = useState<Set<string>>(new Set());
+  const [bookmarkedBlogs, setBookmarkedBlogs] = useState<Set<string>>(new Set());
 
-  const currentSearchTitle = searchQuery 
-    ? `Search Results for "${searchQuery}"`
-    : tag
-    ? `Articles tagged "${tag}"`
-    : category !== 'all'
-    ? `${category}`
-    : 'Latest Articles';
+  // ADDED: Helper function
+  const getFirebaseToken = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('Not authenticated');
+    }
+    return await currentUser.getIdToken();
+  };
 
+  useEffect(() => {
+    fetchBlogs();
+    fetchStats();
+    if (user) {
+      fetchUserInteractions();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    filterAndSortBlogs();
+  }, [blogs, searchQuery, selectedCategory, selectedTag, sortBy]);
+
+  const fetchBlogs = async () => {
+    try {
+      const response = await fetch('/api/blogs');
+      const data = await response.json();
+      if (response.ok) {
+        setBlogs(data.blogs || []);
+      }
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/blogs/stats');
+      const data = await response.json();
+      if (response.ok) {
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchUserInteractions = async () => {
+    if (!user) return;
+    try {
+      const token = await getFirebaseToken(); // CHANGED
+      const response = await fetch('/api/blogs/interactions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setLikedBlogs(new Set(data.likedBlogs || []));
+        setBookmarkedBlogs(new Set(data.bookmarkedBlogs || []));
+      }
+    } catch (error) {
+      console.error('Error fetching interactions:', error);
+    }
+  };
+
+  const filterAndSortBlogs = () => {
+    let filtered = [...blogs];
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(blog =>
+        blog.title.toLowerCase().includes(query) ||
+        blog.excerpt.toLowerCase().includes(query) ||
+        blog.tags.some(tag => tag.toLowerCase().includes(query))
+      );
+    }
+
+    if (selectedCategory !== 'All Categories') {
+      filtered = filtered.filter(blog => blog.category === selectedCategory);
+    }
+
+    if (selectedTag) {
+      filtered = filtered.filter(blog => blog.tags.includes(selectedTag));
+    }
+
+    switch (sortBy) {
+      case 'popular':
+        filtered.sort((a, b) => b.likes - a.likes);
+        break;
+      case 'views':
+        filtered.sort((a, b) => b.views - a.views);
+        break;
+      case 'oldest':
+        filtered.sort((a, b) => new Date(a.publishedDate).getTime() - new Date(b.publishedDate).getTime());
+        break;
+      default:
+        filtered.sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
+    }
+
+    setFilteredBlogs(filtered);
+  };
+
+  const handleLike = async (blogId: string) => {
+    if (!user) {
+      alert('Please login to like articles');
+      return;
+    }
+
+    try {
+      const token = await getFirebaseToken(); // CHANGED
+      const isLiked = likedBlogs.has(blogId);
+      
+      const response = await fetch('/api/blogs/like', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ blogId, action: isLiked ? 'unlike' : 'like' })
+      });
+
+      if (response.ok) {
+        setLikedBlogs(prev => {
+          const newSet = new Set(prev);
+          if (isLiked) {
+            newSet.delete(blogId);
+          } else {
+            newSet.add(blogId);
+          }
+          return newSet;
+        });
+
+        setBlogs(blogs.map(blog => 
+          blog._id === blogId 
+            ? { ...blog, likes: blog.likes + (isLiked ? -1 : 1) } 
+            : blog
+        ));
+      }
+    } catch (error) {
+      console.error('Error liking blog:', error);
+    }
+  };
+
+  const handleBookmark = async (blogId: string) => {
+    if (!user) {
+      alert('Please login to bookmark articles');
+      return;
+    }
+
+    try {
+      const token = await getFirebaseToken(); // CHANGED
+      const isBookmarked = bookmarkedBlogs.has(blogId);
+      
+      const response = await fetch('/api/blogs/bookmark', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ blogId, action: isBookmarked ? 'remove' : 'add' })
+      });
+
+      if (response.ok) {
+        setBookmarkedBlogs(prev => {
+          const newSet = new Set(prev);
+          if (isBookmarked) {
+            newSet.delete(blogId);
+          } else {
+            newSet.add(blogId);
+          }
+          return newSet;
+        });
+      }
+    } catch (error) {
+      console.error('Error bookmarking blog:', error);
+    }
+  };
+
+  const handleShare = (blog: Blog) => {
+    if (navigator.share) {
+      navigator.share({
+        title: blog.title,
+        text: blog.excerpt,
+        url: `${window.location.origin}/blog/${blog.slug}`
+      });
+    } else {
+      navigator.clipboard.writeText(`${window.location.origin}/blog/${blog.slug}`);
+      alert('Link copied to clipboard!');
+    }
+  };
+
+  const handleDelete = async (blogId: string) => {
+    if (!user || !confirm('Are you sure you want to delete this article?')) return;
+
+    try {
+      const token = await getFirebaseToken(); // CHANGED
+      const response = await fetch(`/api/admin/blog/${blogId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setBlogs(blogs.filter(b => b._id !== blogId));
+        alert('Article deleted successfully!');
+      } else {
+        const data = await response.json();
+        alert(`Failed to delete: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting blog:', error);
+      alert('Failed to delete article');
+    }
+  };
+
+  const canEditBlog = (blog: Blog) => {
+    if (!user) return false;
+    return blog.createdBy.userId === user.uid || user.email === 'paidarajarathan@gmail.com';
+  };
+
+  const featuredBlogs = blogs.filter(b => b.featured).slice(0, 3);
+
+  if (loading) {
+    return (
+      <div className="blog-page">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading articles...</p>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950">
+    <div className="blog-page">
       {/* Hero Section */}
-      <section className="relative py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-blue-500/5"></div>
-        <div className="absolute top-20 left-10 w-72 h-72 bg-orange-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl"></div>
-        
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800/50 border border-gray-700/50 mb-6">
-              <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-              <span className="text-sm text-gray-300">Welcome to JoyJuncture Blog</span>
-            </div>
-            
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-              {currentSearchTitle}
-            </h1>
-            
-            <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-10">
-              {searchQuery 
-                ? `Found ${pagination.total} article${pagination.total !== 1 ? 's' : ''} matching your search`
-                : tag
-                ? `Explore ${pagination.total} article${pagination.total !== 1 ? 's' : ''} about ${tag}`
-                : 'Master your favorite games, discover event highlights, and join our thriving community of players.'
-              }
-            </p>
-            
-            <SearchBar />
+      <section className="blog-hero">
+        <h1 className="blog-title">Game Stories & Strategies</h1>
+        <p className="blog-subtitle">
+          Discover expert gameplay guides, community stories, and winning strategies from players worldwide
+        </p>
+
+        {/* Search Bar */}
+        <div className="search-wrapper">
+          <Search className="search-icon" size={20} />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search articles, tags, or authors..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Stats */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <span className="stat-number">{stats.totalBlogs}</span>
+            <span className="stat-label">Total Articles</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">{stats.publishedBlogs}</span>
+            <span className="stat-label">Published</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">{stats.totalViews.toLocaleString()}</span>
+            <span className="stat-label">Total Views</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">{stats.totalLikes}</span>
+            <span className="stat-label">Total Likes</span>
           </div>
         </div>
+
+        {/* Popular Tags */}
+        <div className="tags-wrapper">
+          {POPULAR_TAGS.slice(0, 6).map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
+              className={`tag-btn ${selectedTag === tag ? 'active' : ''}`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
       </section>
-      
-      {/* Featured Blogs Section */}
-      {!searchQuery && !tag && category === 'all' && featuredBlogs.length > 0 && (
-        <section className="py-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <FeaturedBlogs blogs={featuredBlogs} />
+
+      {/* Featured Blogs */}
+      {featuredBlogs.length > 0 && !searchQuery && !selectedTag && selectedCategory === 'All Categories' && (
+        <section className="featured-section">
+          <div className="section-header">
+            <Star size={28} style={{ color: 'var(--primary)' }} />
+            <h2 className="section-title">Featured Articles</h2>
+          </div>
+          
+          <div className="featured-grid">
+            {featuredBlogs.map((blog) => (
+              <div 
+                key={blog._id} 
+                className="featured-card"
+                onClick={() => router.push(`/blog/${blog.slug}`)}
+              >
+                <div className="featured-image">
+                  <img src={blog.coverImage} alt={blog.title} />
+                  <div className="featured-badge">FEATURED</div>
+                </div>
+                
+                <div className="featured-content">
+                  <span className="category-tag">{blog.category}</span>
+                  <h3 className="featured-title">{blog.title}</h3>
+                  <p className="featured-excerpt">{blog.excerpt}</p>
+                  
+                  <div className="featured-meta">
+                    <div className="meta-item">
+                      <Heart size={14} />
+                      {blog.likes}
+                    </div>
+                    <div className="meta-item">
+                      <Eye size={14} />
+                      {blog.views}
+                    </div>
+                    <div className="meta-item">
+                      <Clock size={14} />
+                      {blog.readTime} min
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
-      
+
       {/* Main Content */}
-      <section className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar */}
-            <aside className="lg:w-1/4">
-              <div className="sticky top-24 space-y-6">
-                {/* Category Filter */}
-                <CategoryFilter 
-                  categories={BLOG_CATEGORIES} 
-                  activeCategory={category}
-                  stats={stats}
-                />
-                
-                {/* Popular Tags */}
-                <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Popular Tags</h3>
-                    <span className="text-xs text-gray-500 bg-gray-900/50 px-2 py-1 rounded">
-                      {stats.popularTags.length} tags
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {POPULAR_TAGS.map((tag) => (
-                      <a
-                        key={tag}
-                        href={`/blog?tag=${tag.toLowerCase()}`}
-                        className="px-3 py-1.5 bg-gray-700/30 hover:bg-gray-600/50 text-gray-300 hover:text-white rounded-full text-sm transition-all duration-300 hover:scale-105"
-                      >
-                        {tag}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Blog Stats */}
-                <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
-                  <h3 className="text-lg font-semibold text-white mb-4">Blog Stats</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400">Total Articles</span>
-                      <span className="text-orange-500 font-bold">{stats.totalBlogs}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400">Categories</span>
-                      <span className="text-blue-500 font-bold">{stats.totalCategories}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400">Featured</span>
-                      <span className="text-purple-500 font-bold">{featuredBlogs.length}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Newsletter Signup */}
-                <Newsletter />
-              </div>
-            </aside>
-            
-            {/* Main Content Area */}
-            <main className="lg:w-3/4">
-              {/* Header with Filter Info */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 p-6 bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700/50">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">
-                    {currentSearchTitle}
-                  </h2>
-                  <p className="text-gray-400 mt-2">
-                    {searchQuery || tag || category !== 'all'
-                      ? `Showing ${blogs.length} of ${pagination.total} articles`
-                      : 'Browse our latest gameplay guides and community stories'
-                    }
-                  </p>
-                </div>
-                
-                {/* Sort Options */}
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-gray-400">
-                    Sort by:
-                  </div>
-                  <select 
-                    className="px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    defaultValue="newest"
-                  >
-                    <option value="newest">Newest First</option>
-                    <option value="popular">Most Popular</option>
-                    <option value="featured">Featured</option>
-                    <option value="oldest">Oldest First</option>
-                  </select>
-                </div>
-              </div>
-              
-              {/* Blog Grid */}
-              <BlogGrid blogs={blogs} />
-              
-              {/* No Results Message */}
-              {blogs.length === 0 && (
-                <div className="text-center py-16 px-6 bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700/50">
-                  <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center bg-gray-700/50 rounded-full">
-                    <span className="text-4xl">🔍</span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-3">
-                    No articles found
-                  </h3>
-                  <p className="text-gray-400 mb-6 max-w-md mx-auto">
-                    {searchQuery 
-                      ? `We couldn't find any articles matching "${searchQuery}". Try a different search term.`
-                      : tag
-                      ? `No articles found with tag "${tag}".`
-                      : 'No articles available in this category.'
-                    }
-                  </p>
-                  <div className="flex flex-wrap gap-3 justify-center">
-                    <a 
-                      href="/blog"
-                      className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all"
-                    >
-                      View All Articles
-                    </a>
-                    {searchQuery && (
-                      <button
-                        onClick={() => window.history.back()}
-                        className="px-6 py-3 bg-gray-800 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
-                      >
-                        Clear Search
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Pagination */}
-              {pagination.totalPages > 1 && blogs.length > 0 && (
-                <div className="mt-12 flex justify-center">
-                  <nav className="flex items-center gap-2">
-                    <a
-                      href={`/blog?page=${pagination.page - 1}${category !== 'all' ? `&category=${category}` : ''}${searchQuery ? `&q=${searchQuery}` : ''}`}
-                      className={`px-4 py-2 rounded-lg border ${
-                        !pagination.hasPrevPage
-                          ? 'border-gray-700 text-gray-500 cursor-not-allowed'
-                          : 'border-gray-600 text-gray-300 hover:bg-gray-800 hover:border-orange-500 hover:text-orange-400'
-                      }`}
-                      aria-disabled={!pagination.hasPrevPage}
-                    >
-                      ← Previous
-                    </a>
-                    
-                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                      const pageNum = i + 1;
-                      const isCurrent = pageNum === pagination.page;
-                      return (
-                        <a
-                          key={pageNum}
-                          href={`/blog?page=${pageNum}${category !== 'all' ? `&category=${category}` : ''}${searchQuery ? `&q=${searchQuery}` : ''}`}
-                          className={`px-4 py-2 rounded-lg border ${
-                            isCurrent
-                              ? 'border-orange-500 bg-orange-500/20 text-orange-400'
-                              : 'border-gray-600 text-gray-300 hover:bg-gray-800 hover:border-gray-500'
-                          }`}
-                        >
-                          {pageNum}
-                        </a>
-                      );
-                    })}
-                    
-                    {pagination.totalPages > 5 && (
-                      <span className="px-2 text-gray-500">...</span>
-                    )}
-                    
-                    <a
-                      href={`/blog?page=${pagination.page + 1}${category !== 'all' ? `&category=${category}` : ''}${searchQuery ? `&q=${searchQuery}` : ''}`}
-                      className={`px-4 py-2 rounded-lg border ${
-                        !pagination.hasNextPage
-                          ? 'border-gray-700 text-gray-500 cursor-not-allowed'
-                          : 'border-gray-600 text-gray-300 hover:bg-gray-800 hover:border-orange-500 hover:text-orange-400'
-                      }`}
-                      aria-disabled={!pagination.hasNextPage}
-                    >
-                      Next →
-                    </a>
-                  </nav>
-                </div>
-              )}
-            </main>
-          </div>
-        </div>
-      </section>
-      
-      {/* CTA Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="bg-gradient-to-r from-orange-500/10 via-blue-500/10 to-purple-500/10 rounded-3xl p-8 sm:p-12 border border-gray-700/50 backdrop-blur-sm">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Want to Share Your Game Story?
-            </h2>
-            <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join our community of writers and share your gaming experiences, strategies, and event highlights.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="/contact"
-                className="px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/20"
-              >
-                Submit Your Story
-              </a>
-              <a
-                href="/games"
-                className="px-8 py-3 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-700 transition-colors border border-gray-700"
-              >
-                Explore Games
-              </a>
+      <div className="main-content">
+        {/* Sidebar */}
+        <aside className="sidebar">
+          {/* Categories */}
+          <div className="sidebar-card">
+            <h3 className="sidebar-title">
+              <Filter size={20} />
+              Categories
+            </h3>
+            <div className="category-list">
+              {CATEGORIES.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`category-btn ${selectedCategory === category ? 'active' : ''}`}
+                >
+                  {category}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+
+          {/* Tags */}
+          <div className="sidebar-card">
+            <h3 className="sidebar-title">
+              <Tag size={20} />
+              Popular Tags
+            </h3>
+            <div className="tag-cloud">
+              {POPULAR_TAGS.map((tag) => (
+                <span
+                  key={tag}
+                  onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
+                  className={`tag-item ${selectedTag === tag ? 'active' : ''}`}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="sidebar-card cta-card">
+            <h3 className="sidebar-title">Share Your Story</h3>
+            <p className="cta-text">
+              Got an amazing game story or strategy tip? Share it with our community!
+            </p>
+            <button 
+              className="btn-primary"
+              onClick={() => router.push('/blog/create')}
+            >
+              <Plus size={18} />
+              Write Article
+            </button>
+          </div>
+        </aside>
+
+        {/* Blog List */}
+        <main className="blogs-main">
+          <div className="blogs-header">
+            <div className="header-left">
+              <h2>
+                {selectedTag ? `Tagged: ${selectedTag}` : 
+                 selectedCategory !== 'All Categories' ? selectedCategory : 
+                 'All Articles'}
+              </h2>
+              <p className="results-count">
+                {filteredBlogs.length} article{filteredBlogs.length !== 1 ? 's' : ''} found
+              </p>
+            </div>
+            
+            <div className="header-right">
+              <button className="refresh-btn" onClick={fetchBlogs}>
+                <RefreshCw size={16} />
+                Refresh
+              </button>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="sort-select"
+              >
+                <option value="newest">Newest First</option>
+                <option value="popular">Most Popular</option>
+                <option value="views">Most Viewed</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Blog Cards */}
+          <div className="blogs-grid">
+            {filteredBlogs.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">🔍</div>
+                <h3 className="empty-title">No articles found</h3>
+                <p className="empty-text">
+                  {searchQuery 
+                    ? `No results for "${searchQuery}". Try different keywords.`
+                    : 'Try adjusting your filters or search query'}
+                </p>
+              </div>
+            ) : (
+              filteredBlogs.map((blog) => (
+                <div key={blog._id} className="blog-card">
+                  <div className="blog-card-content">
+                    <div 
+                      className="blog-image-wrapper"
+                      onClick={() => router.push(`/blog/${blog.slug}`)}
+                    >
+                      <img src={blog.coverImage} alt={blog.title} className="blog-image" />
+                      {blog.featured && (
+                        <div className="blog-badge">
+                          <Star size={12} />
+                          FEATURED
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="blog-info">
+                      <div className="blog-header">
+                        <span className="blog-category">{blog.category}</span>
+                        <span className="blog-date">
+                          <Calendar size={12} />
+                          {new Date(blog.publishedDate).toLocaleDateString()}
+                        </span>
+                        <span className="blog-date">
+                          <Clock size={12} />
+                          {blog.readTime} min
+                        </span>
+                      </div>
+                      
+                      <h3 
+                        className="blog-title"
+                        onClick={() => router.push(`/blog/${blog.slug}`)}
+                      >
+                        {blog.title}
+                      </h3>
+                      <p className="blog-excerpt">{blog.excerpt}</p>
+                      
+                      <div className="blog-tags">
+                        {blog.tags.slice(0, 3).map((tag) => (
+                          <span key={tag} className="blog-tag">{tag}</span>
+                        ))}
+                      </div>
+                      
+                      <div className="blog-footer">
+                        <div className="blog-author">
+                          <img src={blog.author.avatar || '/default-avatar.png'} alt={blog.author.name} className="author-avatar" />
+                          <div className="author-info">
+                            <span className="author-name">{blog.author.name}</span>
+                            <span className="author-role">{blog.author.role}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="blog-actions">
+                          <button
+                            onClick={() => handleLike(blog._id)}
+                            className={`action-btn ${likedBlogs.has(blog._id) ? 'liked' : ''}`}
+                          >
+                            <Heart size={16} fill={likedBlogs.has(blog._id) ? 'currentColor' : 'none'} />
+                            {blog.likes}
+                          </button>
+                          
+                          <button
+                            onClick={() => handleBookmark(blog._id)}
+                            className={`action-btn ${bookmarkedBlogs.has(blog._id) ? 'bookmarked' : ''}`}
+                          >
+                            <Bookmark size={16} fill={bookmarkedBlogs.has(blog._id) ? 'currentColor' : 'none'} />
+                          </button>
+                          
+                          <button onClick={() => handleShare(blog)} className="action-btn">
+                            <Share2 size={16} />
+                          </button>
+                          
+                          {user && (
+    <>
+      {/* Case 1: User's own blog - always show buttons */}
+      {blog.createdBy.userId === user.uid ? (
+        <>
+          {/* <button 
+            className="action-btn edit-btn"
+            onClick={() => router.push(`/admin/blog?edit=${blog._id}`)}
+          >
+            <Edit size={16} />
+          </button> */}
+          <button 
+            className="action-btn delete-btn"
+            onClick={() => handleDelete(blog._id)}
+          >
+            <Trash2 size={16} />
+          </button>
+        </>
+      ) : (null
+        // /* Case 2: Admin reviewing user-created draft */
+        // ['admin', 'super_admin', 'editor'].includes(role) && 
+        // blog.createdBy.userRole === 'user' && 
+        // blog.status === 'draft' ? (
+        //   <>
+        //     <button 
+        //       className="action-btn edit-btn"
+        //       onClick={() => router.push(`/admin/blog?edit=${blog._id}`)}
+        //       title="Review user-submitted draft"
+        //     >
+        //       <Edit size={16} />
+        //     </button>
+        //     <button 
+        //       className="action-btn delete-btn"
+        //       onClick={() => handleDelete(blog._id)}
+        //       title="Delete user-submitted draft"
+        //     >
+        //       <Trash2 size={16} />
+        //     </button>
+        //   </>
+        // ) : null
+      )}
+    </>
+  )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

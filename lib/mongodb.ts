@@ -48,6 +48,12 @@ export async function connectToDatabase() {
   return cached.conn;
 }
 
+export async function getEventsCollection() {
+  const conn = await connectToDatabase();
+  return conn.connection.db.collection('events');
+}
+
+
 export async function disconnectFromDatabase() {
   if (cached.conn) {
     await mongoose.disconnect();
