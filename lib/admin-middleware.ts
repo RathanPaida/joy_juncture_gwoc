@@ -1,11 +1,15 @@
-// lib/admin-middleware.ts - TEMPORARY BYPASS FOR TESTING
 import { NextRequest } from 'next/server';
 import { verifyIdToken } from './firebase-admin';
 
 interface AdminCheckResult {
   authorized: boolean;
   error?: string;
-  user?: any;
+  admin?: {  // Changed from 'user' to 'admin' to match your API route
+    id: string;
+    email?: string;
+    name?: string;
+    role?: string;
+  };
   uid?: string;
 }
 
@@ -54,7 +58,12 @@ export async function checkAdminAccess(req: NextRequest): Promise<AdminCheckResu
     
     return { 
       authorized: true, 
-      user: { email: decodedToken.email },
+      admin: {  // Changed from 'user' to 'admin'
+        id: decodedToken.uid,
+        email: decodedToken.email,
+        name: decodedToken.name || decodedToken.email?.split('@')[0],
+        role: 'admin'  // Temporary - hardcoded as admin
+      },
       uid: decodedToken.uid 
     };
 
@@ -71,4 +80,20 @@ export async function checkAdminAccess(req: NextRequest): Promise<AdminCheckResu
 export async function isUserAdmin(email: string): Promise<boolean> {
   // TODO: Implement proper admin check
   return true; // Temporary bypass
+}
+
+// NEW: Add a bypass version for public pages like CardGames
+export async function checkAdminAccessBypass(req: NextRequest): Promise<AdminCheckResult> {
+  console.log('🔓 BYPASS MODE: Skipping authentication check');
+  console.log('⚠️ WARNING: This should only be used for development!');
+  
+  return {
+    authorized: true,
+    admin: {
+      id: 'dev-admin-id',
+      email: 'admin@test.com',
+      name: 'Development Admin',
+      role: 'admin'
+    }
+  };
 }

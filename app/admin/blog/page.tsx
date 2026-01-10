@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { auth } from '@/lib/firebase'; // Import auth from firebase
 import { useRouter } from 'next/navigation';
 import {
   FaBlog, FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaEye, FaEyeSlash,
@@ -96,7 +97,15 @@ const AdminBlogPage: React.FC = () => {
 
     try {
       console.log('Getting Firebase token...');
-      const token = await user.getIdToken();
+      // Use auth.currentUser instead of user.getIdToken()
+      const token = await auth.currentUser?.getIdToken();
+      
+      if (!token) {
+        setAccessDenied(true);
+        setAccessError('Failed to get authentication token');
+        setLoading(false);
+        return;
+      }
       
       console.log('Checking admin access...');
       const response = await fetch('/api/admin/check-access', {
@@ -135,7 +144,13 @@ const AdminBlogPage: React.FC = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const token = await user!.getIdToken();
+      // Use auth.currentUser instead of user!.getIdToken()
+      const token = await auth.currentUser?.getIdToken();
+      
+      if (!token) {
+        console.error('No token available');
+        return;
+      }
       
       console.log('Fetching blog data...');
       
@@ -173,112 +188,121 @@ const AdminBlogPage: React.FC = () => {
     }
   };
 
-
-const handleSaveBlog = async (blog: Blog) => {
-  try {
-    const token = await user!.getIdToken();
-    const method = blog._id ? 'PUT' : 'POST';
-    const url = blog._id 
-      ? `/api/admin/blog/${blog._id}`
-      : '/api/admin/blog';
-
-    console.log('Saving blog:', { method, url, blogId: blog._id });
-
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(blog)
-    });
-
-    const data = await response.json();
-    console.log('Save response:', { status: response.status, data });
-
-    // Check for success based on your API response structure
-    if (response.ok && data.success) {
-      alert(blog._id ? 'Blog updated successfully!' : 'Blog created successfully!');
-      setShowBlogModal(false);
-      setEditingBlog(null);
-      fetchAllData();
-    } else {
-      // Handle error
-      const errorMessage = data.error || 'Unknown error occurred';
-      console.error('Save failed:', errorMessage);
-      alert(`Failed to save blog: ${errorMessage}`);
-    }
-  } catch (error: any) {
-    console.error('Error saving blog:', error);
-    alert(`Failed to save blog: ${error.message}`);
-  }
-};
-
-
-const handleDeleteBlog = async (id: string) => {
-  if (!confirm('Are you sure you want to delete this blog? This action cannot be undone.')) {
-    return;
-  }
-
-  try {
-    const token = await user!.getIdToken();
-    console.log('Deleting blog:', id);
-
-    const response = await fetch(`/api/admin/blog/${id}`, {
-      method: 'DELETE',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+  const handleSaveBlog = async (blog: Blog) => {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      
+      if (!token) {
+        alert('Authentication token not available');
+        return;
       }
-    });
+      
+      const method = blog._id ? 'PUT' : 'POST';
+      const url = blog._id 
+        ? `/api/admin/blog/${blog._id}`
+        : '/api/admin/blog';
 
-    const data = await response.json();
-    console.log('Delete response:', { status: response.status, data });
+      console.log('Saving blog:', { method, url, blogId: blog._id });
 
-    // Check for success based on your API response structure
-    if (response.ok && data.success) {
-      alert('Blog deleted successfully!');
-      fetchAllData();
-    } else {
-      // Handle error
-      const errorMessage = data.error || 'Unknown error occurred';
-      console.error('Delete failed:', errorMessage);
-      alert(`Failed to delete blog: ${errorMessage}`);
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(blog)
+      });
+
+      const data = await response.json();
+      console.log('Save response:', { status: response.status, data });
+
+      if (response.ok && data.success) {
+        alert(blog._id ? 'Blog updated successfully!' : 'Blog created successfully!');
+        setShowBlogModal(false);
+        setEditingBlog(null);
+        fetchAllData();
+      } else {
+        const errorMessage = data.error || 'Unknown error occurred';
+        console.error('Save failed:', errorMessage);
+        alert(`Failed to save blog: ${errorMessage}`);
+      }
+    } catch (error: any) {
+      console.error('Error saving blog:', error);
+      alert(`Failed to save blog: ${error.message}`);
     }
-  } catch (error: any) {
-    console.error('Error deleting blog:', error);
-    alert(`Failed to delete blog: ${error.message}`);
-  }
-};
+  };
 
+  const handleDeleteBlog = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this blog? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      
+      if (!token) {
+        alert('Authentication token not available');
+        return;
+      }
+      
+      console.log('Deleting blog:', id);
+
+      const response = await fetch(`/api/admin/blog/${id}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      console.log('Delete response:', { status: response.status, data });
+
+      if (response.ok && data.success) {
+        alert('Blog deleted successfully!');
+        fetchAllData();
+      } else {
+        const errorMessage = data.error || 'Unknown error occurred';
+        console.error('Delete failed:', errorMessage);
+        alert(`Failed to delete blog: ${errorMessage}`);
+      }
+    } catch (error: any) {
+      console.error('Error deleting blog:', error);
+      alert(`Failed to delete blog: ${error.message}`);
+    }
+  };
 
   const canEditBlog = (blog: Blog) => {
-  // User can edit their own blogs
-  if (blog.createdBy.userId === user?.uid || isAdmin || user.email=='paidarajarathan@gmail.com') {
-    return true;
-  }
-  
-  // Admin can edit all their own blogs + user-submitted drafts for review
-  if (isAdmin) {
-    // Admin can edit any blog created by admin
-    if (['admin', 'super_admin', 'editor'].includes(blog.createdBy.userRole)) {
+    // Check if current Firebase user matches blog creator
+    const currentUserId = auth.currentUser?.uid;
+    
+    // User can edit their own blogs
+    if (blog.createdBy.userId === currentUserId || isAdmin || auth.currentUser?.email === 'paidarajarathan@gmail.com') {
       return true;
     }
-    // Admin can edit user-created drafts (for review purposes)
-    if (blog.createdBy.userRole === 'user' && blog.status === 'draft') {
-      return true;
+    
+    // Admin can edit all their own blogs + user-submitted drafts for review
+    if (isAdmin) {
+      // Admin can edit any blog created by admin
+      if (['admin', 'super_admin', 'editor'].includes(blog.createdBy.userRole)) {
+        return true;
+      }
+      // Admin can edit user-created drafts (for review purposes)
+      if (blog.createdBy.userRole === 'user' && blog.status === 'draft') {
+        return true;
+      }
     }
-  }
-  
-  return false;
-};
+    
+    return false;
+  };
 
   const getFilteredBlogs = () => {
     let filtered = blogs;
+    const currentUserId = auth.currentUser?.uid;
 
     // Filter by tab
     if (activeTab === 'my-blogs') {
-      filtered = filtered.filter(b => b.createdBy.userId === user?.uid);
+      filtered = filtered.filter(b => b.createdBy.userId === currentUserId);
     }
 
     // Filter by status
@@ -340,6 +364,8 @@ const handleDeleteBlog = async (id: string) => {
   }
 
   const filteredBlogs = getFilteredBlogs();
+  const currentUserId = auth.currentUser?.uid;
+  const currentUserName = auth.currentUser?.displayName || auth.currentUser?.email || 'User';
 
   return (
     <div className="admin-blog-page">
@@ -359,7 +385,7 @@ const handleDeleteBlog = async (id: string) => {
           className={activeTab === 'my-blogs' ? 'active' : ''}
           onClick={() => setActiveTab('my-blogs')}
         >
-          <FaUser /> My Blogs ({blogs.filter(b => b.createdBy.userId === user?.uid).length})
+          <FaUser /> My Blogs ({blogs.filter(b => b.createdBy.userId === currentUserId).length})
         </button>
         <button
           className={activeTab === 'stats' ? 'active' : ''}
@@ -386,12 +412,12 @@ const handleDeleteBlog = async (id: string) => {
                       category: BLOG_CATEGORIES[0],
                       tags: [],
                       author: {
-                        name: user?.displayName || user?.email || 'User',
+                        name: currentUserName,
                         role: isAdmin ? 'admin' : 'user'
                       },
                       createdBy: {
-                        userId: user!.uid,
-                        userName: user?.displayName || user?.email || 'User',
+                        userId: currentUserId!,
+                        userName: currentUserName,
                         userRole: isAdmin ? 'admin' : 'viewer'
                       },
                       status: 'draft',

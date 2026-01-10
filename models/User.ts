@@ -10,8 +10,9 @@ export interface IUser extends Document {
   authProvider: 'local' | 'firebase' | 'google';
   totalPoints: number;
   level: number;
-  streak: number;
-  lastActivity?: Date;
+  streak: { type: Number, default: 0 }, // ← ADD THIS
+  lastLogin?: Date, // ← ADD THIS
+  lastActivity?:Date,
   achievements: Array<{
     achievementId: string;
     unlocked: boolean;
@@ -45,6 +46,7 @@ export interface IUser extends Document {
   banReason?: string;
   banExpires?: Date;
   warnings: number;
+
   
   // Statistics
   discussionCount: number;

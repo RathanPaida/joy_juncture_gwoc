@@ -1,9 +1,8 @@
-// app/api/wallet/route.ts - CORRECTED VERSION
+// app/api/wallet/route.ts - FIXED VERSION (No auto-points on refresh)
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-admin';
 import { connectDb } from '@/lib/mongodb';
 import { User, Transaction } from '@/models/User';
-import { updateUserStreak } from '@/lib/streak-manager';
 
 export async function GET(req: NextRequest) {
   try {
@@ -64,17 +63,11 @@ export async function GET(req: NextRequest) {
           );
         }
         
-        // ✅ UPDATE STREAK ON EVERY WALLET ACCESS
-        try {
-          const streakResult = await updateUserStreak(user._id.toString());
-          console.log('✅ Streak updated:', streakResult);
-          
-          // Refresh user data to get updated streak and points
-          user = await User.findById(user._id);
-        } catch (streakError) {
-          console.error('⚠️ Failed to update streak:', streakError);
-          // Continue anyway - don't block wallet access
-        }
+        // ❌ REMOVED: Do NOT update streak on every wallet access
+        // The streak should ONLY be updated when claiming daily reward
+        // Just update lastActivity
+        user.lastActivity = new Date();
+        await user.save();
         
       } catch (firebaseError: any) {
         console.error('❌ Firebase auth error:', firebaseError.message);
@@ -124,6 +117,7 @@ export async function GET(req: NextRequest) {
         avatar: user.avatar,
         authProvider: user.authProvider,
         lastActivity: user.lastActivity,
+        lastLogin: user.lastLogin, // Include lastLogin for daily check
         firebaseUid: user.firebaseUid
       },
       transactions
@@ -153,38 +147,4 @@ export async function POST(req: NextRequest) {
     { error: 'Method not allowed. Use POST /api/wallet/create to create a wallet.' },
     { status: 405 }
   );
-}
-
-// Optional: Add a DELETE endpoint for testing
-export async function DELETE(req: NextRequest) {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
-  }
-  
-  try {
-    await connectDb();
-    const authHeader = req.headers.get('authorization');
-    
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.split('Bearer ')[1];
-      const decodedToken = await verifyIdToken(token);
-      
-      const user = await User.findOne({ 
-        $or: [
-          { firebaseUid: decodedToken.uid },
-          { email: decodedToken.email?.toLowerCase() }
-        ]
-      });
-      
-      if (user) {
-        await Transaction.deleteMany({ userId: user._id });
-        await user.deleteOne();
-        return NextResponse.json({ message: 'User and transactions deleted' }, { status: 200 });
-      }
-    }
-    
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
 }
