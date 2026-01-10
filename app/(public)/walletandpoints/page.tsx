@@ -1,8 +1,9 @@
-// app/(public)/walletandpoints/page.tsx - DYNAMIC VERSION
+// app/(public)/walletandpoints/page.tsx - FIXED getIdToken
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getAuth } from 'firebase/auth'; // ADDED
 import { 
   FaWallet, FaCoins, FaTrophy, FaGift, FaHistory, 
   FaGamepad, FaUsers, FaCalendarAlt, FaShoppingCart,
@@ -67,6 +68,7 @@ interface WalletUser {
 
 const WalletPointsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
+  const auth = getAuth(); // ADDED
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -97,12 +99,21 @@ const WalletPointsPage: React.FC = () => {
     { id: 'premium', name: 'Premium Access', color: '#3498DB' }
   ];
 
+  // ADDED: Helper function to get Firebase token
+  const getFirebaseToken = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('Not authenticated');
+    }
+    return await currentUser.getIdToken();
+  };
+
   // Create wallet for new user
   const createWalletForUser = async () => {
     if (!user) throw new Error('No user found');
     
     try {
-      const token = await user.getIdToken();
+      const token = await getFirebaseToken(); // CHANGED
       
       const response = await fetch('/api/wallet/create', {
         method: 'POST',
@@ -140,7 +151,7 @@ const WalletPointsPage: React.FC = () => {
       setPageLoading(true);
       setError(null);
       
-      const token = await user.getIdToken();
+      const token = await getFirebaseToken(); // CHANGED
       
       // Fetch user wallet data
       const walletRes = await fetch('/api/wallet', {
@@ -258,7 +269,7 @@ const WalletPointsPage: React.FC = () => {
     try {
       setRedeeming(true);
       
-      const token = await user.getIdToken();
+      const token = await getFirebaseToken(); // CHANGED
       
       const response = await fetch('/api/wallet/redeem', {
         method: 'POST',

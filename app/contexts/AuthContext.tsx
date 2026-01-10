@@ -1,5 +1,3 @@
-
-
 // app/contexts/AuthContext.tsx - ADD DAILY LOGIN LOGIC
 'use client';
 
