@@ -119,7 +119,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-admin';
 import { connectDb } from '@/lib/mongodb';
 import { User } from '@/models/User';
-import { GameSession } from '@/models/Game';
+// import { GameSession } from '@/models/Game';
 import { generateSudoku, generateWordPuzzle, generateCrossword } from '@/lib/game-generators';
 
 // Type-safe game rewards function
@@ -212,20 +212,20 @@ export async function POST(req: NextRequest) {
     }
     
     // Create game session
-    const gameSession = new GameSession({
-      userId: user._id,
-      gameType,
-      gameId,
-      difficulty,
-      gameState: {
-        puzzle: gameData.puzzle,
-        solution: gameData.solution,
-        initial: gameData.initial || gameData.puzzle,
-        hints: gameData.hints || []
-      }
-    });
+    // const gameSession = new GameSession({
+    //   userId: user._id,
+    //   gameType,
+    //   gameId,
+    //   difficulty,
+    //   gameState: {
+    //     puzzle: gameData.puzzle,
+    //     solution: gameData.solution,
+    //     initial: gameData.initial || gameData.puzzle,
+    //     hints: gameData.hints || []
+    //   }
+    // });
     
-    await gameSession.save();
+    // await gameSession.save();
     
     // Get rewards using type-safe function
     const rewards = getGameRewards(gameType, difficulty);
