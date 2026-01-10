@@ -17,7 +17,7 @@ const EventSchema = new mongoose.Schema({
     type: String,
     default: '', // Empty string means no collaboration
   },
-  registrationLink: {
+  Venue: {
     type: String,
     default: '',
   },

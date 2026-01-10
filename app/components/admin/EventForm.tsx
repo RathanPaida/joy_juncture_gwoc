@@ -13,7 +13,7 @@ export default function EventForm({ event, onSuccess, onCancel }: EventFormProps
     name: event?.name || '',
     description: event?.description || '',
     date: event?.date ? new Date(event.date).toISOString().split('T')[0] : '',
-    registrationLink: event?.registrationLink || '',
+    Venue: event?.Venue || '',
     price: event?.price || 0,
     coins: event?.coins || 0,
     collabWith: event?.collabWith || '',
@@ -223,9 +223,8 @@ export default function EventForm({ event, onSuccess, onCancel }: EventFormProps
               Registration Link (Optional)
             </label>
             <input
-              type="url"
-              name="registrationLink"
-              value={formData.registrationLink}
+              name="Venue"
+              value={formData.Venue}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="https://example.com/register"

@@ -308,10 +308,9 @@ interface Event {
   date: string;
   price: number;
   coins: number;
-  registrationLink: string;
+  Venue: string;
   collabWith: string;
   isActive: boolean;
-  venue?: string;
   availableSeats?: number;
   totalSeats?: number;
 }

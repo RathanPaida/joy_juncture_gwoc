@@ -16,8 +16,9 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
     date: '',
     price: 0,
     coins: 0,
-    registrationLink: '',
+    Venue: '',
     collabWith: '',
+    imageUrl: '',
     isActive: true,
     totalSeats: 0,
     availableSeats: 0
@@ -149,6 +150,32 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
             />
           </div>
 
+          {/* Image URL */}
+          <div className="form-field full-width">
+            <label htmlFor="imageUrl" className="form-label">
+              Event Image URL
+            </label>
+            <input
+              type="url"
+              id="imageUrl"
+              name="imageUrl"
+              value={formData.imageUrl}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="https://example.com/event-image.jpg"
+            />
+            <p className="form-helper-text">
+              Enter a direct URL to the event image (JPG, PNG, or WEBP)
+            </p>
+            {formData.imageUrl && (
+              <div className="image-preview">
+                <img src={formData.imageUrl} alt="Preview" onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }} />
+              </div>
+            )}
+          </div>
+
           {/* Date */}
           <div className="form-field">
             <label htmlFor="date" className="form-label">
@@ -220,17 +247,16 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
 
           {/* Registration Link */}
           <div className="form-field">
-            <label htmlFor="registrationLink" className="form-label">
-              Registration Link
+            <label htmlFor="Venue" className="form-label">
+              Venue
             </label>
             <input
-              type="url"
-              id="registrationLink"
-              name="registrationLink"
-              value={formData.registrationLink}
+              id="Venue"
+              name="Venue"
+              value={formData.Venue}
               onChange={handleChange}
               className="form-input"
-              placeholder="https://..."
+              placeholder="Location"
             />
           </div>
 

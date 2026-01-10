@@ -429,13 +429,12 @@ interface Event {
   detailedDescription: string;
   date: string;
   time: string;
-  venue: string;
   address: string;
   price: number;
   coins: number;
   totalSeats: number;
   availableSeats: number;
-  registrationLink: string;
+  Venue: string;
   collabWith: string;
   imageUrl: string;
   isActive: boolean;
@@ -699,7 +698,7 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            {event.venue && (
+            {event.Venue && (
               <div className="venue-card">
                 <h2>Venue</h2>
                 <div className="venue-info">
@@ -708,7 +707,7 @@ export default function EventDetailPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <div>
-                    <p className="venue-name">{event.venue}</p>
+                    <p className="venue-name">{event.Venue}</p>
                     {event.address && <p className="venue-address">{event.address}</p>}
                   </div>
                 </div>

@@ -286,6 +286,26 @@
   opacity: 1;
 }
 
+/* Event Card Image */
+.event-card-image {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+}
+
+.event-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.event-card:hover .event-card-image img {
+  transform: scale(1.05);
+}
+
 /* Event Card Header */
 .event-card-header {
   height: 150px;
@@ -357,6 +377,23 @@
   border: 2px solid #666;
 }
 
+/* Event Date Display (below image) */
+.event-date-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffa500;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 107, 0, 0.2);
+}
+
+.event-date-display svg {
+  color: #ff6b00;
+  flex-shrink: 0;
+}
+
 /* Event Card Body */
 .event-card-body {
   padding: 1.5rem;
@@ -409,7 +446,7 @@
   font-size: 0.95rem;
 }
 
-/* Event Price & Coins */
+/* Event Pricing & Coins */
 .event-pricing {
   display: flex;
   justify-content: space-between;
@@ -568,6 +605,198 @@
   font-weight: 600;
 }
 
+/* Add to your existing events.css file */
+
+.registered-events-section {
+  margin-bottom: 4rem;
+  margin-top: 2rem;
+}
+
+/* Login Prompt Card - Updated with orange theme */
+.login-prompt-card {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(255, 107, 0, 0.3);
+  animation: gradientShift 8s ease infinite;
+  background-size: 200% 200%;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-prompt-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(0, 0, 0, 0.03) 10px,
+    rgba(0, 0, 0, 0.03) 20px
+  );
+}
+
+.login-prompt-content {
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.login-prompt-icon {
+  color: #1a1a1a;
+  margin: 0 auto 1.5rem;
+  opacity: 0.9;
+}
+
+.login-prompt-card h3 {
+  color: #1a1a1a;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.login-prompt-card p {
+  color: rgba(26, 26, 26, 0.9);
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+.login-prompt-button {
+  background: #1a1a1a;
+  color: #ff6b00;
+  padding: 1rem 2.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 2px solid #1a1a1a;
+}
+
+.login-prompt-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  background: transparent;
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+.registered-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  background: rgba(255, 107, 0, 0.05);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 107, 0, 0.2);
+}
+
+.loading-spinner-small {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 107, 0, 0.2);
+  border-top-color: #ff6b00;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.registered-loading p {
+  color: #ffa500;
+  margin: 0;
+}
+
+/* Registered Badges - Updated with orange theme */
+.registered-badge-overlay {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.registered-label {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  color: #1a1a1a;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 2px solid #1a1a1a;
+}
+
+.attended-label {
+  background: linear-gradient(135deg, #ff8c00 0%, #ffa500 100%);
+  color: #1a1a1a;
+  padding: 0.4rem 0.875rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+  border: 1px solid #1a1a1a;
+}
+
+/* No Registrations Card - Updated with orange theme */
+.no-registrations-card {
+  background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  border: 2px solid rgba(255, 107, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.no-registrations-content {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.no-registrations-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  color: #ff6b00;
+  opacity: 0.7;
+  animation: float 3s ease-in-out infinite;
+}
+
+.no-registrations-card h3 {
+  color: #ff6b00;
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.no-registrations-card p {
+  color: #999;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Event Card Overlay Badges */
+.event-card-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .events-grid {
@@ -604,186 +833,7 @@
     grid-template-columns: 1fr;
     padding: 0 1rem 2rem;
   }
-}
 
-/* Stagger Animation for Cards */
-.event-card:nth-child(1) { animation-delay: 0.1s; }
-.event-card:nth-child(2) { animation-delay: 0.2s; }
-.event-card:nth-child(3) { animation-delay: 0.3s; }
-.event-card:nth-child(4) { animation-delay: 0.4s; }
-.event-card:nth-child(5) { animation-delay: 0.5s; }
-.event-card:nth-child(6) { animation-delay: 0.6s; }
-
-/* Parallax Scrolling Effect */
-@media (prefers-reduced-motion: no-preference) {
-  .events-page {
-    background-attachment: fixed;
-  }
-}
-
-/* Add to your existing events.css file */
-
-.registered-events-section {
-  margin-bottom: 4rem;
-  margin-top: 2rem;
-}
-
-.login-prompt-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 1rem;
-  padding: 3rem 2rem;
-  text-align: center;
-  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
-}
-
-.login-prompt-content {
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-.login-prompt-icon {
-  color: white;
-  margin: 0 auto 1.5rem;
-  opacity: 0.9;
-}
-
-.login-prompt-card h3 {
-  color: white;
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-}
-
-.login-prompt-card p {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1.1rem;
-  margin-bottom: 2rem;
-}
-
-.login-prompt-button {
-  background: white;
-  color: #667eea;
-  padding: 1rem 2.5rem;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  font-size: 1.1rem;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-.login-prompt-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-.registered-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 3rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.loading-spinner-small {
-  width: 24px;
-  height: 24px;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #ff6b00;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.registered-loading p {
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0;
-}
-
-.registered-badge {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-}
-
-.registered-event-wrapper {
-  position: relative;
-}
-
-.registered-badge-overlay {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.registered-label {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 2rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.attended-label {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-  padding: 0.4rem 0.875rem;
-  border-radius: 2rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
-}
-
-.no-registrations-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-  border-radius: 1rem;
-  padding: 3rem 2rem;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.no-registrations-content {
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.no-registrations-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  opacity: 0.7;
-}
-
-.no-registrations-card h3 {
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-}
-
-.no-registrations-card p {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
   .login-prompt-card {
     padding: 2rem 1.5rem;
   }
@@ -814,5 +864,20 @@
   .attended-label {
     font-size: 0.7rem;
     padding: 0.35rem 0.75rem;
+  }
+}
+
+/* Stagger Animation for Cards */
+.event-card:nth-child(1) { animation-delay: 0.1s; }
+.event-card:nth-child(2) { animation-delay: 0.2s; }
+.event-card:nth-child(3) { animation-delay: 0.3s; }
+.event-card:nth-child(4) { animation-delay: 0.4s; }
+.event-card:nth-child(5) { animation-delay: 0.5s; }
+.event-card:nth-child(6) { animation-delay: 0.6s; }
+
+/* Parallax Scrolling Effect */
+@media (prefers-reduced-motion: no-preference) {
+  .events-page {
+    background-attachment: fixed;
   }
 }

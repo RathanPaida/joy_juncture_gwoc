@@ -280,10 +280,10 @@ export default function PaymentModal({ event, user, onClose, onSuccess }: Paymen
               </span>
             </div>
             
-            {event.venue && (
+            {event.Venue && (
               <div className="flex justify-between">
                 <span className="text-gray-600">Venue:</span>
-                <span className="font-medium text-gray-900">{event.venue}</span>
+                <span className="font-medium text-gray-900">{event.Venue}</span>
               </div>
             )}
             

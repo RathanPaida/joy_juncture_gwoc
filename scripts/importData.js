@@ -15,7 +15,7 @@ const eventSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
   date: { type: Date, required: true },
-  registrationLink: { type: String, default: '' },
+  Venue: { type: String, default: '' },
   price: { type: Number, required: true },
   coins: { type: Number, required: true, default: 0 },
   collabWith: { type: String, default: '' },
@@ -32,7 +32,7 @@ const rawEvents = [
     name: "DMD Pune Tournament - Swig Pune",
     description: "Joy Juncture brought Dead Man's Deck to Pune! 38 players battled it out in style, with beers, cheers, and a ₹5100 cash prize going to the champion Tamanna!",
     date: new Date("2025-08-23"),
-    registrationLink: "https://...",
+    Venue: "Surat",
     price: 100,
     coins: 10,
     collabWith: "Board Game Meetups Pune & Pickle Haus"
@@ -41,7 +41,7 @@ const rawEvents = [
     name: "DMD Pune Tournament - Swig Pune",
     description: "Joy Juncture brought Dead Man's Deck to Pune! 38 players battled it out in style, with beers, cheers, and a ₹5100 cash prize going to the champion Tamanna!",
     date: new Date("2025-08-24"),
-    registrationLink: "https://...", // Added this as it was missing
+    Venue: "Surat", // Added this as it was missing
     price: 100,
     coins: 10,
     collabWith: "Board Game Meetups Pune & Pickle Haus"
@@ -50,7 +50,7 @@ const rawEvents = [
     name: "DMD Pune Tournament - Swig Pune",
     description: "Joy Juncture brought Dead Man's Deck to Pune! 38 players battled it out in style, with beers, cheers, and a ₹5100 cash prize going to the champion Tamanna!",
     date: new Date("2025-08-22"),
-    registrationLink: "https://...",
+    Venue: "Surat",
     price: 100,
     coins: 10,
     collabWith: "" // Explicitly empty string for consistency
