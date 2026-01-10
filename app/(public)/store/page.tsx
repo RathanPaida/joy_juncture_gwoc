@@ -20,11 +20,14 @@ interface Product {
 }
 
 async function getProducts() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/products?page=1&limit=12`, {
+  const res = await fetch("/api/products?page=1&limit=12", {
     cache: "no-store",
   });
-  if (!res.ok) return { items: [] };
+
+  if (!res.ok) {
+    return { items: [] };
+  }
+
   return res.json();
 }
 
