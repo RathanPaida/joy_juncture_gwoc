@@ -9,9 +9,9 @@
 //   requireAdmin?: boolean;
 // }
 
-// export default function ProtectedRoute({ 
-//   children, 
-//   requireAdmin = false 
+// export default function ProtectedRoute({
+//   children,
+//   requireAdmin = false
 // }: ProtectedRouteProps) {
 //   const { user, loading, isAdmin } = useAuth();
 //   const router = useRouter();

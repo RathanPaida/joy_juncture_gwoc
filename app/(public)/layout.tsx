@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
-import { Providers } from '../providers'
+import { Providers } from "../providers";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
 import { AuthProvider } from "@/app/contexts/AuthContext";
@@ -28,14 +28,13 @@ export default function RootLayout({
 }>) {
   return (
     <>
-
-        <AuthProvider>
+      <AuthProvider>
         <Providers>
           <Navbar />
           {children}
-          <Footer/>
-          </Providers>
-          </AuthProvider>
+          <Footer />
+        </Providers>
+      </AuthProvider>
     </>
   );
 }

@@ -5,10 +5,23 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { auth } from "@/lib/firebase";
-import { 
-  ArrowLeft, MessageSquare, Heart, Share2, Bookmark,
-  User, Clock, TrendingUp, MoreVertical, Send,
-  ThumbsUp, Flag, Trash2, Pin, Flame, Users
+import {
+  ArrowLeft,
+  MessageSquare,
+  Heart,
+  Share2,
+  Bookmark,
+  User,
+  Clock,
+  TrendingUp,
+  MoreVertical,
+  Send,
+  ThumbsUp,
+  Flag,
+  Trash2,
+  Pin,
+  Flame,
+  Users,
 } from "lucide-react";
 import "./community.css";
 
@@ -38,7 +51,7 @@ interface Discussion {
   isPinned: boolean;
   tags: string[];
   viewCount: number;
-  status: 'active' | 'archived' | 'deleted';
+  status: "active" | "archived" | "deleted";
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +61,7 @@ export default function DiscussionDetailPage() {
   const id = params.id as string;
   const router = useRouter();
   const { user: authUser } = useAuth();
-  
+
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
   const [replies, setReplies] = useState<Reply[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,17 +74,17 @@ export default function DiscussionDetailPage() {
   const fetchDiscussion = async () => {
     setLoading(true);
     try {
-      console.log('🔍 Fetching discussion with ID:', id);
-      
+      console.log("🔍 Fetching discussion with ID:", id);
+
       const response = await fetch(`/api/community/discussions/${id}`);
       const data = await response.json();
-      
-      console.log('📦 Response:', data);
-      
+
+      console.log("📦 Response:", data);
+
       if (data.success) {
         setDiscussion(data.discussion);
         setReplies(data.discussion.replies || []);
-        
+
         // Check if current user liked this discussion
         if (authUser) {
           setIsLiked(data.discussion.likedBy?.includes(authUser.uid) || false);
@@ -79,11 +92,11 @@ export default function DiscussionDetailPage() {
         }
       } else {
         console.error("❌ Failed to fetch discussion:", data.error);
-        alert(data.error || 'Discussion not found');
+        alert(data.error || "Discussion not found");
       }
     } catch (error) {
       console.error("❌ Error fetching discussion:", error);
-      alert('Failed to load discussion');
+      alert("Failed to load discussion");
     } finally {
       setLoading(false);
     }
@@ -92,19 +105,19 @@ export default function DiscussionDetailPage() {
   // Check user role
   const checkUserRole = async () => {
     if (!authUser) return;
-    
+
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      
+
       const response = await fetch("/api/user/role", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         const userRole = data.success ? data.role : data.role;
-        setIsAdmin(['admin', 'super_admin'].includes(userRole));
+        setIsAdmin(["admin", "super_admin"].includes(userRole));
       }
     } catch (error) {
       console.error("Error checking user role:", error);
@@ -117,30 +130,34 @@ export default function DiscussionDetailPage() {
       router.push("/login?redirect=" + window.location.pathname);
       return;
     }
-    
+
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      
+
       const response = await fetch(`/api/community/discussions/${id}/like`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setIsLiked(!isLiked);
-        setDiscussion(prev => prev ? {
-          ...prev,
-          likes: isLiked ? prev.likes - 1 : prev.likes + 1,
-          likedBy: isLiked 
-            ? prev.likedBy.filter(uid => uid !== authUser.uid)
-            : [...prev.likedBy, authUser.uid]
-        } : null);
+        setDiscussion((prev) =>
+          prev
+            ? {
+                ...prev,
+                likes: isLiked ? prev.likes - 1 : prev.likes + 1,
+                likedBy: isLiked
+                  ? prev.likedBy.filter((uid) => uid !== authUser.uid)
+                  : [...prev.likedBy, authUser.uid],
+              }
+            : null,
+        );
       }
     } catch (error) {
       console.error("Error liking discussion:", error);
@@ -153,24 +170,24 @@ export default function DiscussionDetailPage() {
       router.push("/login?redirect=" + window.location.pathname);
       return;
     }
-    
+
     if (!newReply.trim()) return;
-    
+
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      
+
       const response = await fetch(`/api/community/discussions/${id}/replies`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ content: newReply })
+        body: JSON.stringify({ content: newReply }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setNewReply("");
         fetchDiscussion(); // Refresh to get new reply
@@ -185,37 +202,47 @@ export default function DiscussionDetailPage() {
   };
 
   // Handle like reply
-  const handleLikeReply = async (replyId: string, isCurrentlyLiked: boolean) => {
+  const handleLikeReply = async (
+    replyId: string,
+    isCurrentlyLiked: boolean,
+  ) => {
     if (!authUser) {
       router.push("/login?redirect=" + window.location.pathname);
       return;
     }
-    
+
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      
-      const response = await fetch(`/api/community/discussions/${id}/replies/${replyId}/like`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-      
+
+      const response = await fetch(
+        `/api/community/discussions/${id}/replies/${replyId}/like`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
       const data = await response.json();
-      
+
       if (data.success) {
-        setReplies(prev => prev.map(reply => 
-          reply._id === replyId 
-            ? { 
-                ...reply, 
-                likes: data.action === 'like' ? reply.likes + 1 : reply.likes - 1,
-                likedBy: data.action === 'like'
-                  ? [...reply.likedBy, authUser.uid]
-                  : reply.likedBy.filter(uid => uid !== authUser.uid)
-              }
-            : reply
-        ));
+        setReplies((prev) =>
+          prev.map((reply) =>
+            reply._id === replyId
+              ? {
+                  ...reply,
+                  likes:
+                    data.action === "like" ? reply.likes + 1 : reply.likes - 1,
+                  likedBy:
+                    data.action === "like"
+                      ? [...reply.likedBy, authUser.uid]
+                      : reply.likedBy.filter((uid) => uid !== authUser.uid),
+                }
+              : reply,
+          ),
+        );
       }
     } catch (error) {
       console.error("Error liking reply:", error);
@@ -225,20 +252,23 @@ export default function DiscussionDetailPage() {
   // Delete reply (author or admin only)
   const handleDeleteReply = async (replyId: string) => {
     if (!authUser) return;
-    
+
     if (!confirm("Are you sure you want to delete this reply?")) return;
-    
+
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      
-      const response = await fetch(`/api/community/discussions/${id}/replies/${replyId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+
+      const response = await fetch(
+        `/api/community/discussions/${id}/replies/${replyId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
       const data = await response.json();
-      
+
       if (data.success) {
         fetchDiscussion(); // Refresh discussion
         alert("Reply deleted successfully");
@@ -252,22 +282,24 @@ export default function DiscussionDetailPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+    const diffInHours = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60),
+    );
+
     if (diffInHours < 1) return "Just now";
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
-    
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
   useEffect(() => {
     if (id) {
-      console.log('🎯 Discussion ID from URL:', id);
+      console.log("🎯 Discussion ID from URL:", id);
       fetchDiscussion();
     }
   }, [id]);
@@ -285,10 +317,12 @@ export default function DiscussionDetailPage() {
     return (
       <div className="not-found-container">
         <h2>Discussion not found</h2>
-        <p>The discussion you're looking for doesn't exist or has been deleted.</p>
-        <button 
+        <p>
+          The discussion you're looking for doesn't exist or has been deleted.
+        </p>
+        <button
           className="back-button"
-          onClick={() => router.push('/community')}
+          onClick={() => router.push("/community")}
         >
           <ArrowLeft size={16} />
           Back to Community
@@ -301,9 +335,9 @@ export default function DiscussionDetailPage() {
     <main className="discussion-detail-page">
       {/* Navigation */}
       <div className="discussion-nav">
-        <button 
+        <button
           className="back-button"
-          onClick={() => router.push('/community')}
+          onClick={() => router.push("/community")}
         >
           <ArrowLeft size={20} />
           Back to Community
@@ -315,7 +349,9 @@ export default function DiscussionDetailPage() {
         <div className="discussion-main">
           {/* Discussion Header */}
           <div className="discussion-header">
-            <span className={`discussion-category ${discussion.isHot ? 'hot' : ''}`}>
+            <span
+              className={`discussion-category ${discussion.isHot ? "hot" : ""}`}
+            >
               {discussion.isHot && <Flame size={12} />}
               {discussion.category}
               {discussion.isPinned && (
@@ -325,10 +361,10 @@ export default function DiscussionDetailPage() {
                 </span>
               )}
             </span>
-            
+
             <div className="discussion-actions">
-              <button 
-                className={`action-btn ${isBookmarked ? 'active' : ''}`}
+              <button
+                className={`action-btn ${isBookmarked ? "active" : ""}`}
                 onClick={() => setIsBookmarked(!isBookmarked)}
                 title="Bookmark"
               >
@@ -362,7 +398,7 @@ export default function DiscussionDetailPage() {
                 </span>
               </div>
             </div>
-            
+
             <div className="discussion-stats">
               <span className="stat-item">
                 <Users size={14} />
@@ -381,7 +417,7 @@ export default function DiscussionDetailPage() {
 
           {/* Discussion Content */}
           <div className="discussion-content">
-            {discussion.content.split('\n').map((paragraph, index) => (
+            {discussion.content.split("\n").map((paragraph, index) => (
               <p key={index}>{paragraph}</p>
             ))}
           </div>
@@ -399,19 +435,26 @@ export default function DiscussionDetailPage() {
 
           {/* Discussion Actions */}
           <div className="discussion-footer">
-            <button 
-              className={`like-button ${isLiked ? 'liked' : ''}`}
+            <button
+              className={`like-button ${isLiked ? "liked" : ""}`}
               onClick={handleLikeDiscussion}
             >
               <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
-              <span>{isLiked ? 'Liked' : 'Like'}</span>
+              <span>{isLiked ? "Liked" : "Like"}</span>
               <span className="like-count">{discussion.likes}</span>
             </button>
-            
-            <button className="reply-button" onClick={() => {
-              document.querySelector('.reply-input')?.scrollIntoView({ behavior: 'smooth' });
-              (document.querySelector('.reply-input') as HTMLTextAreaElement)?.focus();
-            }}>
+
+            <button
+              className="reply-button"
+              onClick={() => {
+                document
+                  .querySelector(".reply-input")
+                  ?.scrollIntoView({ behavior: "smooth" });
+                (
+                  document.querySelector(".reply-input") as HTMLTextAreaElement
+                )?.focus();
+              }}
+            >
               <MessageSquare size={20} />
               <span>Reply</span>
             </button>
@@ -428,7 +471,7 @@ export default function DiscussionDetailPage() {
             <div className="reply-form">
               <div className="reply-input-wrapper">
                 <div className="current-user-avatar">
-                  {authUser?.displayName?.charAt(0).toUpperCase() || 'U'}
+                  {authUser?.displayName?.charAt(0).toUpperCase() || "U"}
                 </div>
                 <textarea
                   className="reply-input"
@@ -463,9 +506,12 @@ export default function DiscussionDetailPage() {
                 </div>
               ) : (
                 replies.map((reply) => {
-                  const isReplyLiked = reply.likedBy?.includes(authUser?.uid || '');
-                  const canDelete = isAdmin || (authUser && reply.authorId === authUser.uid);
-                  
+                  const isReplyLiked = reply.likedBy?.includes(
+                    authUser?.uid || "",
+                  );
+                  const canDelete =
+                    isAdmin || (authUser && reply.authorId === authUser.uid);
+
                   return (
                     <div key={reply._id} className="reply-card">
                       <div className="reply-header">
@@ -486,11 +532,13 @@ export default function DiscussionDetailPage() {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="reply-actions">
-                          <button 
-                            className={`action-btn like-reply-btn ${isReplyLiked ? 'liked' : ''}`}
-                            onClick={() => handleLikeReply(reply._id, isReplyLiked)}
+                          <button
+                            className={`action-btn like-reply-btn ${isReplyLiked ? "liked" : ""}`}
+                            onClick={() =>
+                              handleLikeReply(reply._id, isReplyLiked)
+                            }
                             title="Like"
                           >
                             <ThumbsUp size={14} />
@@ -498,9 +546,9 @@ export default function DiscussionDetailPage() {
                               <span className="like-count">{reply.likes}</span>
                             )}
                           </button>
-                          
+
                           {canDelete && (
-                            <button 
+                            <button
                               className="action-btn delete-btn"
                               onClick={() => handleDeleteReply(reply._id)}
                               title="Delete"
@@ -508,16 +556,14 @@ export default function DiscussionDetailPage() {
                               <Trash2 size={14} />
                             </button>
                           )}
-                          
+
                           <button className="action-btn" title="Report">
                             <Flag size={14} />
                           </button>
                         </div>
                       </div>
-                      
-                      <div className="reply-content">
-                        {reply.content}
-                      </div>
+
+                      <div className="reply-content">{reply.content}</div>
                     </div>
                   );
                 })
@@ -537,7 +583,7 @@ export default function DiscussionDetailPage() {
               <li>Report inappropriate content</li>
             </ul>
           </div>
-          
+
           <div className="sidebar-card">
             <h4 className="sidebar-title">Discussion Stats</h4>
             <div className="stats-grid">
@@ -559,11 +605,13 @@ export default function DiscussionDetailPage() {
               <div className="stat-item">
                 <Clock size={16} />
                 <span className="stat-label">Created</span>
-                <span className="stat-value">{formatDate(discussion.createdAt)}</span>
+                <span className="stat-value">
+                  {formatDate(discussion.createdAt)}
+                </span>
               </div>
             </div>
           </div>
-          
+
           {discussion.isHot && (
             <div className="sidebar-card hot-card">
               <div className="hot-badge">

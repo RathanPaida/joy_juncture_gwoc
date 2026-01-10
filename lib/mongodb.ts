@@ -1,14 +1,14 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI as string;
 const MONGODB_DB = process.env.MONGODB_DB as string;
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable');
+  throw new Error("Please define the MONGODB_URI environment variable");
 }
 
 if (!MONGODB_DB) {
-  throw new Error('Please define the MONGODB_DB environment variable');
+  throw new Error("Please define the MONGODB_DB environment variable");
 }
 
 /**
@@ -50,9 +50,8 @@ export async function connectToDatabase() {
 
 export async function getEventsCollection() {
   const conn = await connectToDatabase();
-  return conn.connection.db.collection('events');
+  return conn.connection.db.collection("events");
 }
-
 
 export async function disconnectFromDatabase() {
   if (cached.conn) {
@@ -63,20 +62,20 @@ export async function disconnectFromDatabase() {
 }
 
 // Handle MongoDB connection events
-mongoose.connection.on('connected', () => {
-  console.log('MongoDB connected successfully');
+mongoose.connection.on("connected", () => {
+  console.log("MongoDB connected successfully");
 });
 
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
+mongoose.connection.on("error", (err) => {
+  console.error("MongoDB connection error:", err);
 });
 
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected');
+mongoose.connection.on("disconnected", () => {
+  console.log("MongoDB disconnected");
 });
 
 // Close the Mongoose connection when the Node process ends
-process.on('SIGINT', async () => {
+process.on("SIGINT", async () => {
   await mongoose.connection.close();
   process.exit(0);
 });

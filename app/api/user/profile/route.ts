@@ -1,17 +1,17 @@
 // app/api/user/profile/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
-import connectDb from '@/lib/mongodb';
-import { User } from '@/models/User';
+import { NextRequest, NextResponse } from "next/server";
+import { adminAuth } from "@/lib/firebase-admin";
+import connectDb from "@/lib/mongodb";
+import { User } from "@/models/User";
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const token = authHeader.split('Bearer ')[1];
+    const token = authHeader.split("Bearer ")[1];
     const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const user = await User.findOne({ firebaseUid: userId }).lean();
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get Firebase user data
@@ -44,22 +44,22 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, profile });
   } catch (error: any) {
-    console.error('❌ Error fetching user profile:', error);
+    console.error("❌ Error fetching user profile:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch profile', details: error.message },
-      { status: 500 }
+      { error: "Failed to fetch profile", details: error.message },
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const token = authHeader.split('Bearer ')[1];
+    const token = authHeader.split("Bearer ")[1];
     const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest) {
     await User.findOneAndUpdate(
       { firebaseUid: userId },
       { $set: updateData },
-      { new: true }
+      { new: true },
     );
 
     // Update Firebase Auth
@@ -89,12 +89,12 @@ export async function PUT(request: NextRequest) {
       await adminAuth.updateUser(userId, firebaseUpdateData);
     }
 
-    return NextResponse.json({ success: true, message: 'Profile updated' });
+    return NextResponse.json({ success: true, message: "Profile updated" });
   } catch (error: any) {
-    console.error('❌ Error updating profile:', error);
+    console.error("❌ Error updating profile:", error);
     return NextResponse.json(
-      { error: 'Failed to update profile', details: error.message },
-      { status: 500 }
+      { error: "Failed to update profile", details: error.message },
+      { status: 500 },
     );
   }
 }

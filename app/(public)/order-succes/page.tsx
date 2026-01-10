@@ -1,19 +1,26 @@
 // app/order-success/page.tsx - WITH AUTO CART CLEAR
-'use client';
+"use client";
 
-import React, { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle2, Package, Home, ShoppingBag, Sparkles, Gift } from 'lucide-react';
-import { auth } from '@/lib/firebase';
-import './success.css';
-import confetti from 'canvas-confetti';
+import React, { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  CheckCircle2,
+  Package,
+  Home,
+  ShoppingBag,
+  Sparkles,
+  Gift,
+} from "lucide-react";
+import { auth } from "@/lib/firebase";
+import "./success.css";
+import confetti from "canvas-confetti";
 
 function OrderSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId');
-  const orderCount = searchParams.get('count') || '1';
-  const joyPoints = searchParams.get('points') || '0';
+  const orderId = searchParams.get("orderId");
+  const orderCount = searchParams.get("count") || "1";
+  const joyPoints = searchParams.get("points") || "0";
 
   const [celebrating, setCelebrating] = useState(true);
   const [cartCleared, setCartCleared] = useState(false);
@@ -24,30 +31,30 @@ function OrderSuccessContent() {
       try {
         const currentUser = auth.currentUser;
         if (!currentUser) {
-          console.log('⚠️ No user found, skipping cart clear');
+          console.log("⚠️ No user found, skipping cart clear");
           return;
         }
 
         const token = await currentUser.getIdToken();
-        
-        console.log('🧹 Auto-clearing cart on success page...');
-        const response = await fetch('/api/cart/clear', {
-          method: 'DELETE',
+
+        console.log("🧹 Auto-clearing cart on success page...");
+        const response = await fetch("/api/cart/clear", {
+          method: "DELETE",
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
 
         if (response.ok) {
-          console.log('✅ Cart cleared successfully');
+          console.log("✅ Cart cleared successfully");
           setCartCleared(true);
         } else {
           const error = await response.json();
-          console.error('❌ Failed to clear cart:', error);
+          console.error("❌ Failed to clear cart:", error);
         }
       } catch (error) {
-        console.error('❌ Error clearing cart:', error);
+        console.error("❌ Error clearing cart:", error);
       }
     };
 
@@ -65,7 +72,7 @@ function OrderSuccessContent() {
       return Math.random() * (max - min) + min;
     }
 
-    const interval: any = setInterval(function() {
+    const interval: any = setInterval(function () {
       const timeLeft = animationEnd - Date.now();
 
       if (timeLeft <= 0) {
@@ -74,16 +81,16 @@ function OrderSuccessContent() {
       }
 
       const particleCount = 50 * (timeLeft / duration);
-      
+
       confetti({
         ...defaults,
         particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
       });
       confetti({
         ...defaults,
         particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
       });
     }, 250);
 
@@ -108,7 +115,9 @@ function OrderSuccessContent() {
 
         <h1>Order Placed Successfully!</h1>
         <p className="success-message">
-          Thank you for your purchase. Your {orderCount === '1' ? 'order has' : `${orderCount} orders have`} been confirmed and will be processed soon.
+          Thank you for your purchase. Your{" "}
+          {orderCount === "1" ? "order has" : `${orderCount} orders have`} been
+          confirmed and will be processed soon.
         </p>
 
         {orderId && (
@@ -117,7 +126,7 @@ function OrderSuccessContent() {
               <span>Order Reference:</span>
               <strong>{orderId}</strong>
             </div>
-            {orderCount !== '1' && (
+            {orderCount !== "1" && (
               <p className="order-note">
                 {orderCount} separate orders created for your items
               </p>
@@ -157,22 +166,28 @@ function OrderSuccessContent() {
         </div>
 
         <div className="email-notification">
-          <p>📧 A confirmation email has been sent to your registered email address.</p>
+          <p>
+            📧 A confirmation email has been sent to your registered email
+            address.
+          </p>
         </div>
 
         {/* Show cart clear status for debugging */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '1rem' }}>
-            {cartCleared ? '✅ Cart cleared' : '⏳ Clearing cart...'}
+        {process.env.NODE_ENV === "development" && (
+          <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "1rem" }}>
+            {cartCleared ? "✅ Cart cleared" : "⏳ Clearing cart..."}
           </div>
         )}
 
         <div className="success-actions">
-          <button className="btn-primary" onClick={() => router.push('/profile')}>
+          <button
+            className="btn-primary"
+            onClick={() => router.push("/profile")}
+          >
             <ShoppingBag size={20} />
             View My Profile
           </button>
-          <button className="btn-secondary" onClick={() => router.push('/')}>
+          <button className="btn-secondary" onClick={() => router.push("/")}>
             <Home size={20} />
             Continue Shopping
           </button>
@@ -184,13 +199,15 @@ function OrderSuccessContent() {
 
 export default function OrderSuccessPage() {
   return (
-    <Suspense fallback={
-      <div className="success-page">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
+    <Suspense
+      fallback={
+        <div className="success-page">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <OrderSuccessContent />
     </Suspense>
   );

@@ -1,10 +1,10 @@
 // app/cart/page.tsx
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/app/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
 import {
   ShoppingCart,
   Trash2,
@@ -16,9 +16,9 @@ import {
   Truck,
   ShieldCheck,
   Tag,
-  Gift
-} from 'lucide-react';
-import './cart.css';
+  Gift,
+} from "lucide-react";
+import "./cart.css";
 
 interface CartItem {
   _id: string;
@@ -44,7 +44,7 @@ export default function CartPage() {
 
   const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [promoCode, setPromoCode] = useState('');
+  const [promoCode, setPromoCode] = useState("");
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState(0);
 
@@ -53,7 +53,7 @@ export default function CartPage() {
       if (user) {
         fetchCartData();
       } else {
-        router.push('/login?redirect=/cart');
+        router.push("/login?redirect=/cart");
       }
     }
   }, [user, authLoading]);
@@ -62,24 +62,24 @@ export default function CartPage() {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        router.push('/login?redirect=/cart');
+        router.push("/login?redirect=/cart");
         return;
       }
 
       const token = await currentUser.getIdToken();
-      
-      const res = await fetch('/api/cart', {
+
+      const res = await fetch("/api/cart", {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setCartItems(data.items || []);
       }
     } catch (error) {
-      console.error('Error fetching cart:', error);
+      console.error("Error fetching cart:", error);
     } finally {
       setLoading(false);
     }
@@ -87,54 +87,54 @@ export default function CartPage() {
 
   const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
-    
-    setCartItems(prev =>
-      prev.map(item =>
-        item._id === itemId ? { ...item, quantity: newQuantity } : item
-      )
+
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item._id === itemId ? { ...item, quantity: newQuantity } : item,
+      ),
     );
 
     // Update in backend
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
-      
+
       const token = await currentUser.getIdToken();
-      
-      await fetch('/api/cart/update', {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+
+      await fetch("/api/cart/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ itemId, quantity: newQuantity })
+        body: JSON.stringify({ itemId, quantity: newQuantity }),
       });
     } catch (error) {
-      console.error('Error updating quantity:', error);
+      console.error("Error updating quantity:", error);
     }
   };
 
   const removeItem = async (itemId: string) => {
-    if (!confirm('Remove this item from cart?')) return;
+    if (!confirm("Remove this item from cart?")) return;
 
-    setCartItems(prev => prev.filter(item => item._id !== itemId));
+    setCartItems((prev) => prev.filter((item) => item._id !== itemId));
 
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
-      
+
       const token = await currentUser.getIdToken();
-      
-      await fetch('/api/cart/remove', {
-        method: 'DELETE',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+
+      await fetch("/api/cart/remove", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ itemId })
+        body: JSON.stringify({ itemId }),
       });
     } catch (error) {
-      console.error('Error removing item:', error);
+      console.error("Error removing item:", error);
     }
   };
 
@@ -142,10 +142,10 @@ export default function CartPage() {
     if (!promoCode.trim()) return;
 
     try {
-      const res = await fetch('/api/promo/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode })
+      const res = await fetch("/api/promo/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode }),
       });
 
       if (res.ok) {
@@ -153,15 +153,18 @@ export default function CartPage() {
         setPromoApplied(true);
         setPromoDiscount(data.discount || 10);
       } else {
-        alert('Invalid promo code');
+        alert("Invalid promo code");
       }
     } catch (error) {
-      console.error('Error applying promo:', error);
+      console.error("Error applying promo:", error);
     }
   };
 
   const calculateSummary = (): CartSummary => {
-    const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const subtotal = cartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
     const discount = promoApplied ? (subtotal * promoDiscount) / 100 : 0;
     const shipping = subtotal > 500 ? 0 : 50;
     const tax = (subtotal - discount) * 0.18; // 18% GST
@@ -172,10 +175,10 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (cartItems.length === 0) {
-      alert('Your cart is empty!');
+      alert("Your cart is empty!");
       return;
     }
-    router.push('/checkout');
+    router.push("/checkout");
   };
 
   if (authLoading || loading) {
@@ -200,10 +203,16 @@ export default function CartPage() {
             <ShoppingCart size={40} className="cart-icon" />
             <div>
               <h1>Shopping Cart</h1>
-              <p>{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your cart</p>
+              <p>
+                {cartItems.length} {cartItems.length === 1 ? "item" : "items"}{" "}
+                in your cart
+              </p>
             </div>
           </div>
-          <button className="continue-shopping" onClick={() => router.push('/store')}>
+          <button
+            className="continue-shopping"
+            onClick={() => router.push("/store")}
+          >
             Continue Shopping
           </button>
         </div>
@@ -217,7 +226,7 @@ export default function CartPage() {
           </div>
           <h2>Your Cart is Empty</h2>
           <p>Looks like you haven't added anything to your cart yet</p>
-          <button className="btn-primary" onClick={() => router.push('/store')}>
+          <button className="btn-primary" onClick={() => router.push("/store")}>
             Start Shopping
           </button>
         </div>
@@ -237,7 +246,9 @@ export default function CartPage() {
                     <h3>{item.productName}</h3>
                     <p className="item-price">₹{item.price.toLocaleString()}</p>
                     {item.maxStock && item.maxStock <= 5 && (
-                      <span className="stock-warning">Only {item.maxStock} left in stock!</span>
+                      <span className="stock-warning">
+                        Only {item.maxStock} left in stock!
+                      </span>
                     )}
                   </div>
 
@@ -245,7 +256,9 @@ export default function CartPage() {
                     <div className="quantity-control">
                       <button
                         className="qty-btn"
-                        onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                        onClick={() =>
+                          updateQuantity(item._id, item.quantity - 1)
+                        }
                         disabled={item.quantity <= 1}
                       >
                         <Minus size={16} />
@@ -253,8 +266,12 @@ export default function CartPage() {
                       <span className="qty-display">{item.quantity}</span>
                       <button
                         className="qty-btn"
-                        onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                        disabled={item.maxStock ? item.quantity >= item.maxStock : false}
+                        onClick={() =>
+                          updateQuantity(item._id, item.quantity + 1)
+                        }
+                        disabled={
+                          item.maxStock ? item.quantity >= item.maxStock : false
+                        }
                       >
                         <Plus size={16} />
                       </button>
@@ -262,7 +279,9 @@ export default function CartPage() {
 
                     <div className="item-total">
                       <span className="total-label">Total</span>
-                      <span className="total-price">₹{(item.price * item.quantity).toLocaleString()}</span>
+                      <span className="total-price">
+                        ₹{(item.price * item.quantity).toLocaleString()}
+                      </span>
                     </div>
 
                     <button
@@ -296,7 +315,7 @@ export default function CartPage() {
                   onClick={applyPromoCode}
                   disabled={promoApplied || !promoCode.trim()}
                 >
-                  {promoApplied ? 'Applied' : 'Apply'}
+                  {promoApplied ? "Applied" : "Apply"}
                 </button>
               </div>
               {promoApplied && (
@@ -328,7 +347,9 @@ export default function CartPage() {
 
                 <div className="summary-row">
                   <span>Shipping</span>
-                  <span>{summary.shipping === 0 ? 'FREE' : `₹${summary.shipping}`}</span>
+                  <span>
+                    {summary.shipping === 0 ? "FREE" : `₹${summary.shipping}`}
+                  </span>
                 </div>
 
                 <div className="summary-row">

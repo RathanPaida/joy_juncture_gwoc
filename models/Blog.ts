@@ -1,5 +1,5 @@
 // models/Blog.ts
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBlog extends Document {
   title: string;
@@ -19,7 +19,7 @@ export interface IBlog extends Document {
     userName: string;
     userRole: string;
   };
-  status: 'draft' | 'published';
+  status: "draft" | "published";
   featured: boolean;
   readTime?: number;
   views: number;
@@ -35,101 +35,101 @@ const BlogSchema = new Schema<IBlog>(
     title: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     slug: {
       type: String,
       required: true,
       unique: true,
       lowercase: true,
-      trim: true
+      trim: true,
     },
     excerpt: {
       type: String,
       required: true,
-      maxlength: 500
+      maxlength: 500,
     },
     content: {
       type: String,
-      required: true
+      required: true,
     },
     coverImage: {
       type: String,
-      default: null
+      default: null,
     },
     category: {
       type: String,
       required: true,
       enum: [
-        'Game Stories & Experiences',
-        'Event Highlights',
-        'Strategy & Storytelling',
-        'Community Features'
-      ]
+        "Game Stories & Experiences",
+        "Event Highlights",
+        "Strategy & Storytelling",
+        "Community Features",
+      ],
     },
     tags: {
       type: [String],
-      default: []
+      default: [],
     },
     author: {
       name: {
         type: String,
-        required: true
+        required: true,
       },
       avatar: String,
       role: {
         type: String,
-        default: 'user'
-      }
+        default: "user",
+      },
     },
     createdBy: {
       userId: {
         type: String,
         required: true,
-        index: true
+        index: true,
       },
       userName: {
         type: String,
-        required: true
+        required: true,
       },
       userRole: {
         type: String,
-        required: true
-      }
+        required: true,
+      },
     },
     status: {
       type: String,
-      enum: ['draft', 'published'],
-      default: 'draft'
+      enum: ["draft", "published"],
+      default: "draft",
     },
     featured: {
       type: Boolean,
-      default: false
+      default: false,
     },
     readTime: {
       type: Number,
-      default: 5
+      default: 5,
     },
     views: {
       type: Number,
-      default: 0
+      default: 0,
     },
     likes: {
       type: Number,
-      default: 0
+      default: 0,
     },
     comments: {
       type: Number,
-      default: 0
+      default: 0,
     },
     publishedDate: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
 // Indexes for better query performance
@@ -139,6 +139,7 @@ BlogSchema.index({ category: 1 });
 BlogSchema.index({ tags: 1 });
 BlogSchema.index({ featured: 1 });
 BlogSchema.index({ publishedDate: -1 });
-BlogSchema.index({ 'createdBy.userId': 1 });
+BlogSchema.index({ "createdBy.userId": 1 });
 
-export const Blog = mongoose.models.Blog || mongoose.model<IBlog>('Blog', BlogSchema);
+export const Blog =
+  mongoose.models.Blog || mongoose.model<IBlog>("Blog", BlogSchema);

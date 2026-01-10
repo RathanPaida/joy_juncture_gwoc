@@ -27,7 +27,11 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="relative aspect-[3/4] overflow-hidden bg-[#F1F1F1]">
         <Link href={`/store/${product.slug}`} className="block h-full w-full">
           <img
-            src={imageError ? "https://via.placeholder.com/600x800?text=COLLECTION" : product.media.thumbnail}
+            src={
+              imageError
+                ? "https://via.placeholder.com/600x800?text=COLLECTION"
+                : product.media.thumbnail
+            }
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-[2000ms] cubic-bezier(0.25, 1, 0.5, 1) group-hover:scale-110"
             onError={() => setImageError(true)}
@@ -71,22 +75,30 @@ export default function ProductCard({ product }: { product: Product }) {
           </h2>
           <div className="h-px w-0 group-hover/title:w-full bg-zinc-200 transition-all duration-700 mx-auto mt-1" />
         </Link>
-        
+
         {/* Price - Clean & Spaced */}
         <p className="mt-3 text-[13px] font-light tracking-[0.15em] text-zinc-800">
           ₹{product.price.amount.toLocaleString("en-IN")}
         </p>
-        
+
         {/* Technical Stats - Revealed on hover */}
         <div className="mt-4 flex gap-6 opacity-0 group-hover:opacity-100 transition-all duration-1000 transform translate-y-2 group-hover:translate-y-0">
           <div className="flex flex-col">
-            <span className="text-[7px] uppercase tracking-[0.3em] text-zinc-300 font-bold">Format</span>
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500">{product.meta.players}</span>
+            <span className="text-[7px] uppercase tracking-[0.3em] text-zinc-300 font-bold">
+              Format
+            </span>
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500">
+              {product.meta.players}
+            </span>
           </div>
           <div className="w-px h-6 bg-zinc-100 mt-1" />
           <div className="flex flex-col">
-            <span className="text-[7px] uppercase tracking-[0.3em] text-zinc-300 font-bold">Tempo</span>
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500">{product.meta.duration}</span>
+            <span className="text-[7px] uppercase tracking-[0.3em] text-zinc-300 font-bold">
+              Tempo
+            </span>
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500">
+              {product.meta.duration}
+            </span>
           </div>
         </div>
       </div>

@@ -8,7 +8,10 @@ export async function GET(req: NextRequest) {
   try {
     const { authorized, error, admin } = await checkAdminAccess(req);
     if (!authorized) {
-      return NextResponse.json({ error: error || "Unauthorized" }, { status: 403 });
+      return NextResponse.json(
+        { error: error || "Unauthorized" },
+        { status: 403 },
+      );
     }
 
     await connectDb();
@@ -17,17 +20,19 @@ export async function GET(req: NextRequest) {
     const games = await Game.find({}).sort({ createdAt: -1 }).lean();
 
     // Transform to match your CardGame interface
-    const formattedGames = games.map(game => ({
+    const formattedGames = games.map((game) => ({
       id: game._id.toString(),
-      name: game.name || game.title || '',
-      description: game.description || '',
-      regularPrice: game.regularPrice || game.price || '0',
-      salePrice: game.salePrice || '',
-      category: Array.isArray(game.category) ? game.category : [game.category || 'Uncategorized'],
-      players: game.players || '1-4',
-      duration: game.duration || '30-60 mins',
+      name: game.name || game.title || "",
+      description: game.description || "",
+      regularPrice: game.regularPrice || game.price || "0",
+      salePrice: game.salePrice || "",
+      category: Array.isArray(game.category)
+        ? game.category
+        : [game.category || "Uncategorized"],
+      players: game.players || "1-4",
+      duration: game.duration || "30-60 mins",
       features: Array.isArray(game.features) ? game.features : [],
-      imageUrl: game.imageUrl || game.image || '',
+      imageUrl: game.imageUrl || game.image || "",
       createdAt: game.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: game.updatedAt?.toISOString() || new Date().toISOString(),
     }));
@@ -40,7 +45,7 @@ export async function GET(req: NextRequest) {
     console.error("GET games error:", err);
     return NextResponse.json(
       { success: false, error: err.message || "Failed to fetch games" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -50,19 +55,22 @@ export async function POST(req: NextRequest) {
   try {
     const { authorized, error, admin } = await checkAdminAccess(req);
     if (!authorized) {
-      return NextResponse.json({ error: error || "Unauthorized" }, { status: 403 });
+      return NextResponse.json(
+        { error: error || "Unauthorized" },
+        { status: 403 },
+      );
     }
 
     await connectDb();
     const body = await req.json();
 
     // Validate required fields based on your CardGame interface
-    const requiredFields = ['name', 'description', 'category'];
+    const requiredFields = ["name", "description", "category"];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
           { success: false, error: `Missing required field: ${field}` },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -72,17 +80,17 @@ export async function POST(req: NextRequest) {
       name: body.name,
       title: body.name, // Store both for compatibility
       description: body.description,
-      regularPrice: body.regularPrice || body.price || '0',
-      salePrice: body.salePrice || '',
+      regularPrice: body.regularPrice || body.price || "0",
+      salePrice: body.salePrice || "",
       category: Array.isArray(body.category) ? body.category : [body.category],
-      players: body.players || '1-4',
-      duration: body.duration || '30-60 mins',
+      players: body.players || "1-4",
+      duration: body.duration || "30-60 mins",
       features: Array.isArray(body.features) ? body.features : [],
-      imageUrl: body.imageUrl || body.image || '',
+      imageUrl: body.imageUrl || body.image || "",
       createdBy: {
-        userId: admin.id,
-        userEmail: admin.email || 'admin@example.com',
-        userRole: "admin",
+        userId: admin?.id || "unknown-admin",
+        userEmail: admin?.email || admin?.id || "unknown@example.com",
+        userRole: admin?.role || "admin",
       },
     };
 
@@ -105,27 +113,27 @@ export async function POST(req: NextRequest) {
     };
 
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         data: formattedGame,
-        message: 'Game created successfully' 
+        message: "Game created successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (err: any) {
     console.error("POST game error:", err);
-    
+
     // Handle duplicate errors
     if (err.code === 11000) {
       return NextResponse.json(
         { success: false, error: "Game with this name already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: err.message || "Failed to create game" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -135,7 +143,10 @@ export async function PUT(req: NextRequest) {
   try {
     const { authorized, error, admin } = await checkAdminAccess(req);
     if (!authorized) {
-      return NextResponse.json({ error: error || "Unauthorized" }, { status: 403 });
+      return NextResponse.json(
+        { error: error || "Unauthorized" },
+        { status: 403 },
+      );
     }
 
     await connectDb();
@@ -145,7 +156,7 @@ export async function PUT(req: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { success: false, error: "Game ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -162,15 +173,15 @@ export async function PUT(req: NextRequest) {
       id,
       {
         ...transformedData,
-        lastEditedBy: admin.id,
+        lastEditedBy: admin?.id || "unknown-admin",
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedGame) {
       return NextResponse.json(
         { success: false, error: "Game not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -181,7 +192,9 @@ export async function PUT(req: NextRequest) {
       description: updatedGame.description,
       regularPrice: updatedGame.regularPrice,
       salePrice: updatedGame.salePrice,
-      category: Array.isArray(updatedGame.category) ? updatedGame.category : [updatedGame.category],
+      category: Array.isArray(updatedGame.category)
+        ? updatedGame.category
+        : [updatedGame.category],
       players: updatedGame.players,
       duration: updatedGame.duration,
       features: Array.isArray(updatedGame.features) ? updatedGame.features : [],
@@ -193,21 +206,21 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: formattedGame,
-      message: "Game updated successfully"
+      message: "Game updated successfully",
     });
   } catch (err: any) {
     console.error("PUT game error:", err);
-    
+
     if (err.code === 11000) {
       return NextResponse.json(
         { success: false, error: "Game with this name already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: err.message || "Failed to update game" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -217,7 +230,10 @@ export async function DELETE(req: NextRequest) {
   try {
     const { authorized, error, admin } = await checkAdminAccess(req);
     if (!authorized) {
-      return NextResponse.json({ error: error || "Unauthorized" }, { status: 403 });
+      return NextResponse.json(
+        { error: error || "Unauthorized" },
+        { status: 403 },
+      );
     }
 
     await connectDb();
@@ -227,16 +243,16 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { success: false, error: "Game ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const game = await Game.findById(id);
-    
+
     if (!game) {
       return NextResponse.json(
         { success: false, error: "Game not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -245,16 +261,16 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Game deleted successfully",
-      data: { 
-        id: game._id.toString(), 
-        name: game.name 
-      }
+      data: {
+        id: game._id.toString(),
+        name: game.name,
+      },
     });
   } catch (err: any) {
     console.error("DELETE game error:", err);
     return NextResponse.json(
       { success: false, error: err.message || "Failed to delete game" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
