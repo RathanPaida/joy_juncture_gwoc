@@ -6,7 +6,7 @@ import { User } from '@/models/User';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { itemId: string } }
+  context: { params: Promise<{ itemId: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -18,7 +18,8 @@ export async function DELETE(
       );
     }
 
-    const { itemId } = await params;
+    // Await params in Next.js 15
+    const { itemId } = await context.params;
     
     if (!itemId) {
       return NextResponse.json(
@@ -67,7 +68,7 @@ export async function DELETE(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { itemId: string } }
+  context: { params: Promise<{ itemId: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -79,7 +80,8 @@ export async function PUT(
       );
     }
 
-    const { itemId } = await params;
+    // Await params in Next.js 15
+    const { itemId } = await context.params;
     const body = await request.json();
     const { quantity } = body;
     
@@ -125,6 +127,148 @@ export async function PUT(
     
   } catch (error) {
     console.error('Error updating cart:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// Optional: GET method to retrieve specific cart item
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ itemId: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Await params in Next.js 15
+    const { itemId } = await context.params;
+    
+    if (!itemId) {
+      return NextResponse.json(
+        { error: 'Item ID is required' },
+        { status: 400 }
+      );
+    }
+
+    await connectToDatabase();
+    
+    // Find user and specific cart item
+    const user = await User.findOne(
+      { 
+        email: session.user.email,
+        'cart.productId': itemId
+      },
+      { 
+        'cart.$': 1 // Return only the matching cart item
+      }
+    );
+
+    if (user && user.cart?.length > 0) {
+      return NextResponse.json({
+        success: true,
+        item: user.cart[0]
+      });
+    }
+
+    return NextResponse.json(
+      { error: 'Item not found in cart' },
+      { status: 404 }
+    );
+    
+  } catch (error) {
+    console.error('Error fetching cart item:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// Optional: PATCH method for partial updates
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ itemId: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Await params in Next.js 15
+    const { itemId } = await context.params;
+    const body = await request.json();
+    
+    if (!itemId) {
+      return NextResponse.json(
+        { error: 'Item ID is required' },
+        { status: 400 }
+      );
+    }
+
+    await connectToDatabase();
+    
+    // Build update object dynamically
+    const updateObj: any = {};
+    if (body.quantity !== undefined) {
+      updateObj['cart.$.quantity'] = Number(body.quantity);
+    }
+    if (body.selectedColor !== undefined) {
+      updateObj['cart.$.selectedColor'] = body.selectedColor;
+    }
+    if (body.selectedSize !== undefined) {
+      updateObj['cart.$.selectedSize'] = body.selectedSize;
+    }
+    if (body.notes !== undefined) {
+      updateObj['cart.$.notes'] = body.notes;
+    }
+    
+    // Always update the timestamp
+    updateObj['cart.$.addedAt'] = new Date();
+
+    // Update specific fields of cart item
+    const user = await User.findOneAndUpdate(
+      { 
+        email: session.user.email,
+        'cart.productId': itemId
+      },
+      { 
+        $set: updateObj
+      },
+      { 
+        new: true,
+        projection: { cart: 1 }
+      }
+    );
+
+    if (user) {
+      return NextResponse.json({
+        success: true,
+        message: 'Cart item updated',
+        count: user.cart?.length || 0
+      });
+    }
+
+    return NextResponse.json(
+      { error: 'Item not found in cart' },
+      { status: 404 }
+    );
+    
+  } catch (error) {
+    console.error('Error updating cart item:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
