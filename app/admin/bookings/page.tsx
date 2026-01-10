@@ -65,9 +65,12 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("🔐 Admin Bookings: Auth state changed:", firebaseUser?.email);
+      console.log(
+        "🔐 Admin Bookings: Auth state changed:",
+        firebaseUser?.email,
+      );
       setUser(firebaseUser);
-      
+
       if (firebaseUser) {
         try {
           const userToken = await getIdToken(firebaseUser);
@@ -97,17 +100,17 @@ export default function AdminBookingsPage() {
     try {
       const headers: HeadersInit = {};
       if (userToken) {
-        headers['Authorization'] = `Bearer ${userToken}`;
+        headers["Authorization"] = `Bearer ${userToken}`;
       }
-      headers['Content-Type'] = 'application/json';
+      headers["Content-Type"] = "application/json";
 
       console.log("📅 Loading bookings with token:", userToken ? "Yes" : "No");
-      
-      const res = await fetch('/api/bookings', { headers });
+
+      const res = await fetch("/api/bookings", { headers });
       const data = await res.json();
-      
+
       console.log("📅 Bookings API Response:", data);
-      
+
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error("Session expired. Please log in again.");
@@ -117,7 +120,7 @@ export default function AdminBookingsPage() {
         }
         throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`);
       }
-      
+
       if (data.success && Array.isArray(data.data)) {
         const transformedBookings = data.data.map((booking: any) => ({
           ...booking,
@@ -129,9 +132,9 @@ export default function AdminBookingsPage() {
           date: booking.date || "",
           status: booking.status || "pending",
           consulted: booking.consulted || false,
-          createdAt: booking.createdAt || new Date().toISOString()
+          createdAt: booking.createdAt || new Date().toISOString(),
         }));
-        
+
         console.log(`✅ Loaded ${transformedBookings.length} bookings`);
         setBookings(transformedBookings);
       } else {
@@ -151,9 +154,9 @@ export default function AdminBookingsPage() {
       alert("Please log in first");
       return;
     }
-    
+
     setEditingBooking(booking);
-    setForm({ 
+    setForm({
       name: booking.name || "",
       email: booking.email || "",
       phone: booking.phone || "",
@@ -179,30 +182,38 @@ export default function AdminBookingsPage() {
 
     try {
       setError(null);
-      
+
       const method = editingBooking ? "PUT" : "POST";
-      const body = editingBooking 
-        ? JSON.stringify({ id: editingBooking.id, ...form }) 
+      const body = editingBooking
+        ? JSON.stringify({ id: editingBooking.id, ...form })
         : JSON.stringify(form);
 
-      console.log("💾 Saving booking:", { method, editingBooking: editingBooking?.id, body });
-      
-      const res = await fetch('/api/bookings', {
+      console.log("💾 Saving booking:", {
         method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+        editingBooking: editingBooking?.id,
+        body,
+      });
+
+      const res = await fetch("/api/bookings", {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body,
       });
 
-      console.log("💾 Save booking response status:", res.status, res.statusText);
-      
+      console.log(
+        "💾 Save booking response status:",
+        res.status,
+        res.statusText,
+      );
+
       let data;
       try {
         const text = await res.text();
         console.log("💾 Save booking raw response:", text);
-        
+
         if (text) {
           data = JSON.parse(text);
         } else {
@@ -210,43 +221,47 @@ export default function AdminBookingsPage() {
         }
       } catch (jsonError) {
         console.error("💾 Failed to parse JSON response:", jsonError);
-        throw new Error(`Server returned invalid response. Status: ${res.status} ${res.statusText}`);
+        throw new Error(
+          `Server returned invalid response. Status: ${res.status} ${res.statusText}`,
+        );
       }
-      
+
       if (!res.ok) {
         console.log("💾 Error response data:", data);
-        
+
         let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-        
+
         if (data) {
           if (data.error) {
             errorMessage = data.error;
           } else if (data.message) {
             errorMessage = data.message;
           } else if (data.errors) {
-            if (typeof data.errors === 'object') {
-              const errorMessages = Object.keys(data.errors).map(key => {
+            if (typeof data.errors === "object") {
+              const errorMessages = Object.keys(data.errors).map((key) => {
                 const err = data.errors[key];
                 return `${key}: ${err.message || err}`;
               });
-              errorMessage = `Validation error: ${errorMessages.join(', ')}`;
+              errorMessage = `Validation error: ${errorMessages.join(", ")}`;
             } else {
               errorMessage = `Validation error: ${data.errors}`;
             }
           } else if (data._message) {
             errorMessage = data._message;
-          } else if (typeof data === 'string') {
+          } else if (typeof data === "string") {
             errorMessage = data;
           }
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       if (data.success) {
         await loadBookings(token);
         closeModal();
-        alert(`✅ Booking ${editingBooking ? "updated" : "created"} successfully!`);
+        alert(
+          `✅ Booking ${editingBooking ? "updated" : "created"} successfully!`,
+        );
       } else {
         throw new Error(data.error || "Failed to save booking");
       }
@@ -268,20 +283,20 @@ export default function AdminBookingsPage() {
 
     try {
       setError(null);
-      
+
       const res = await fetch(`/api/bookings?id=${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`);
       }
-      
+
       if (data.success) {
         await loadBookings(token);
         alert("✅ Booking deleted successfully!");
@@ -302,23 +317,23 @@ export default function AdminBookingsPage() {
 
     try {
       setError(null);
-      
+
       const updated = { ...booking, consulted: !booking.consulted };
-      const res = await fetch('/api/bookings', {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      const res = await fetch("/api/bookings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ id: booking.id, consulted: updated.consulted }),
       });
 
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.error || `HTTP ${res.status}: ${res.statusText}`);
       }
-      
+
       if (data.success) {
         await loadBookings(token);
       } else {
@@ -337,31 +352,36 @@ export default function AdminBookingsPage() {
   };
 
   const getStatusColor = (status: string) => {
-    const option = statusOptions.find(opt => opt.value === status);
+    const option = statusOptions.find((opt) => opt.value === status);
     if (option) return option.color;
-    
+
     // Fallback colors
-    switch(status.toLowerCase()) {
-      case 'confirmed': return colors.success;
-      case 'pending': return colors.primary;
-      case 'completed': return '#3b82f6'; // blue
-      case 'cancelled': return colors.danger;
-      default: return colors.textLight;
+    switch (status.toLowerCase()) {
+      case "confirmed":
+        return colors.success;
+      case "pending":
+        return colors.primary;
+      case "completed":
+        return "#3b82f6"; // blue
+      case "cancelled":
+        return colors.danger;
+      default:
+        return colors.textLight;
     }
   };
 
   const getStatusLabel = (status: string) => {
-    const option = statusOptions.find(opt => opt.value === status);
+    const option = statusOptions.find((opt) => opt.value === status);
     return option ? option.label : status.toUpperCase();
   };
 
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
     } catch {
       return dateString;
@@ -370,15 +390,56 @@ export default function AdminBookingsPage() {
 
   if (!user && !isLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, ${colors.dark}, ${colors.light})`, color: colors.text, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ background: colors.background, borderRadius: "12px", padding: "3rem", textAlign: "center", border: `2px solid ${colors.primary}`, maxWidth: "500px", width: "90%" }}>
-          <h1 style={{ fontSize: "1.8rem", fontWeight: "bold", marginBottom: "1rem", background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: `linear-gradient(135deg, ${colors.dark}, ${colors.light})`,
+          color: colors.text,
+          fontFamily: "system-ui,sans-serif",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            background: colors.background,
+            borderRadius: "12px",
+            padding: "3rem",
+            textAlign: "center",
+            border: `2px solid ${colors.primary}`,
+            maxWidth: "500px",
+            width: "90%",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "1.8rem",
+              fontWeight: "bold",
+              marginBottom: "1rem",
+              background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
             Admin Access Required
           </h1>
-          <p style={{ color: colors.textLight, marginBottom: "2rem" }}>Please log in to access the bookings panel</p>
-          <button 
+          <p style={{ color: colors.textLight, marginBottom: "2rem" }}>
+            Please log in to access the bookings panel
+          </p>
+          <button
             onClick={() => router.push("/login")}
-            style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`, color: colors.dark, border: "none", borderRadius: "8px", padding: "12px 24px", fontSize: "1rem", fontWeight: "bold", cursor: "pointer", width: "100%" }}
+            style={{
+              background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+              color: colors.dark,
+              border: "none",
+              borderRadius: "8px",
+              padding: "12px 24px",
+              fontSize: "1rem",
+              fontWeight: "bold",
+              cursor: "pointer",
+              width: "100%",
+            }}
           >
             Go to Login
           </button>
@@ -389,15 +450,37 @@ export default function AdminBookingsPage() {
 
   if (isLoading && !user) {
     return (
-      <div style={{ minHeight: "100vh", background: `linear-gradient(135deg, ${colors.dark}, ${colors.light})`, color: colors.text, fontFamily: "system-ui,sans-serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: `linear-gradient(135deg, ${colors.dark}, ${colors.light})`,
+          color: colors.text,
+          fontFamily: "system-ui,sans-serif",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "48px", marginBottom: "1rem", animation: "spin 1s linear infinite" }}>⏳</div>
+          <div
+            style={{
+              fontSize: "48px",
+              marginBottom: "1rem",
+              animation: "spin 1s linear infinite",
+            }}
+          >
+            ⏳
+          </div>
           <h2 style={{ color: colors.text }}>Loading Admin Panel...</h2>
           <p style={{ color: colors.textLight }}>Authenticating user</p>
           <style jsx>{`
             @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
+              0% {
+                transform: rotate(0deg);
+              }
+              100% {
+                transform: rotate(360deg);
+              }
             }
           `}</style>
         </div>
@@ -406,27 +489,126 @@ export default function AdminBookingsPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: colors.background, color: colors.text, fontFamily: "system-ui, sans-serif" }}>
-      
-      <header style={{ background: colors.background, borderBottom: `2px solid ${colors.border}`, padding: "1.5rem 2rem", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: "1400px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: colors.background,
+        color: colors.text,
+        fontFamily: "system-ui, sans-serif",
+      }}
+    >
+      <header
+        style={{
+          background: colors.background,
+          borderBottom: `2px solid ${colors.border}`,
+          padding: "1.5rem 2rem",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1400px",
+            margin: "0 auto",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <button onClick={() => router.push("/admin")} style={{ background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: "8px", padding: "10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
+            <button
+              onClick={() => router.push("/admin")}
+              style={{
+                background: colors.light,
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+                borderRadius: "8px",
+                padding: "10px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
               <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 style={{ fontSize: "1.8rem", fontWeight: "bold", background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Bookings</h1>
-              <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.25rem" }}>
-                <p style={{ color: colors.textLight, fontSize: "0.9rem" }}>Total: {bookings.length}</p>
-                {user && <p style={{ color: colors.textLight, fontSize: "0.9rem" }}>User: {user.email}</p>}
+              <h1
+                style={{
+                  fontSize: "1.8rem",
+                  fontWeight: "bold",
+                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Bookings
+              </h1>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1rem",
+                  marginTop: "0.25rem",
+                }}
+              >
+                <p style={{ color: colors.textLight, fontSize: "0.9rem" }}>
+                  Total: {bookings.length}
+                </p>
+                {user && (
+                  <p style={{ color: colors.textLight, fontSize: "0.9rem" }}>
+                    User: {user.email}
+                  </p>
+                )}
               </div>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <button onClick={refreshBookings} style={{ background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: "8px", padding: "10px", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem" }}>
+            <button
+              onClick={refreshBookings}
+              style={{
+                background: colors.light,
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+                borderRadius: "8px",
+                padding: "10px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                fontSize: "0.9rem",
+              }}
+            >
               🔄 Refresh
             </button>
-            <button onClick={() => { setEditingBooking(null); setForm({ name: "", email: "", phone: "", package: "", date: "", status: "pending", consulted: false }); setIsModalOpen(true); }} style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`, color: colors.dark, border: "none", borderRadius: "8px", padding: "12px 24px", fontSize: "1rem", fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <button
+              onClick={() => {
+                setEditingBooking(null);
+                setForm({
+                  name: "",
+                  email: "",
+                  phone: "",
+                  package: "",
+                  date: "",
+                  status: "pending",
+                  consulted: false,
+                });
+                setIsModalOpen(true);
+              }}
+              style={{
+                background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                color: colors.dark,
+                border: "none",
+                borderRadius: "8px",
+                padding: "12px 24px",
+                fontSize: "1rem",
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
               <Plus size={20} /> Add Booking
             </button>
           </div>
@@ -434,159 +616,261 @@ export default function AdminBookingsPage() {
       </header>
 
       {error && (
-        <div style={{ maxWidth: "1400px", margin: "1rem auto", padding: "0 2rem" }}>
-          <div style={{ background: "rgba(239, 68, 68, 0.1)", border: `1px solid ${colors.danger}`, color: colors.danger, padding: "12px", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{ maxWidth: "1400px", margin: "1rem auto", padding: "0 2rem" }}
+        >
+          <div
+            style={{
+              background: "rgba(239, 68, 68, 0.1)",
+              border: `1px solid ${colors.danger}`,
+              color: colors.danger,
+              padding: "12px",
+              borderRadius: "8px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <span>{error}</span>
-            <button onClick={() => setError(null)} style={{ background: "transparent", border: "none", color: colors.danger, cursor: "pointer" }}>
+            <button
+              onClick={() => setError(null)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: colors.danger,
+                cursor: "pointer",
+              }}
+            >
               <X size={20} />
             </button>
           </div>
         </div>
       )}
 
-      <main style={{ maxWidth: "1400px", margin: "2rem auto", padding: "0 2rem" }}>
+      <main
+        style={{ maxWidth: "1400px", margin: "2rem auto", padding: "0 2rem" }}
+      >
         {isLoading ? (
-          <div style={{ textAlign: "center", padding: "4rem", color: colors.textLight }}>
-            <div style={{ fontSize: "32px", marginBottom: "1rem", animation: "spin 1s linear infinite" }}>⏳</div>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "4rem",
+              color: colors.textLight,
+            }}
+          >
+            <div
+              style={{
+                fontSize: "32px",
+                marginBottom: "1rem",
+                animation: "spin 1s linear infinite",
+              }}
+            >
+              ⏳
+            </div>
             Loading bookings...
             <style jsx>{`
               @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
+                0% {
+                  transform: rotate(0deg);
+                }
+                100% {
+                  transform: rotate(360deg);
+                }
               }
             `}</style>
           </div>
         ) : bookings.length === 0 ? (
           <div style={{ textAlign: "center", padding: "4rem" }}>
-            <div style={{ fontSize: "48px", marginBottom: "1rem", color: colors.textLight }}>📅</div>
-            <h3 style={{ color: colors.text, marginBottom: "0.5rem" }}>No bookings found</h3>
-            <p style={{ color: colors.textLight }}>Click "Add Booking" to create your first booking</p>
+            <div
+              style={{
+                fontSize: "48px",
+                marginBottom: "1rem",
+                color: colors.textLight,
+              }}
+            >
+              📅
+            </div>
+            <h3 style={{ color: colors.text, marginBottom: "0.5rem" }}>
+              No bookings found
+            </h3>
+            <p style={{ color: colors.textLight }}>
+              Click "Add Booking" to create your first booking
+            </p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.5rem" }}>
-            {bookings.map(booking => (
-              <div 
-                key={booking.id} 
-                style={{ 
-                  background: colors.light, 
-                  borderRadius: "12px", 
-                  padding: "1.5rem", 
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: "1.5rem",
+            }}
+          >
+            {bookings.map((booking) => (
+              <div
+                key={booking.id}
+                style={{
+                  background: colors.light,
+                  borderRadius: "12px",
+                  padding: "1.5rem",
                   border: `2px solid ${getStatusColor(booking.status)}`,
-                  transition: "all 0.3s"
+                  transition: "all 0.3s",
                 }}
-                onMouseEnter={e => { 
-                  e.currentTarget.style.transform = "translateY(-5px)"; 
-                  e.currentTarget.style.boxShadow = "0 10px 25px rgba(0, 0, 0, 0.3)"; 
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-5px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 10px 25px rgba(0, 0, 0, 0.3)";
                 }}
-                onMouseLeave={e => { 
-                  e.currentTarget.style.transform = "translateY(0)"; 
-                  e.currentTarget.style.boxShadow = "none"; 
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: "1rem",
+                  }}
+                >
                   <div>
-                    <h3 style={{ fontWeight: 700, fontSize: "1.2rem", marginBottom: "0.25rem" }}>{booking.name}</h3>
-                    <p style={{ color: colors.textLight, fontSize: "0.85rem" }}>{booking.email}</p>
+                    <h3
+                      style={{
+                        fontWeight: 700,
+                        fontSize: "1.2rem",
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      {booking.name}
+                    </h3>
+                    <p style={{ color: colors.textLight, fontSize: "0.85rem" }}>
+                      {booking.email}
+                    </p>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                    <span style={{ 
-                      fontSize: "0.75rem", 
-                      color: colors.textLight,
-                      marginBottom: "0.25rem"
-                    }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-end",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        color: colors.textLight,
+                        marginBottom: "0.25rem",
+                      }}
+                    >
                       {formatDate(booking.createdAt)}
                     </span>
-                    <span style={{ 
-                      background: getStatusColor(booking.status),
-                      color: colors.dark,
-                      padding: "4px 8px",
-                      borderRadius: "4px",
-                      fontSize: "0.7rem",
-                      fontWeight: 600
-                    }}>
+                    <span
+                      style={{
+                        background: getStatusColor(booking.status),
+                        color: colors.dark,
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        fontSize: "0.7rem",
+                        fontWeight: 600,
+                      }}
+                    >
                       {getStatusLabel(booking.status)}
                     </span>
                   </div>
                 </div>
-                
+
                 <div style={{ marginBottom: "1rem" }}>
                   <p style={{ marginBottom: "0.25rem", fontSize: "0.9rem" }}>
-                    <span style={{ color: colors.textLight }}>📞</span> {booking.phone}
+                    <span style={{ color: colors.textLight }}>📞</span>{" "}
+                    {booking.phone}
                   </p>
                   <p style={{ marginBottom: "0.25rem", fontSize: "0.9rem" }}>
-                    <span style={{ color: colors.textLight }}>📦</span> {booking.package}
+                    <span style={{ color: colors.textLight }}>📦</span>{" "}
+                    {booking.package}
                   </p>
                   <p style={{ marginBottom: "0.25rem", fontSize: "0.9rem" }}>
-                    <span style={{ color: colors.textLight }}>📅</span> {booking.date}
+                    <span style={{ color: colors.textLight }}>📅</span>{" "}
+                    {booking.date}
                   </p>
                   <p style={{ fontSize: "0.9rem" }}>
-                    <span style={{ color: colors.textLight }}>💬</span> 
-                    <span style={{ color: booking.consulted ? colors.success : colors.danger, marginLeft: "4px" }}>
+                    <span style={{ color: colors.textLight }}>💬</span>
+                    <span
+                      style={{
+                        color: booking.consulted
+                          ? colors.success
+                          : colors.danger,
+                        marginLeft: "4px",
+                      }}
+                    >
                       {booking.consulted ? "Consulted ✓" : "Not Consulted"}
                     </span>
                   </p>
                 </div>
 
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                  <button 
-                    onClick={() => openEditModal(booking)} 
-                    style={{ 
-                      flex: 1, 
-                      background: colors.primary, 
-                      color: colors.dark, 
-                      border: "none", 
-                      borderRadius: "6px", 
-                      padding: "8px", 
-                      cursor: "pointer", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
+                <div
+                  style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}
+                >
+                  <button
+                    onClick={() => openEditModal(booking)}
+                    style={{
+                      flex: 1,
+                      background: colors.primary,
+                      color: colors.dark,
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "8px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       gap: "0.3rem",
                       fontWeight: 600,
-                      fontSize: "0.85rem"
+                      fontSize: "0.85rem",
                     }}
                   >
                     <Edit size={14} /> Edit
                   </button>
-                  <button 
-                    onClick={() => handleDelete(booking.id)} 
-                    style={{ 
-                      flex: 1, 
-                      background: colors.danger, 
-                      color: "white", 
-                      border: "none", 
-                      borderRadius: "6px", 
-                      padding: "8px", 
-                      cursor: "pointer", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
+                  <button
+                    onClick={() => handleDelete(booking.id)}
+                    style={{
+                      flex: 1,
+                      background: colors.danger,
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "8px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       gap: "0.3rem",
                       fontWeight: 600,
-                      fontSize: "0.85rem"
+                      fontSize: "0.85rem",
                     }}
                   >
                     <Trash2 size={14} /> Delete
                   </button>
-                  <button 
-                    onClick={() => toggleConsulted(booking)} 
-                    style={{ 
-                      flex: 1, 
-                      background: booking.consulted ? colors.border : colors.success, 
-                      color: booking.consulted ? colors.text : colors.dark, 
-                      border: "none", 
-                      borderRadius: "6px", 
-                      padding: "8px", 
-                      cursor: "pointer", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
+                  <button
+                    onClick={() => toggleConsulted(booking)}
+                    style={{
+                      flex: 1,
+                      background: booking.consulted
+                        ? colors.border
+                        : colors.success,
+                      color: booking.consulted ? colors.text : colors.dark,
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "8px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       gap: "0.3rem",
                       fontWeight: 600,
-                      fontSize: "0.85rem"
+                      fontSize: "0.85rem",
                     }}
                   >
-                    <Check size={14} /> {booking.consulted ? "Mark Unconsulted" : "Consulted"}
+                    <Check size={14} />{" "}
+                    {booking.consulted ? "Mark Unconsulted" : "Consulted"}
                   </button>
                 </div>
               </div>
@@ -596,108 +880,228 @@ export default function AdminBookingsPage() {
       </main>
 
       {isModalOpen && (
-        <div style={{ 
-          position: "fixed", 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          background: "rgba(0, 0, 0, 0.8)", 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "center", 
-          zIndex: 1000 
-        }}>
-          <div style={{ 
-            background: colors.background, 
-            borderRadius: "12px", 
-            padding: "2rem", 
-            width: "90%", 
-            maxWidth: "500px", 
-            border: `2px solid ${colors.primary}` 
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-              <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: colors.background,
+              borderRadius: "12px",
+              padding: "2rem",
+              width: "90%",
+              maxWidth: "500px",
+              border: `2px solid ${colors.primary}`,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: "1.5rem",
+                  fontWeight: "bold",
+                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
                 {editingBooking ? "Edit Booking" : "Add New Booking"}
               </h2>
-              <button onClick={closeModal} style={{ background: "transparent", border: "none", color: colors.textLight, cursor: "pointer" }}>
+              <button
+                onClick={closeModal}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: colors.textLight,
+                  cursor: "pointer",
+                }}
+              >
                 <X size={24} />
               </button>
             </div>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+              }}
+            >
               <input
                 type="text"
                 placeholder="Name"
                 value={form.name}
-                onChange={(e) => setForm({...form, name: e.target.value})}
-                style={{ background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "10px", fontSize: "1rem" }}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                style={{
+                  background: colors.light,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "6px",
+                  padding: "10px",
+                  fontSize: "1rem",
+                }}
                 required
               />
               <input
                 type="email"
                 placeholder="Email"
                 value={form.email}
-                onChange={(e) => setForm({...form, email: e.target.value})}
-                style={{ background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "10px", fontSize: "1rem" }}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                style={{
+                  background: colors.light,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "6px",
+                  padding: "10px",
+                  fontSize: "1rem",
+                }}
                 required
               />
               <input
                 type="tel"
                 placeholder="Phone"
                 value={form.phone}
-                onChange={(e) => setForm({...form, phone: e.target.value})}
-                style={{ background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "10px", fontSize: "1rem" }}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                style={{
+                  background: colors.light,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "6px",
+                  padding: "10px",
+                  fontSize: "1rem",
+                }}
                 required
               />
               <input
                 type="text"
                 placeholder="Package"
                 value={form.package}
-                onChange={(e) => setForm({...form, package: e.target.value})}
-                style={{ background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "10px", fontSize: "1rem" }}
+                onChange={(e) => setForm({ ...form, package: e.target.value })}
+                style={{
+                  background: colors.light,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "6px",
+                  padding: "10px",
+                  fontSize: "1rem",
+                }}
                 required
               />
               <input
                 type="date"
                 value={form.date}
-                onChange={(e) => setForm({...form, date: e.target.value})}
-                style={{ background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "10px", fontSize: "1rem" }}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                style={{
+                  background: colors.light,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "6px",
+                  padding: "10px",
+                  fontSize: "1rem",
+                }}
                 required
               />
               <select
                 value={form.status}
-                onChange={(e) => setForm({...form, status: e.target.value})}
-                style={{ background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "10px", fontSize: "1rem" }}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+                style={{
+                  background: colors.light,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "6px",
+                  padding: "10px",
+                  fontSize: "1rem",
+                }}
               >
-                {statusOptions.map(option => (
+                {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: colors.textLight }}>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  color: colors.textLight,
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={form.consulted}
-                  onChange={(e) => setForm({...form, consulted: e.target.checked})}
+                  onChange={(e) =>
+                    setForm({ ...form, consulted: e.target.checked })
+                  }
                   style={{ width: "18px", height: "18px" }}
                 />
                 Consulted
               </label>
             </div>
-            
+
             {error && (
-              <div style={{ background: "rgba(239, 68, 68, 0.1)", border: `1px solid ${colors.danger}`, color: colors.danger, padding: "10px", borderRadius: "6px", marginBottom: "1rem", fontSize: "0.9rem" }}>
+              <div
+                style={{
+                  background: "rgba(239, 68, 68, 0.1)",
+                  border: `1px solid ${colors.danger}`,
+                  color: colors.danger,
+                  padding: "10px",
+                  borderRadius: "6px",
+                  marginBottom: "1rem",
+                  fontSize: "0.9rem",
+                }}
+              >
                 {error}
               </div>
             )}
-            
+
             <div style={{ display: "flex", gap: "1rem" }}>
-              <button onClick={handleSave} style={{ flex: 1, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`, color: colors.dark, border: "none", borderRadius: "6px", padding: "12px", fontSize: "1rem", fontWeight: "bold", cursor: "pointer" }}>
+              <button
+                onClick={handleSave}
+                style={{
+                  flex: 1,
+                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                  color: colors.dark,
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "12px",
+                  fontSize: "1rem",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
                 {editingBooking ? "Update Booking" : "Create Booking"}
               </button>
-              <button onClick={closeModal} style={{ flex: 1, background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "12px", fontSize: "1rem", cursor: "pointer" }}>
+              <button
+                onClick={closeModal}
+                style={{
+                  flex: 1,
+                  background: colors.light,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: "6px",
+                  padding: "12px",
+                  fontSize: "1rem",
+                  cursor: "pointer",
+                }}
+              >
                 Cancel
               </button>
             </div>

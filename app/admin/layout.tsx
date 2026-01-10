@@ -1,11 +1,11 @@
 // app/admin/layout.tsx
 // This ensures admin pages have access to AuthContext (for wallets/auth)
-'use client';
+"use client";
 
 import { AuthProvider } from "@/app/contexts/AuthContext";
-import Link from 'next/link';
-import { Package, LayoutDashboard, Plus } from 'lucide-react';
-import React from 'react';
+import Link from "next/link";
+import { Package, LayoutDashboard, Plus } from "lucide-react";
+import React from "react";
 import AdminNavbar from "@/app/components/admin/navbar";
 
 export default function AdminLayout({
@@ -15,10 +15,9 @@ export default function AdminLayout({
 }) {
   return (
     <AuthProvider>
-        
-        {/* Main Content */}
-          <AdminNavbar/>
-          {children}
+      {/* Main Content */}
+      <AdminNavbar />
+      {children}
     </AuthProvider>
   );
 }

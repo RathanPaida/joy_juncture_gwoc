@@ -711,15 +711,15 @@
   .admin-navbar-top {
     padding: 0 1rem;
   }
-  
+
   .mobile-menu-btn {
     display: block;
   }
-  
+
   .search-container {
     display: none;
   }
-  
+
   .admin-navbar-main {
     position: fixed;
     top: 70px;
@@ -735,27 +735,27 @@
     z-index: 1000;
     overflow-y: auto;
   }
-  
+
   .admin-navbar-main.mobile-open {
     transform: translateX(0);
   }
-  
+
   .nav-menu {
     flex-direction: column;
     gap: 0.5rem;
     overflow-x: visible;
   }
-  
+
   .nav-item-container {
     width: 100%;
   }
-  
+
   .nav-item {
     justify-content: space-between;
     padding: 1rem;
     width: 100%;
   }
-  
+
   /* Mobile Dropdown Menu - Fixed for visibility */
   .dropdown-menu {
     position: static;
@@ -771,36 +771,36 @@
     width: calc(100% - 2rem);
     padding: 0.5rem;
   }
-  
+
   .nav-item-container.dropdown-open .dropdown-menu {
     display: block;
     animation: slideDown 0.3s ease;
   }
-  
+
   .dropdown-item {
     padding: 0.875rem 1rem;
     font-size: 0.95rem;
     margin-bottom: 0.25rem;
   }
-  
+
   .dropdown-item:hover {
     padding-left: 1rem;
     transform: translateX(0);
   }
-  
+
   .dropdown-item:last-child {
     margin-bottom: 0;
   }
-  
+
   .nav-stats {
     display: block;
     margin-top: 2rem;
   }
-  
+
   .mobile-overlay {
     display: block;
   }
-  
+
   .profile-dropdown {
     position: fixed;
     top: 70px;
@@ -814,24 +814,24 @@
   .user-name {
     display: none;
   }
-  
+
   .user-profile-btn {
     padding: 0.5rem;
   }
-  
+
   .notification-bell {
     width: 36px;
     height: 36px;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .nav-text {
     font-size: 0.85rem;
   }
-  
+
   .dropdown-item {
     font-size: 0.85rem;
     padding: 0.75rem;
@@ -887,13 +887,13 @@
   .nav-item-container {
     position: relative;
   }
-  
+
   .dropdown-menu {
     min-width: 240px;
     white-space: nowrap;
     z-index: 2000 !important;
   }
-  
+
   /* Hover effect for desktop */
   .nav-item-container.has-dropdown:hover .dropdown-menu {
     opacity: 1;

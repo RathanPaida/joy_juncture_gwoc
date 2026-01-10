@@ -1,169 +1,180 @@
 // models/Order.ts - FLEXIBLE VERSION COMPATIBLE WITH YOUR SCHEMA
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema({
   productId: {
     type: String,
-    required: true
+    required: true,
   },
   productName: {
     type: String,
-    required: true
+    required: true,
   },
   productImage: {
     type: String,
-    required: false
+    required: false,
   },
   price: {
     type: Number,
-    required: true
+    required: true,
   },
   quantity: {
     type: Number,
     required: true,
     min: 1,
-    default: 1
-  }
+    default: 1,
+  },
 });
 
 const shippingAddressSchema = new mongoose.Schema({
   fullName: {
     type: String,
-    required: true
+    required: true,
   },
   email: {
     type: String,
-    required: true
+    required: true,
   },
   phone: {
     type: String,
-    required: true
+    required: true,
   },
   address: {
     type: String,
-    required: true
+    required: true,
   },
   city: {
     type: String,
-    required: true
+    required: true,
   },
   state: {
     type: String,
-    required: true
+    required: true,
   },
   pincode: {
     type: String,
-    required: true
+    required: true,
   },
   country: {
     type: String,
-    default: 'India'
-  }
+    default: "India",
+  },
 });
 
-const orderSchema = new mongoose.Schema({
-  // Firebase User ID (REQUIRED by your schema)
-  firebaseUid: {
-    type: String,
-    required: true,
-    index: true
+const orderSchema = new mongoose.Schema(
+  {
+    // Firebase User ID (REQUIRED by your schema)
+    firebaseUid: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    // Primary product info (REQUIRED by your schema - using first item)
+    productId: {
+      type: String,
+      required: true,
+    },
+    productName: {
+      type: String,
+      required: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+
+    // Total amount (REQUIRED by your schema)
+    totalAmount: {
+      type: Number,
+      required: true,
+    },
+
+    // All items in the order (optional array for multi-product orders)
+    items: [orderItemSchema],
+
+    // Shipping information
+    shippingAddress: {
+      type: shippingAddressSchema,
+      required: true,
+    },
+
+    // Payment details
+    paymentMethod: {
+      type: String,
+      enum: ["razorpay", "cod"],
+      required: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "completed", "failed", "refunded"],
+      default: "pending",
+    },
+
+    // Order status
+    orderStatus: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      default: "pending",
+    },
+
+    // Razorpay IDs
+    razorpayOrderId: {
+      type: String,
+      default: null,
+    },
+    razorpayPaymentId: {
+      type: String,
+      default: null,
+    },
+
+    // Pricing breakdown
+    subtotal: {
+      type: Number,
+      required: false,
+      default: 0,
+    },
+    shipping: {
+      type: Number,
+      default: 0,
+    },
+    tax: {
+      type: Number,
+      default: 0,
+    },
+
+    // Dates
+    paidAt: {
+      type: Date,
+      default: null,
+    },
+    deliveredAt: {
+      type: Date,
+      default: null,
+    },
+
+    // Tracking
+    trackingNumber: {
+      type: String,
+      default: null,
+    },
   },
-  
-  // Primary product info (REQUIRED by your schema - using first item)
-  productId: {
-    type: String,
-    required: true
+  {
+    timestamps: true,
   },
-  productName: {
-    type: String,
-    required: true
-  },
-  price: {
-    type: Number,
-    required: true
-  },
-  
-  // Total amount (REQUIRED by your schema)
-  totalAmount: {
-    type: Number,
-    required: true
-  },
-  
-  // All items in the order (optional array for multi-product orders)
-  items: [orderItemSchema],
-  
-  // Shipping information
-  shippingAddress: {
-    type: shippingAddressSchema,
-    required: true
-  },
-  
-  // Payment details
-  paymentMethod: {
-    type: String,
-    enum: ['razorpay', 'cod'],
-    required: true
-  },
-  paymentStatus: {
-    type: String,
-    enum: ['pending', 'completed', 'failed', 'refunded'],
-    default: 'pending'
-  },
-  
-  // Order status
-  orderStatus: {
-    type: String,
-    enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
-    default: 'pending'
-  },
-  
-  // Razorpay IDs
-  razorpayOrderId: {
-    type: String,
-    default: null
-  },
-  razorpayPaymentId: {
-    type: String,
-    default: null
-  },
-  
-  // Pricing breakdown
-  subtotal: {
-    type: Number,
-    required: false,
-    default: 0
-  },
-  shipping: {
-    type: Number,
-    default: 0
-  },
-  tax: {
-    type: Number,
-    default: 0
-  },
-  
-  // Dates
-  paidAt: {
-    type: Date,
-    default: null
-  },
-  deliveredAt: {
-    type: Date,
-    default: null
-  },
-  
-  // Tracking
-  trackingNumber: {
-    type: String,
-    default: null
-  }
-}, {
-  timestamps: true
-});
+);
 
 // Indexes for faster queries
 orderSchema.index({ firebaseUid: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ razorpayOrderId: 1 });
 
-export const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);
+export const Order =
+  mongoose.models.Order || mongoose.model("Order", orderSchema);

@@ -1,15 +1,27 @@
 // app/admin/blog/page.tsx
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/app/contexts/AuthContext';
-import { auth } from '@/lib/firebase'; // Import auth from firebase
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { auth } from "@/lib/firebase"; // Import auth from firebase
+import { useRouter } from "next/navigation";
 import {
-  FaBlog, FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaEye, FaEyeSlash,
-  FaChartLine, FaExclamationCircle, FaCrown, FaUser, FaStar, FaTag
-} from 'react-icons/fa';
-import './admin-blog.css';
+  FaBlog,
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaSave,
+  FaTimes,
+  FaEye,
+  FaEyeSlash,
+  FaChartLine,
+  FaExclamationCircle,
+  FaCrown,
+  FaUser,
+  FaStar,
+  FaTag,
+} from "react-icons/fa";
+import "./admin-blog.css";
 
 interface Blog {
   _id?: string;
@@ -28,9 +40,9 @@ interface Blog {
   createdBy: {
     userId: string;
     userName: string;
-    userRole: 'admin' | 'user' | 'viewer' | 'editor' | 'super_admin';
+    userRole: "admin" | "user" | "viewer" | "editor" | "super_admin";
   };
-  status: 'draft' | 'published';
+  status: "draft" | "published";
   featured: boolean;
   readTime?: number;
   publishedDate?: string;
@@ -48,10 +60,10 @@ interface BlogStats {
 }
 
 const BLOG_CATEGORIES = [
-  'Game Stories & Experiences',
-  'Event Highlights',
-  'Strategy & Storytelling',
-  'Community Features'
+  "Game Stories & Experiences",
+  "Event Highlights",
+  "Strategy & Storytelling",
+  "Community Features",
 ];
 
 const AdminBlogPage: React.FC = () => {
@@ -59,31 +71,35 @@ const AdminBlogPage: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
-  const [accessError, setAccessError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'all' | 'my-blogs' | 'stats'>('all');
-  
+  const [accessError, setAccessError] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"all" | "my-blogs" | "stats">(
+    "all",
+  );
+
   // Data states
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [stats, setStats] = useState<BlogStats | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  
+
   // Edit states
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   const [showBlogModal, setShowBlogModal] = useState(false);
-  
+
   // Filter states
-  const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>('all');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "published" | "draft"
+  >("all");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        console.log('User authenticated, checking admin access...');
+        console.log("User authenticated, checking admin access...");
         checkAdminAccess();
       } else {
-        console.log('No user, redirecting to login...');
-        router.push('/login?redirect=/admin/blog');
+        console.log("No user, redirecting to login...");
+        router.push("/login?redirect=/admin/blog");
       }
     }
   }, [user, authLoading]);
@@ -91,50 +107,56 @@ const AdminBlogPage: React.FC = () => {
   const checkAdminAccess = async () => {
     if (!user) {
       setAccessDenied(true);
-      setAccessError('Please login to access admin panel');
+      setAccessError("Please login to access admin panel");
       return;
     }
 
     try {
-      console.log('Getting Firebase token...');
+      console.log("Getting Firebase token...");
       // Use auth.currentUser instead of user.getIdToken()
       const token = await auth.currentUser?.getIdToken();
-      
+
       if (!token) {
         setAccessDenied(true);
-        setAccessError('Failed to get authentication token');
+        setAccessError("Failed to get authentication token");
         setLoading(false);
         return;
       }
-      
-      console.log('Checking admin access...');
-      const response = await fetch('/api/admin/check-access', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+
+      console.log("Checking admin access...");
+      const response = await fetch("/api/admin/check-access", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
-      console.log('Admin check response:', response.status);
-      
+      console.log("Admin check response:", response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Access denied:', errorData);
-        
+        console.error("Access denied:", errorData);
+
         setAccessDenied(true);
-        setAccessError(errorData.error || 'Access denied. Admin privileges required.');
+        setAccessError(
+          errorData.error || "Access denied. Admin privileges required.",
+        );
         setLoading(false);
         return;
       }
 
       const data = await response.json();
-      console.log('Admin access granted:', data);
-      setIsAdmin(data.role === 'admin' || data.role === 'super_admin' || data.role === 'editor');
-      
+      console.log("Admin access granted:", data);
+      setIsAdmin(
+        data.role === "admin" ||
+          data.role === "super_admin" ||
+          data.role === "editor",
+      );
+
       // Access granted, fetch all data
       fetchAllData();
     } catch (error: any) {
-      console.error('Error checking admin access:', error);
+      console.error("Error checking admin access:", error);
       setAccessDenied(true);
       setAccessError(`Error: ${error.message}`);
       setLoading(false);
@@ -146,43 +168,43 @@ const AdminBlogPage: React.FC = () => {
     try {
       // Use auth.currentUser instead of user!.getIdToken()
       const token = await auth.currentUser?.getIdToken();
-      
+
       if (!token) {
-        console.error('No token available');
+        console.error("No token available");
         return;
       }
-      
-      console.log('Fetching blog data...');
-      
+
+      console.log("Fetching blog data...");
+
       // Fetch blogs
       try {
-        const blogsRes = await fetch('/api/admin/blog', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const blogsRes = await fetch("/api/admin/blog", {
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (blogsRes.ok) {
           const data = await blogsRes.json();
           setBlogs(data.blogs || []);
-          console.log('Blogs loaded:', data.blogs?.length);
+          console.log("Blogs loaded:", data.blogs?.length);
         }
       } catch (err) {
-        console.error('Error fetching blogs:', err);
+        console.error("Error fetching blogs:", err);
       }
 
       // Fetch stats
       try {
-        const statsRes = await fetch('/api/admin/blog/stats', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const statsRes = await fetch("/api/admin/blog/stats", {
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (statsRes.ok) {
           const data = await statsRes.json();
           setStats(data);
-          console.log('Stats loaded');
+          console.log("Stats loaded");
         }
       } catch (err) {
-        console.error('Error fetching stats:', err);
+        console.error("Error fetching stats:", err);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -191,83 +213,89 @@ const AdminBlogPage: React.FC = () => {
   const handleSaveBlog = async (blog: Blog) => {
     try {
       const token = await auth.currentUser?.getIdToken();
-      
+
       if (!token) {
-        alert('Authentication token not available');
+        alert("Authentication token not available");
         return;
       }
-      
-      const method = blog._id ? 'PUT' : 'POST';
-      const url = blog._id 
-        ? `/api/admin/blog/${blog._id}`
-        : '/api/admin/blog';
 
-      console.log('Saving blog:', { method, url, blogId: blog._id });
+      const method = blog._id ? "PUT" : "POST";
+      const url = blog._id ? `/api/admin/blog/${blog._id}` : "/api/admin/blog";
+
+      console.log("Saving blog:", { method, url, blogId: blog._id });
 
       const response = await fetch(url, {
         method,
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(blog)
+        body: JSON.stringify(blog),
       });
 
       const data = await response.json();
-      console.log('Save response:', { status: response.status, data });
+      console.log("Save response:", { status: response.status, data });
 
       if (response.ok && data.success) {
-        alert(blog._id ? 'Blog updated successfully!' : 'Blog created successfully!');
+        alert(
+          blog._id
+            ? "Blog updated successfully!"
+            : "Blog created successfully!",
+        );
         setShowBlogModal(false);
         setEditingBlog(null);
         fetchAllData();
       } else {
-        const errorMessage = data.error || 'Unknown error occurred';
-        console.error('Save failed:', errorMessage);
+        const errorMessage = data.error || "Unknown error occurred";
+        console.error("Save failed:", errorMessage);
         alert(`Failed to save blog: ${errorMessage}`);
       }
     } catch (error: any) {
-      console.error('Error saving blog:', error);
+      console.error("Error saving blog:", error);
       alert(`Failed to save blog: ${error.message}`);
     }
   };
 
   const handleDeleteBlog = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this blog? This action cannot be undone.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this blog? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
     try {
       const token = await auth.currentUser?.getIdToken();
-      
+
       if (!token) {
-        alert('Authentication token not available');
+        alert("Authentication token not available");
         return;
       }
-      
-      console.log('Deleting blog:', id);
+
+      console.log("Deleting blog:", id);
 
       const response = await fetch(`/api/admin/blog/${id}`, {
-        method: 'DELETE',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       const data = await response.json();
-      console.log('Delete response:', { status: response.status, data });
+      console.log("Delete response:", { status: response.status, data });
 
       if (response.ok && data.success) {
-        alert('Blog deleted successfully!');
+        alert("Blog deleted successfully!");
         fetchAllData();
       } else {
-        const errorMessage = data.error || 'Unknown error occurred';
-        console.error('Delete failed:', errorMessage);
+        const errorMessage = data.error || "Unknown error occurred";
+        console.error("Delete failed:", errorMessage);
         alert(`Failed to delete blog: ${errorMessage}`);
       }
     } catch (error: any) {
-      console.error('Error deleting blog:', error);
+      console.error("Error deleting blog:", error);
       alert(`Failed to delete blog: ${error.message}`);
     }
   };
@@ -275,24 +303,30 @@ const AdminBlogPage: React.FC = () => {
   const canEditBlog = (blog: Blog) => {
     // Check if current Firebase user matches blog creator
     const currentUserId = auth.currentUser?.uid;
-    
+
     // User can edit their own blogs
-    if (blog.createdBy.userId === currentUserId || isAdmin || auth.currentUser?.email === 'paidarajarathan@gmail.com') {
+    if (
+      blog.createdBy.userId === currentUserId ||
+      isAdmin ||
+      auth.currentUser?.email === "paidarajarathan@gmail.com"
+    ) {
       return true;
     }
-    
+
     // Admin can edit all their own blogs + user-submitted drafts for review
     if (isAdmin) {
       // Admin can edit any blog created by admin
-      if (['admin', 'super_admin', 'editor'].includes(blog.createdBy.userRole)) {
+      if (
+        ["admin", "super_admin", "editor"].includes(blog.createdBy.userRole)
+      ) {
         return true;
       }
       // Admin can edit user-created drafts (for review purposes)
-      if (blog.createdBy.userRole === 'user' && blog.status === 'draft') {
+      if (blog.createdBy.userRole === "user" && blog.status === "draft") {
         return true;
       }
     }
-    
+
     return false;
   };
 
@@ -301,27 +335,28 @@ const AdminBlogPage: React.FC = () => {
     const currentUserId = auth.currentUser?.uid;
 
     // Filter by tab
-    if (activeTab === 'my-blogs') {
-      filtered = filtered.filter(b => b.createdBy.userId === currentUserId);
+    if (activeTab === "my-blogs") {
+      filtered = filtered.filter((b) => b.createdBy.userId === currentUserId);
     }
 
     // Filter by status
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(b => b.status === filterStatus);
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((b) => b.status === filterStatus);
     }
 
     // Filter by category
-    if (filterCategory !== 'all') {
-      filtered = filtered.filter(b => b.category === filterCategory);
+    if (filterCategory !== "all") {
+      filtered = filtered.filter((b) => b.category === filterCategory);
     }
 
     // Search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(b =>
-        b.title.toLowerCase().includes(query) ||
-        b.excerpt.toLowerCase().includes(query) ||
-        b.createdBy.userName.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (b) =>
+          b.title.toLowerCase().includes(query) ||
+          b.excerpt.toLowerCase().includes(query) ||
+          b.createdBy.userName.toLowerCase().includes(query),
       );
     }
 
@@ -347,15 +382,19 @@ const AdminBlogPage: React.FC = () => {
           <h1>Access Denied</h1>
           <p>{accessError}</p>
           <div className="access-denied-actions">
-            <button onClick={() => router.push('/')}>Go Home</button>
-            <button onClick={() => router.push('/login')}>Login</button>
-            <button onClick={() => router.push('/admin/setup')}>Setup Admin</button>
+            <button onClick={() => router.push("/")}>Go Home</button>
+            <button onClick={() => router.push("/login")}>Login</button>
+            <button onClick={() => router.push("/admin/setup")}>
+              Setup Admin
+            </button>
           </div>
           <div className="help-text">
             <h3>Need admin access?</h3>
             <p>1. Make sure you're logged in</p>
             <p>2. Your account must have 'admin' or 'super_admin' role</p>
-            <p>3. Visit /admin/setup to make yourself admin (first time only)</p>
+            <p>
+              3. Visit /admin/setup to make yourself admin (first time only)
+            </p>
             <p>4. Or update your role in MongoDB directly</p>
           </div>
         </div>
@@ -365,31 +404,35 @@ const AdminBlogPage: React.FC = () => {
 
   const filteredBlogs = getFilteredBlogs();
   const currentUserId = auth.currentUser?.uid;
-  const currentUserName = auth.currentUser?.displayName || auth.currentUser?.email || 'User';
+  const currentUserName =
+    auth.currentUser?.displayName || auth.currentUser?.email || "User";
 
   return (
     <div className="admin-blog-page">
       <div className="admin-header">
-        <h1><FaBlog /> Blog Management</h1>
+        <h1>
+          <FaBlog /> Blog Management
+        </h1>
         <p>Create, edit, and manage blog posts</p>
       </div>
 
       <div className="admin-tabs">
         <button
-          className={activeTab === 'all' ? 'active' : ''}
-          onClick={() => setActiveTab('all')}
+          className={activeTab === "all" ? "active" : ""}
+          onClick={() => setActiveTab("all")}
         >
           <FaBlog /> All Blogs ({blogs.length})
         </button>
         <button
-          className={activeTab === 'my-blogs' ? 'active' : ''}
-          onClick={() => setActiveTab('my-blogs')}
+          className={activeTab === "my-blogs" ? "active" : ""}
+          onClick={() => setActiveTab("my-blogs")}
         >
-          <FaUser /> My Blogs ({blogs.filter(b => b.createdBy.userId === currentUserId).length})
+          <FaUser /> My Blogs (
+          {blogs.filter((b) => b.createdBy.userId === currentUserId).length})
         </button>
         <button
-          className={activeTab === 'stats' ? 'active' : ''}
-          onClick={() => setActiveTab('stats')}
+          className={activeTab === "stats" ? "active" : ""}
+          onClick={() => setActiveTab("stats")}
         >
           <FaChartLine /> Statistics
         </button>
@@ -397,31 +440,33 @@ const AdminBlogPage: React.FC = () => {
 
       <div className="admin-content">
         {/* Blogs Tab */}
-        {(activeTab === 'all' || activeTab === 'my-blogs') && (
+        {(activeTab === "all" || activeTab === "my-blogs") && (
           <div className="blogs-section">
             <div className="section-header">
               <div className="header-left">
-                <h2>{activeTab === 'all' ? 'All Blog Posts' : 'My Blog Posts'}</h2>
+                <h2>
+                  {activeTab === "all" ? "All Blog Posts" : "My Blog Posts"}
+                </h2>
                 <button
                   className="btn-primary"
                   onClick={() => {
                     setEditingBlog({
-                      title: '',
-                      excerpt: '',
-                      content: '',
+                      title: "",
+                      excerpt: "",
+                      content: "",
                       category: BLOG_CATEGORIES[0],
                       tags: [],
                       author: {
                         name: currentUserName,
-                        role: isAdmin ? 'admin' : 'user'
+                        role: isAdmin ? "admin" : "user",
                       },
                       createdBy: {
                         userId: currentUserId!,
                         userName: currentUserName,
-                        userRole: isAdmin ? 'admin' : 'viewer'
+                        userRole: isAdmin ? "admin" : "viewer",
                       },
-                      status: 'draft',
-                      featured: false
+                      status: "draft",
+                      featured: false,
                     });
                     setShowBlogModal(true);
                   }}
@@ -454,8 +499,10 @@ const AdminBlogPage: React.FC = () => {
                   className="filter-select"
                 >
                   <option value="all">All Categories</option>
-                  {BLOG_CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {BLOG_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -490,11 +537,19 @@ const AdminBlogPage: React.FC = () => {
                         <h3>{blog.title}</h3>
                         <div className="blog-badges">
                           <span className={`status-badge ${blog.status}`}>
-                            {blog.status === 'published' ? <FaEye /> : <FaEyeSlash />}
+                            {blog.status === "published" ? (
+                              <FaEye />
+                            ) : (
+                              <FaEyeSlash />
+                            )}
                             {blog.status}
                           </span>
-                          <span className={`creator-badge ${blog.createdBy.userRole}`}>
-                            {['admin', 'super_admin', 'editor'].includes(blog.createdBy.userRole) ? (
+                          <span
+                            className={`creator-badge ${blog.createdBy.userRole}`}
+                          >
+                            {["admin", "super_admin", "editor"].includes(
+                              blog.createdBy.userRole,
+                            ) ? (
                               <>
                                 <FaCrown /> Admin
                               </>
@@ -518,8 +573,9 @@ const AdminBlogPage: React.FC = () => {
                         </span>
                         {blog.tags.length > 0 && (
                           <span className="tags">
-                            Tags: {blog.tags.slice(0, 3).join(', ')}
-                            {blog.tags.length > 3 && ` +${blog.tags.length - 3}`}
+                            Tags: {blog.tags.slice(0, 3).join(", ")}
+                            {blog.tags.length > 3 &&
+                              ` +${blog.tags.length - 3}`}
                           </span>
                         )}
                       </div>
@@ -552,7 +608,7 @@ const AdminBlogPage: React.FC = () => {
         )}
 
         {/* Statistics Tab */}
-        {activeTab === 'stats' && stats && (
+        {activeTab === "stats" && stats && (
           <div className="stats-section">
             <h2>Blog Statistics</h2>
             <div className="stats-grid">
@@ -584,7 +640,9 @@ const AdminBlogPage: React.FC = () => {
               <div className="stat-card views">
                 <FaChartLine className="stat-icon" />
                 <h3>Total Views</h3>
-                <p className="stat-value">{stats.totalViews.toLocaleString()}</p>
+                <p className="stat-value">
+                  {stats.totalViews.toLocaleString()}
+                </p>
               </div>
             </div>
           </div>
@@ -617,17 +675,17 @@ const BlogModal: React.FC<{
   categories: string[];
 }> = ({ blog, onSave, onClose, isAdmin, categories }) => {
   const [formData, setFormData] = useState(blog);
-  const [tagsInput, setTagsInput] = useState(blog.tags.join(', '));
+  const [tagsInput, setTagsInput] = useState(blog.tags.join(", "));
 
   const handleSave = () => {
     const tags = tagsInput
-      .split(',')
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0);
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
 
     onSave({
       ...formData,
-      tags
+      tags,
     });
   };
 
@@ -635,8 +693,10 @@ const BlogModal: React.FC<{
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{blog._id ? 'Edit' : 'Create'} Blog Post</h3>
-          <button onClick={onClose}><FaTimes /></button>
+          <h3>{blog._id ? "Edit" : "Create"} Blog Post</h3>
+          <button onClick={onClose}>
+            <FaTimes />
+          </button>
         </div>
         <div className="modal-body">
           <div className="form-group">
@@ -644,7 +704,9 @@ const BlogModal: React.FC<{
             <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               placeholder="Enter blog title"
               required
             />
@@ -654,7 +716,9 @@ const BlogModal: React.FC<{
             <label>Excerpt *</label>
             <textarea
               value={formData.excerpt}
-              onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, excerpt: e.target.value })
+              }
               placeholder="Short description (150-200 characters)"
               rows={3}
               required
@@ -665,7 +729,9 @@ const BlogModal: React.FC<{
             <label>Content *</label>
             <textarea
               value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, content: e.target.value })
+              }
               placeholder="Full blog content (supports Markdown)"
               rows={12}
               required
@@ -677,10 +743,14 @@ const BlogModal: React.FC<{
               <label>Category *</label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
               >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
                 ))}
               </select>
             </div>
@@ -689,7 +759,12 @@ const BlogModal: React.FC<{
               <label>Status</label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    status: e.target.value as "draft" | "published",
+                  })
+                }
               >
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -711,8 +786,10 @@ const BlogModal: React.FC<{
             <label>Cover Image URL</label>
             <input
               type="url"
-              value={formData.coverImage || ''}
-              onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+              value={formData.coverImage || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, coverImage: e.target.value })
+              }
               placeholder="https://example.com/image.jpg"
             />
           </div>
@@ -723,7 +800,9 @@ const BlogModal: React.FC<{
                 <input
                   type="checkbox"
                   checked={formData.featured}
-                  onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, featured: e.target.checked })
+                  }
                 />
                 <FaStar /> Mark as Featured (Admin only)
               </label>
@@ -731,9 +810,11 @@ const BlogModal: React.FC<{
           )}
         </div>
         <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
           <button className="btn-primary" onClick={handleSave}>
-            <FaSave /> {blog._id ? 'Update' : 'Create'} Blog
+            <FaSave /> {blog._id ? "Update" : "Create"} Blog
           </button>
         </div>
       </div>

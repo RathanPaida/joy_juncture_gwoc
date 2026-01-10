@@ -1,19 +1,19 @@
 // app/api/debug/fix-discussions/route.ts - RUN THIS ONCE TO FIX DATABASE
-import { NextRequest, NextResponse } from 'next/server';
-import connectDb from '@/lib/mongodb';
-import mongoose from 'mongoose';
+import { NextRequest, NextResponse } from "next/server";
+import connectDb from "@/lib/mongodb";
+import mongoose from "mongoose";
 
 export async function GET(request: NextRequest) {
   try {
     await connectDb();
 
     if (!mongoose.connection.db) {
-      throw new Error('Database not connected');
+      throw new Error("Database not connected");
     }
 
-    const Discussion = mongoose.connection.db.collection('discussions');
+    const Discussion = mongoose.connection.db.collection("discussions");
 
-    console.log('🔧 Starting discussion schema migration...');
+    console.log("🔧 Starting discussion schema migration...");
 
     // Get all discussions
     const discussions = await Discussion.find({}).toArray();
@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
       const fixes: any = {};
 
       // Fix replies field - should be array
-      if (typeof discussion.replies !== 'object' || !Array.isArray(discussion.replies)) {
+      if (
+        typeof discussion.replies !== "object" ||
+        !Array.isArray(discussion.replies)
+      ) {
         fixes.replies = [];
         console.log(`✅ Fixed replies for: ${discussion.title}`);
       }
@@ -37,22 +40,22 @@ export async function GET(request: NextRequest) {
       }
 
       // Fix likes field - should be number
-      if (typeof discussion.likes !== 'number') {
+      if (typeof discussion.likes !== "number") {
         fixes.likes = 0;
       }
 
       // Fix viewCount field - should be number
-      if (typeof discussion.viewCount !== 'number') {
+      if (typeof discussion.viewCount !== "number") {
         fixes.viewCount = 0;
       }
 
       // Fix isHot field - should be boolean
-      if (typeof discussion.isHot !== 'boolean') {
+      if (typeof discussion.isHot !== "boolean") {
         fixes.isHot = false;
       }
 
       // Fix isPinned field - should be boolean
-      if (typeof discussion.isPinned !== 'boolean') {
+      if (typeof discussion.isPinned !== "boolean") {
         fixes.isPinned = false;
       }
 
@@ -63,20 +66,17 @@ export async function GET(request: NextRequest) {
 
       // Fix status field - should be string
       if (!discussion.status) {
-        fixes.status = 'active';
+        fixes.status = "active";
       }
 
       // Apply fixes if needed
       if (Object.keys(fixes).length > 0) {
-        await Discussion.updateOne(
-          { _id: discussion._id },
-          { $set: fixes }
-        );
+        await Discussion.updateOne({ _id: discussion._id }, { $set: fixes });
         fixedCount++;
         updates.push({
           id: discussion._id,
           title: discussion.title,
-          fixes: Object.keys(fixes)
+          fixes: Object.keys(fixes),
         });
       }
     }
@@ -88,14 +88,17 @@ export async function GET(request: NextRequest) {
       message: `Migration complete! Fixed ${fixedCount} of ${discussions.length} discussions`,
       total: discussions.length,
       fixed: fixedCount,
-      updates: updates
+      updates: updates,
     });
   } catch (error: any) {
-    console.error('❌ Migration failed:', error);
-    return NextResponse.json({
-      success: false,
-      error: error.message,
-      stack: error.stack
-    }, { status: 500 });
+    console.error("❌ Migration failed:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+        stack: error.stack,
+      },
+      { status: 500 },
+    );
   }
 }

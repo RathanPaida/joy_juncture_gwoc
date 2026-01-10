@@ -1,6 +1,6 @@
 // lib/walletHelpers.ts - Compatible with your Mongoose models
-import { connectDb } from '@/lib/mongodb';
-import { User, Transaction } from '@/models/User';
+import { connectDb } from "@/lib/mongodb";
+import { User, Transaction } from "@/models/User";
 
 /**
  * Core function to add points to wallet
@@ -8,9 +8,17 @@ import { User, Transaction } from '@/models/User';
 async function addPointsToWallet(
   userId: string, // This is the MongoDB _id, not firebaseUid
   amount: number,
-  type: 'purchase' | 'event' | 'game' | 'referral' | 'bonus' | 'redeem' | 'daily' | 'community',
+  type:
+    | "purchase"
+    | "event"
+    | "game"
+    | "referral"
+    | "bonus"
+    | "redeem"
+    | "daily"
+    | "community",
   description: string,
-  metadata?: any
+  metadata?: any,
 ) {
   await connectDb();
 
@@ -18,7 +26,7 @@ async function addPointsToWallet(
   const user = await User.findById(userId);
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 
   // Update user's total points
@@ -34,14 +42,14 @@ async function addPointsToWallet(
     description: description,
     metadata: metadata || {},
     balanceAfter: user.totalPoints,
-    status: 'completed'
+    status: "completed",
   });
 
   await transaction.save();
 
   return {
     newBalance: user.totalPoints,
-    transaction: transaction
+    transaction: transaction,
   };
 }
 
@@ -53,22 +61,22 @@ export async function awardPurchasePoints(
   userId: string, // MongoDB _id
   productName: string,
   purchaseAmount: number,
-  orderId: string
+  orderId: string,
 ) {
   // Award 1 point per $1 spent
   const points = Math.floor(purchaseAmount);
-  
+
   return await addPointsToWallet(
     userId,
     points,
-    'purchase',
+    "purchase",
     `Purchased ${productName}`,
     {
       productName,
       purchaseAmount,
       orderId,
-      pointsRatio: '1:1'
-    }
+      pointsRatio: "1:1",
+    },
   );
 }
 
@@ -79,20 +87,20 @@ export async function awardEventPoints(
   userId: string,
   eventName: string,
   eventId: string,
-  eventType: 'free' | 'paid' = 'free'
+  eventType: "free" | "paid" = "free",
 ) {
-  const points = eventType === 'paid' ? 50 : 25;
-  
+  const points = eventType === "paid" ? 50 : 25;
+
   return await addPointsToWallet(
     userId,
     points,
-    'event',
+    "event",
     `Registered for ${eventName}`,
     {
       eventName,
       eventId,
-      eventType
-    }
+      eventType,
+    },
   );
 }
 
@@ -102,20 +110,20 @@ export async function awardEventPoints(
 export async function awardEventAttendancePoints(
   userId: string,
   eventName: string,
-  eventId: string
+  eventId: string,
 ) {
   const points = 30;
-  
+
   return await addPointsToWallet(
     userId,
     points,
-    'event',
+    "event",
     `Attended ${eventName}`,
     {
       eventName,
       eventId,
-      type: 'attendance'
-    }
+      type: "attendance",
+    },
   );
 }
 
@@ -127,18 +135,18 @@ export async function awardGamePoints(
   gameName: string,
   gameId: string,
   duration: number, // in minutes
-  score?: number
+  score?: number,
 ) {
   const basePoints = 5;
   const durationBonus = Math.min(Math.floor(duration / 10), 20);
   const scoreBonus = score ? Math.min(Math.floor(score / 100), 15) : 0;
-  
+
   const totalPoints = basePoints + durationBonus + scoreBonus;
-  
+
   return await addPointsToWallet(
     userId,
     totalPoints,
-    'game',
+    "game",
     `Played ${gameName}`,
     {
       gameName,
@@ -148,9 +156,9 @@ export async function awardGamePoints(
       breakdown: {
         base: basePoints,
         durationBonus,
-        scoreBonus
-      }
-    }
+        scoreBonus,
+      },
+    },
   );
 }
 
@@ -161,18 +169,18 @@ export async function awardGameMilestonePoints(
   userId: string,
   gameName: string,
   milestone: string,
-  points: number = 20
+  points: number = 20,
 ) {
   return await addPointsToWallet(
     userId,
     points,
-    'game',
+    "game",
     `${gameName}: ${milestone}`,
     {
       gameName,
       milestone,
-      type: 'milestone'
-    }
+      type: "milestone",
+    },
   );
 }
 
@@ -182,19 +190,19 @@ export async function awardGameMilestonePoints(
 export async function awardReferralPoints(
   userId: string,
   referredUserName: string,
-  referredUserId: string
+  referredUserId: string,
 ) {
   const points = 100;
-  
+
   return await addPointsToWallet(
     userId,
     points,
-    'referral',
+    "referral",
     `Referred ${referredUserName}`,
     {
       referredUserName,
-      referredUserId
-    }
+      referredUserId,
+    },
   );
 }
 
@@ -205,15 +213,9 @@ export async function awardBonusPoints(
   userId: string,
   reason: string,
   points: number,
-  metadata?: any
+  metadata?: any,
 ) {
-  return await addPointsToWallet(
-    userId,
-    points,
-    'bonus',
-    reason,
-    metadata
-  );
+  return await addPointsToWallet(userId, points, "bonus", reason, metadata);
 }
 
 /**
@@ -221,12 +223,12 @@ export async function awardBonusPoints(
  */
 export async function getUserByFirebaseUid(firebaseUid: string) {
   await connectDb();
-  
+
   let user = await User.findOne({ firebaseUid });
-  
+
   if (!user) {
     console.warn(`User not found by firebaseUid: ${firebaseUid}`);
   }
-  
+
   return user;
 }

@@ -1,15 +1,17 @@
-import Link from 'next/link';
-import { Package, Plus, TrendingUp, ShoppingBag, Grid } from 'lucide-react';
+import Link from "next/link";
+import { Package, Plus, TrendingUp, ShoppingBag, Grid } from "lucide-react";
 
 async function getStoreStats() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const res = await fetch(`${baseUrl}/api/admin/products`, { cache: 'no-store' });
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const res = await fetch(`${baseUrl}/api/admin/products`, {
+      cache: "no-store",
+    });
     if (!res.ok) return { total: 0, categories: 0 };
-    
+
     const data = await res.json();
     const products = data.items || [];
-    
+
     // Count unique categories
     const uniqueCategories = new Set<string>();
     products.forEach((product: any) => {
@@ -17,7 +19,7 @@ async function getStoreStats() {
         product.category.forEach((cat: string) => uniqueCategories.add(cat));
       }
     });
-    
+
     return {
       total: data.total || 0,
       categories: uniqueCategories.size,
@@ -34,13 +36,19 @@ export default async function AdminDashboard() {
     <div className="min-h-screen">
       {/* Header */}
       <div className="mb-8">
-        <h1 
-          className="text-5xl font-black text-white mb-2" 
-          style={{ fontFamily: '"Inter", sans-serif', letterSpacing: '-0.02em' }}
+        <h1
+          className="text-5xl font-black text-white mb-2"
+          style={{
+            fontFamily: '"Inter", sans-serif',
+            letterSpacing: "-0.02em",
+          }}
         >
           Admin Dashboard
         </h1>
-        <div className="h-1 w-32 rounded-full" style={{ backgroundColor: '#FF5F1F' }}></div>
+        <div
+          className="h-1 w-32 rounded-full"
+          style={{ backgroundColor: "#FF5F1F" }}
+        ></div>
       </div>
 
       {/* Stats Cards */}
@@ -48,7 +56,10 @@ export default async function AdminDashboard() {
         {/* Total Products */}
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-4 rounded-xl" style={{ backgroundColor: '#FF5F1F' }}>
+            <div
+              className="p-4 rounded-xl"
+              style={{ backgroundColor: "#FF5F1F" }}
+            >
               <Package size={32} className="text-white" />
             </div>
             <TrendingUp size={24} className="text-green-400" />
@@ -83,14 +94,17 @@ export default async function AdminDashboard() {
       {/* Quick Actions */}
       <div className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl border border-gray-700 shadow-2xl">
         <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-          <div className="w-1 h-6 rounded-full" style={{ backgroundColor: '#FF5F1F' }}></div>
+          <div
+            className="w-1 h-6 rounded-full"
+            style={{ backgroundColor: "#FF5F1F" }}
+          ></div>
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-4">
           <Link
             href="/admin/products/new"
             className="flex items-center gap-2 px-8 py-4 text-white font-black rounded-xl transition-all hover:scale-105 shadow-lg"
-            style={{ backgroundColor: '#FF5F1F' }}
+            style={{ backgroundColor: "#FF5F1F" }}
           >
             <Plus size={20} strokeWidth={3} />
             Add New Product
@@ -115,26 +129,37 @@ export default async function AdminDashboard() {
       {/* Recent Activity */}
       <div className="mt-8 bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl border border-gray-700 shadow-2xl">
         <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-          <div className="w-1 h-6 rounded-full" style={{ backgroundColor: '#FF5F1F' }}></div>
+          <div
+            className="w-1 h-6 rounded-full"
+            style={{ backgroundColor: "#FF5F1F" }}
+          ></div>
           Recent Activity
         </h2>
         <div className="space-y-4">
           <div className="flex items-center gap-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <p className="text-gray-300">
-              <span className="text-white font-bold">{total} products</span> currently in database
+              <span className="text-white font-bold">{total} products</span>{" "}
+              currently in database
             </p>
           </div>
           <div className="flex items-center gap-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FF5F1F' }}></div>
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: "#FF5F1F" }}
+            ></div>
             <p className="text-gray-300">
-              <span className="text-white font-bold">{categories} categories</span> available
+              <span className="text-white font-bold">
+                {categories} categories
+              </span>{" "}
+              available
             </p>
           </div>
           <div className="flex items-center gap-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
             <div className="w-2 h-2 rounded-full bg-purple-500"></div>
             <p className="text-gray-300">
-              <span className="text-white font-bold">Store</span> is live and accessible
+              <span className="text-white font-bold">Store</span> is live and
+              accessible
             </p>
           </div>
         </div>

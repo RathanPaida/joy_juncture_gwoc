@@ -36,19 +36,36 @@
       "id": 1,
       "name": "Silver Birthday",
       "price": "₹9,999",
-      "features": ["Basic Balloon Decor", "Cake Table", "2 Hours Support", "Music System"]
+      "features": [
+        "Basic Balloon Decor",
+        "Cake Table",
+        "2 Hours Support",
+        "Music System"
+      ]
     },
     {
       "id": 2,
       "name": "Gold Birthday",
       "price": "₹19,999",
-      "features": ["Theme Decor", "Games Setup", "Professional Photography", "4 Hours Support", "Custom Cake"]
+      "features": [
+        "Theme Decor",
+        "Games Setup",
+        "Professional Photography",
+        "4 Hours Support",
+        "Custom Cake"
+      ]
     },
     {
       "id": 3,
       "name": "Platinum Birthday",
       "price": "₹29,999",
-      "features": ["Premium Theme Decor", "Entertainment Activities", "Videography", "6 Hours Support", "Gourmet Food"]
+      "features": [
+        "Premium Theme Decor",
+        "Entertainment Activities",
+        "Videography",
+        "6 Hours Support",
+        "Gourmet Food"
+      ]
     }
   ],
 
@@ -57,19 +74,37 @@
       "id": 1,
       "name": "Silver Anniversary",
       "price": "₹14,999",
-      "features": ["Romantic Setup", "Cake Table", "Music", "2 Hours Support", "Flower Decor"]
+      "features": [
+        "Romantic Setup",
+        "Cake Table",
+        "Music",
+        "2 Hours Support",
+        "Flower Decor"
+      ]
     },
     {
       "id": 2,
       "name": "Gold Anniversary",
       "price": "₹29,999",
-      "features": ["Premium Decor", "Candle Light Dinner", "Photography", "4 Hours Support", "Special Cake"]
+      "features": [
+        "Premium Decor",
+        "Candle Light Dinner",
+        "Photography",
+        "4 Hours Support",
+        "Special Cake"
+      ]
     },
     {
       "id": 3,
       "name": "Platinum Anniversary",
       "price": "₹44,999",
-      "features": ["Luxury Decor", "Gourmet Dining", "Photography + Videography", "6 Hours Support", "Live Music"]
+      "features": [
+        "Luxury Decor",
+        "Gourmet Dining",
+        "Photography + Videography",
+        "6 Hours Support",
+        "Live Music"
+      ]
     }
   ],
 

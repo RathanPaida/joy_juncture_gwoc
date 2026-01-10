@@ -1,7 +1,7 @@
 // app/api/cart/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, ObjectId } from 'mongodb';
-import { verifyIdToken } from '@/lib/firebase-admin';
+import { NextRequest, NextResponse } from "next/server";
+import { MongoClient, ObjectId } from "mongodb";
+import { verifyIdToken } from "@/lib/firebase-admin";
 
 const uri = process.env.MONGODB_URI!;
 
@@ -13,18 +13,18 @@ async function getDbClient() {
 
 // Helper function to verify auth token
 async function verifyAuth(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
     return null;
   }
 
-  const token = authHeader.split('Bearer ')[1];
-  
+  const token = authHeader.split("Bearer ")[1];
+
   try {
     const decodedToken = await verifyIdToken(token);
     return decodedToken.uid;
   } catch (error) {
-    console.error('Auth error:', error);
+    console.error("Auth error:", error);
     return null;
   }
 }
@@ -33,19 +33,19 @@ async function verifyAuth(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const userId = await verifyAuth(request);
-    
+
     if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
 
     const client = await getDbClient();
 
     try {
-      const db = client.db('joyjuncture');
-      const cartCollection = db.collection('cart');
+      const db = client.db("joyjuncture");
+      const cartCollection = db.collection("cart");
 
       const cartItems = await cartCollection
         .find({ userId })
@@ -61,10 +61,10 @@ export async function GET(request: NextRequest) {
       await client.close();
     }
   } catch (error) {
-    console.error('Error fetching cart:', error);
+    console.error("Error fetching cart:", error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
+      { success: false, error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
@@ -73,37 +73,38 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const userId = await verifyAuth(request);
-    
+
     if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized. Please login.' },
-        { status: 401 }
+        { success: false, error: "Unauthorized. Please login." },
+        { status: 401 },
       );
     }
 
     const body = await request.json();
-    const { productId, productSlug, name, price, quantity, image, points } = body;
+    const { productId, productSlug, name, price, quantity, image, points } =
+      body;
 
     // Validation
     if (!productId || !name || !price || !quantity) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
+        { success: false, error: "Missing required fields" },
+        { status: 400 },
       );
     }
 
     if (quantity < 1) {
       return NextResponse.json(
-        { success: false, error: 'Quantity must be at least 1' },
-        { status: 400 }
+        { success: false, error: "Quantity must be at least 1" },
+        { status: 400 },
       );
     }
 
     const client = await getDbClient();
 
     try {
-      const db = client.db('joyjuncture');
-      const cartCollection = db.collection('cart');
+      const db = client.db("joyjuncture");
+      const cartCollection = db.collection("cart");
 
       // Check if item already exists in cart
       const existingItem = await cartCollection.findOne({
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
       if (existingItem) {
         // Update quantity if item exists
         const newQuantity = existingItem.quantity + quantity;
-        
+
         await cartCollection.updateOne(
           { _id: existingItem._id },
           {
@@ -122,14 +123,14 @@ export async function POST(request: NextRequest) {
               quantity: newQuantity,
               updatedAt: new Date(),
             },
-          }
+          },
         );
 
         const updatedCart = await cartCollection.find({ userId }).toArray();
 
         return NextResponse.json({
           success: true,
-          message: 'Cart updated successfully',
+          message: "Cart updated successfully",
           count: updatedCart.length,
           item: {
             ...existingItem,
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
         const cartItem = {
           userId,
           productId,
-          productSlug: productSlug || '',
+          productSlug: productSlug || "",
           productName: name,
           productImage: image,
           price,
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
           success: true,
-          message: 'Item added to cart successfully',
+          message: "Item added to cart successfully",
           count: updatedCart.length,
           item: {
             _id: result.insertedId,
@@ -168,10 +169,10 @@ export async function POST(request: NextRequest) {
       await client.close();
     }
   } catch (error) {
-    console.error('Error adding to cart:', error);
+    console.error("Error adding to cart:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to add item to cart' },
-      { status: 500 }
+      { success: false, error: "Failed to add item to cart" },
+      { status: 500 },
     );
   }
 }
@@ -180,34 +181,34 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const userId = await verifyAuth(request);
-    
+
     if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
 
     const client = await getDbClient();
 
     try {
-      const db = client.db('joyjuncture');
-      const cartCollection = db.collection('cart');
+      const db = client.db("joyjuncture");
+      const cartCollection = db.collection("cart");
 
       await cartCollection.deleteMany({ userId });
 
       return NextResponse.json({
         success: true,
-        message: 'Cart cleared successfully',
+        message: "Cart cleared successfully",
       });
     } finally {
       await client.close();
     }
   } catch (error) {
-    console.error('Error clearing cart:', error);
+    console.error("Error clearing cart:", error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
+      { success: false, error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

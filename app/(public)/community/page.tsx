@@ -4,10 +4,25 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { auth } from "@/lib/firebase";
-import { 
-  Trophy, Users, Gift, MessageSquare, TrendingUp, 
-  Star, Calendar, Award, ChevronRight, Plus, Flame, 
-  Clock, User, X, Trash2, Edit, Shield, Pin
+import {
+  Trophy,
+  Users,
+  Gift,
+  MessageSquare,
+  TrendingUp,
+  Star,
+  Calendar,
+  Award,
+  ChevronRight,
+  Plus,
+  Flame,
+  Clock,
+  User,
+  X,
+  Trash2,
+  Edit,
+  Shield,
+  Pin,
 } from "lucide-react";
 import "./community.css";
 
@@ -36,7 +51,7 @@ interface Discussion {
   isPinned: boolean;
   tags: string[];
   viewCount: number;
-  status: 'active' | 'archived' | 'deleted';
+  status: "active" | "archived" | "deleted";
   createdAt: string;
   updatedAt: string;
 }
@@ -53,48 +68,82 @@ interface Event {
 export default function CommunityPage() {
   const { user: authUser, loading: authLoading } = useAuth();
   const router = useRouter();
-  
+
   const [activeFilter, setActiveFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
+    null,
+  );
   const [isAdmin, setIsAdmin] = useState(false);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // New discussion form
   const [newDiscussion, setNewDiscussion] = useState({
     title: "",
     content: "",
     category: "General",
-    tags: ""
+    tags: "",
   });
-  
+
   // Sample events data
   const events: Event[] = [
-    { id: 1, title: "Friday Night Virtual Game Tournament", date: "Dec 15", time: "8:00 PM EST", participants: 42, type: "Tournament" },
-    { id: 2, title: "Live Q&A with Game Designer", date: "Dec 18", time: "7:30 PM EST", participants: 87, type: "Workshop" },
-    { id: 3, title: "Community Awards Ceremony", date: "Dec 22", time: "6:00 PM EST", participants: 120, type: "Social" },
+    {
+      id: 1,
+      title: "Friday Night Virtual Game Tournament",
+      date: "Dec 15",
+      time: "8:00 PM EST",
+      participants: 42,
+      type: "Tournament",
+    },
+    {
+      id: 2,
+      title: "Live Q&A with Game Designer",
+      date: "Dec 18",
+      time: "7:30 PM EST",
+      participants: 87,
+      type: "Workshop",
+    },
+    {
+      id: 3,
+      title: "Community Awards Ceremony",
+      date: "Dec 22",
+      time: "6:00 PM EST",
+      participants: 120,
+      type: "Social",
+    },
   ];
 
   // Categories for filtering
-  const categories = ["all", "Game Strategy", "Tips & Tricks", "Community", "News", "General"];
+  const categories = [
+    "all",
+    "Game Strategy",
+    "Tips & Tricks",
+    "Community",
+    "News",
+    "General",
+  ];
 
   // Fetch discussions
   const fetchDiscussions = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/community/discussions?category=${activeFilter === 'all' ? '' : activeFilter}&sort=${sortBy}`);
+      const response = await fetch(
+        `/api/community/discussions?category=${activeFilter === "all" ? "" : activeFilter}&sort=${sortBy}`,
+      );
       const data = await response.json();
-      
+
       if (data.success) {
         // Sort pinned discussions to top
-        const sortedDiscussions = data.discussions.sort((a: Discussion, b: Discussion) => {
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
-          return 0;
-        });
-        
+        const sortedDiscussions = data.discussions.sort(
+          (a: Discussion, b: Discussion) => {
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+            return 0;
+          },
+        );
+
         setDiscussions(sortedDiscussions);
       }
     } catch (error) {
@@ -107,28 +156,28 @@ export default function CommunityPage() {
   // Check user role
   const checkUserRole = async () => {
     if (!authUser) return;
-    
+
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      
+
       const response = await fetch("/api/user/role", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (!response.ok) {
         console.error("Failed to fetch user role");
         return;
       }
-      
+
       const data = await response.json();
-      
+
       // Handle both response formats
       if (data.success) {
-        setIsAdmin(['admin', 'super_admin'].includes(data.role));
+        setIsAdmin(["admin", "super_admin"].includes(data.role));
       } else if (data.role) {
         // Alternative format
-        setIsAdmin(['admin', 'super_admin'].includes(data.role));
+        setIsAdmin(["admin", "super_admin"].includes(data.role));
       }
     } catch (error) {
       console.error("Error checking user role:", error);
@@ -141,34 +190,42 @@ export default function CommunityPage() {
       router.push("/login?redirect=/community");
       return;
     }
-    
+
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      
-      const tagsArray = newDiscussion.tags.split(",").map(tag => tag.trim()).filter(tag => tag);
-      
+
+      const tagsArray = newDiscussion.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag);
+
       const response = await fetch("/api/community/discussions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           title: newDiscussion.title,
           content: newDiscussion.content,
           category: newDiscussion.category,
-          tags: tagsArray
-        })
+          tags: tagsArray,
+        }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setShowCreateModal(false);
-        setNewDiscussion({ title: "", content: "", category: "General", tags: "" });
+        setNewDiscussion({
+          title: "",
+          content: "",
+          category: "General",
+          tags: "",
+        });
         fetchDiscussions(); // Refresh list
-        
+
         // Show success message
         alert(`Discussion created! ${data.message}`);
       } else {
@@ -185,14 +242,17 @@ export default function CommunityPage() {
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      
-      const response = await fetch(`/api/community/discussions/${discussionId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+
+      const response = await fetch(
+        `/api/community/discussions/${discussionId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
       const data = await response.json();
-      
+
       if (data.success) {
         setShowDeleteConfirm(null);
         fetchDiscussions(); // Refresh list
@@ -207,22 +267,28 @@ export default function CommunityPage() {
   };
 
   // Toggle pin discussion (admin only)
-  const handleTogglePin = async (discussionId: string, currentlyPinned: boolean) => {
+  const handleTogglePin = async (
+    discussionId: string,
+    currentlyPinned: boolean,
+  ) => {
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
-      
-      const response = await fetch(`/api/community/discussions/${discussionId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+
+      const response = await fetch(
+        `/api/community/discussions/${discussionId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ isPinned: !currentlyPinned }),
         },
-        body: JSON.stringify({ isPinned: !currentlyPinned })
-      });
-      
+      );
+
       const data = await response.json();
-      
+
       if (data.success) {
         fetchDiscussions(); // Refresh list
       }
@@ -235,12 +301,14 @@ export default function CommunityPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+    const diffInHours = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60),
+    );
+
     if (diffInHours < 1) return "Just now";
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
-    
+
     return date.toLocaleDateString();
   };
 
@@ -264,8 +332,8 @@ export default function CommunityPage() {
             <span className="gradient-text">BELONG</span>
           </h1>
           <p className="hero-subtitle">
-            The heart of Joy Juncture. Join our digital tribe, share your stories, 
-            and earn rewards for simply having fun.
+            The heart of Joy Juncture. Join our digital tribe, share your
+            stories, and earn rewards for simply having fun.
           </p>
         </div>
       </section>
@@ -323,12 +391,14 @@ export default function CommunityPage() {
               <div className="column-header">
                 <div className="header-left">
                   <h2 className="column-title">Discussions</h2>
-                  <p className="column-subtitle">Join the conversation with fellow community members</p>
+                  <p className="column-subtitle">
+                    Join the conversation with fellow community members
+                  </p>
                 </div>
-                
+
                 <div className="header-actions">
                   {/* Sort Dropdown */}
-                  <select 
+                  <select
                     className="sort-dropdown"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
@@ -338,9 +408,9 @@ export default function CommunityPage() {
                     <option value="popular">Most Popular</option>
                     <option value="hot">Hot</option>
                   </select>
-                  
+
                   {/* New Discussion Button */}
-                  <button 
+                  <button
                     className="new-discussion-btn"
                     onClick={() => {
                       if (!authUser) {
@@ -361,7 +431,7 @@ export default function CommunityPage() {
                 {categories.map((category) => (
                   <button
                     key={category}
-                    className={`category-filter ${activeFilter === category ? 'active' : ''}`}
+                    className={`category-filter ${activeFilter === category ? "active" : ""}`}
                     onClick={() => setActiveFilter(category)}
                   >
                     {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -381,7 +451,7 @@ export default function CommunityPage() {
                     <MessageSquare size={48} />
                     <h3>No discussions yet</h3>
                     <p>Be the first to start a conversation!</p>
-                    <button 
+                    <button
                       className="primary-cta-btn"
                       onClick={() => setShowCreateModal(true)}
                     >
@@ -390,18 +460,21 @@ export default function CommunityPage() {
                   </div>
                 ) : (
                   discussions.map((discussion) => (
-                    <div 
-                      key={discussion._id} 
-                      className={`discussion-card ${discussion.isPinned ? 'pinned' : ''}`}
+                    <div
+                      key={discussion._id}
+                      className={`discussion-card ${discussion.isPinned ? "pinned" : ""}`}
                       onClick={(e) => {
                         // Check if click is on action button or its children
                         const target = e.target as HTMLElement;
-                        const isActionButton = target.closest('.discussion-actions') || 
-                                              target.closest('.action-btn') ||
-                                              target.closest('.pinned-badge');
-                        
+                        const isActionButton =
+                          target.closest(".discussion-actions") ||
+                          target.closest(".action-btn") ||
+                          target.closest(".pinned-badge");
+
                         if (!isActionButton) {
-                          router.push(`/community/discussion/${discussion._id}`);
+                          router.push(
+                            `/community/discussion/${discussion._id}`,
+                          );
                         }
                       }}
                     >
@@ -411,28 +484,33 @@ export default function CommunityPage() {
                           Pinned
                         </div>
                       )}
-                      
+
                       <div className="discussion-header">
-                        <span className={`discussion-category ${discussion.isHot ? 'hot' : ''}`}>
+                        <span
+                          className={`discussion-category ${discussion.isHot ? "hot" : ""}`}
+                        >
                           {discussion.isHot && <Flame size={12} />}
                           {discussion.category}
                         </span>
-                        
+
                         <div className="discussion-actions">
                           {/* Admin Controls */}
                           {isAdmin && (
                             <>
-                              <button 
+                              <button
                                 className="action-btn pin-btn"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleTogglePin(discussion._id, discussion.isPinned);
+                                  handleTogglePin(
+                                    discussion._id,
+                                    discussion.isPinned,
+                                  );
                                 }}
                                 title={discussion.isPinned ? "Unpin" : "Pin"}
                               >
                                 <Pin size={14} />
                               </button>
-                              <button 
+                              <button
                                 className="action-btn delete-btn"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -444,30 +522,32 @@ export default function CommunityPage() {
                               </button>
                             </>
                           )}
-                          
+
                           {/* Author Delete Button */}
-                          {authUser && discussion.authorId === authUser.uid && !isAdmin && (
-                            <button 
-                              className="action-btn delete-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowDeleteConfirm(discussion._id);
-                              }}
-                              title="Delete Your Discussion"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
+                          {authUser &&
+                            discussion.authorId === authUser.uid &&
+                            !isAdmin && (
+                              <button
+                                className="action-btn delete-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowDeleteConfirm(discussion._id);
+                                }}
+                                title="Delete Your Discussion"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
                         </div>
                       </div>
-                      
+
                       <h3 className="discussion-title">{discussion.title}</h3>
                       <p className="discussion-preview">
-                        {discussion.content.length > 150 
-                          ? `${discussion.content.substring(0, 150)}...` 
+                        {discussion.content.length > 150
+                          ? `${discussion.content.substring(0, 150)}...`
                           : discussion.content}
                       </p>
-                      
+
                       <div className="discussion-meta">
                         <span className="meta-item author">
                           <User size={14} />
@@ -486,7 +566,7 @@ export default function CommunityPage() {
                           {formatDate(discussion.createdAt)}
                         </span>
                       </div>
-                      
+
                       {discussion.tags.length > 0 && (
                         <div className="discussion-tags">
                           {discussion.tags.map((tag, index) => (
@@ -506,15 +586,21 @@ export default function CommunityPage() {
             <div className="events-column">
               <div className="column-header">
                 <h2 className="column-title">Upcoming Events</h2>
-                <p className="column-subtitle">Don't miss out on community activities</p>
+                <p className="column-subtitle">
+                  Don't miss out on community activities
+                </p>
               </div>
 
               <div className="events-list">
                 {events.map((event) => (
                   <div key={event.id} className="event-card">
                     <div className="event-date">
-                      <span className="date-day">{event.date.split(' ')[1]}</span>
-                      <span className="date-month">{event.date.split(' ')[0]}</span>
+                      <span className="date-day">
+                        {event.date.split(" ")[1]}
+                      </span>
+                      <span className="date-month">
+                        {event.date.split(" ")[0]}
+                      </span>
                     </div>
                     <div className="event-content">
                       <h3 className="event-title">{event.title}</h3>
@@ -543,21 +629,21 @@ export default function CommunityPage() {
                     Admin Controls
                   </h3>
                   <div className="admin-actions">
-                    <button 
+                    <button
                       className="admin-btn"
-                      onClick={() => router.push('/admin/community')}
+                      onClick={() => router.push("/admin/community")}
                     >
                       Manage All Discussions
                     </button>
-                    <button 
+                    <button
                       className="admin-btn"
-                      onClick={() => router.push('/admin/users')}
+                      onClick={() => router.push("/admin/users")}
                     >
                       Manage Users
                     </button>
-                    <button 
+                    <button
                       className="admin-btn"
-                      onClick={() => router.push('/admin/events')}
+                      onClick={() => router.push("/admin/events")}
                     >
                       Create Event
                     </button>
@@ -571,9 +657,7 @@ export default function CommunityPage() {
                   Top Contributors
                 </h3>
                 <div className="leaderboard-list">
-                  {[
-                    { rank: 1, name: "", points: "" },
-                  ].map((player) => (
+                  {[{ rank: 1, name: "", points: "" }].map((player) => (
                     <div key={player.rank} className="leaderboard-item">
                       <div className="player-info">
                         <span className="player-rank">#{player.rank}</span>
@@ -595,14 +679,14 @@ export default function CommunityPage() {
           <div className="modal-content">
             <div className="modal-header">
               <h2 className="modal-title">Create New Discussion</h2>
-              <button 
+              <button
                 className="modal-close"
                 onClick={() => setShowCreateModal(false)}
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="modal-body">
               <div className="form-group">
                 <label className="form-label">Title *</label>
@@ -611,26 +695,30 @@ export default function CommunityPage() {
                   className="form-input"
                   placeholder="What's your discussion about?"
                   value={newDiscussion.title}
-                  onChange={(e) => setNewDiscussion({
-                    ...newDiscussion,
-                    title: e.target.value
-                  })}
+                  onChange={(e) =>
+                    setNewDiscussion({
+                      ...newDiscussion,
+                      title: e.target.value,
+                    })
+                  }
                   maxLength={200}
                 />
                 <div className="char-count">
                   {newDiscussion.title.length}/200 characters
                 </div>
               </div>
-              
+
               <div className="form-group">
                 <label className="form-label">Category *</label>
                 <select
                   className="form-select"
                   value={newDiscussion.category}
-                  onChange={(e) => setNewDiscussion({
-                    ...newDiscussion,
-                    category: e.target.value
-                  })}
+                  onChange={(e) =>
+                    setNewDiscussion({
+                      ...newDiscussion,
+                      category: e.target.value,
+                    })
+                  }
                 >
                   <option value="General">General</option>
                   <option value="Game Strategy">Game Strategy</option>
@@ -639,7 +727,7 @@ export default function CommunityPage() {
                   <option value="News">News</option>
                 </select>
               </div>
-              
+
               <div className="form-group">
                 <label className="form-label">Content *</label>
                 <textarea
@@ -647,54 +735,62 @@ export default function CommunityPage() {
                   placeholder="Share your thoughts, questions, or ideas..."
                   rows={6}
                   value={newDiscussion.content}
-                  onChange={(e) => setNewDiscussion({
-                    ...newDiscussion,
-                    content: e.target.value
-                  })}
+                  onChange={(e) =>
+                    setNewDiscussion({
+                      ...newDiscussion,
+                      content: e.target.value,
+                    })
+                  }
                   maxLength={2000}
                 />
                 <div className="char-count">
                   {newDiscussion.content.length}/2000 characters
                 </div>
               </div>
-              
+
               <div className="form-group">
                 <label className="form-label">
                   Tags (comma-separated)
-                  <span className="form-hint">Optional keywords for better discovery</span>
+                  <span className="form-hint">
+                    Optional keywords for better discovery
+                  </span>
                 </label>
                 <input
                   type="text"
                   className="form-input"
                   placeholder="strategy, tips, multiplayer, etc."
                   value={newDiscussion.tags}
-                  onChange={(e) => setNewDiscussion({
-                    ...newDiscussion,
-                    tags: e.target.value
-                  })}
+                  onChange={(e) =>
+                    setNewDiscussion({
+                      ...newDiscussion,
+                      tags: e.target.value,
+                    })
+                  }
                 />
               </div>
-              
+
               <div className="form-info">
                 <div className="info-icon">💡</div>
                 <div className="info-content">
-                  <strong>Earn 50 JJ Points</strong> for creating a discussion! 
+                  <strong>Earn 50 JJ Points</strong> for creating a discussion!
                   Be respectful and follow community guidelines.
                 </div>
               </div>
             </div>
-            
+
             <div className="modal-footer">
-              <button 
+              <button
                 className="modal-cancel"
                 onClick={() => setShowCreateModal(false)}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 className="modal-submit"
                 onClick={handleCreateDiscussion}
-                disabled={!newDiscussion.title.trim() || !newDiscussion.content.trim()}
+                disabled={
+                  !newDiscussion.title.trim() || !newDiscussion.content.trim()
+                }
               >
                 Create Discussion
               </button>
@@ -709,31 +805,32 @@ export default function CommunityPage() {
           <div className="modal-content delete-modal">
             <div className="modal-header">
               <h2 className="modal-title">Delete Discussion</h2>
-              <button 
+              <button
                 className="modal-close"
                 onClick={() => setShowDeleteConfirm(null)}
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="modal-body">
               <div className="warning-icon">⚠️</div>
               <p className="warning-text">
-                Are you sure you want to delete this discussion? 
-                {isAdmin ? " As an admin, this will permanently delete the discussion." : 
-                 " This action cannot be undone."}
+                Are you sure you want to delete this discussion?
+                {isAdmin
+                  ? " As an admin, this will permanently delete the discussion."
+                  : " This action cannot be undone."}
               </p>
             </div>
-            
+
             <div className="modal-footer">
-              <button 
+              <button
                 className="modal-cancel"
                 onClick={() => setShowDeleteConfirm(null)}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 className="modal-delete"
                 onClick={() => handleDeleteDiscussion(showDeleteConfirm)}
               >
@@ -750,11 +847,11 @@ export default function CommunityPage() {
           <div className="cta-content">
             <h2 className="cta-title">Ready to Join?</h2>
             <p className="cta-description">
-              Create your account and start earning points, engaging with the community, 
-              and discovering endless joy.
+              Create your account and start earning points, engaging with the
+              community, and discovering endless joy.
             </p>
             <div className="cta-buttons">
-              <button 
+              <button
                 className="primary-cta-btn"
                 onClick={() => {
                   if (!authUser) {

@@ -76,12 +76,11 @@
 //   );
 // }
 
+"use client";
 
-'use client';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 // Remove the faulty import of EventList as a module
-import EventList from '@/app/components/admin/EventList'; // Make sure this path is correct and that EventList is a valid component
+import EventList from "@/app/components/admin/EventList"; // Make sure this path is correct and that EventList is a valid component
 
 interface Event {
   _id: string;
@@ -102,30 +101,30 @@ export default function AdminEventsPage() {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/events');
-      
+      const response = await fetch("/api/events");
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
-      console.log('Fetched data:', data); // Debug log
-      
+
+      console.log("Fetched data:", data); // Debug log
+
       // Handle both formats: direct array or nested in object
       if (Array.isArray(data)) {
         setEvents(data);
       } else if (data.events && Array.isArray(data.events)) {
         setEvents(data.events);
       } else if (data.error) {
-        console.error('API error:', data.error);
+        console.error("API error:", data.error);
         setEvents([]);
       } else {
-        console.error('Unexpected data format:', data);
+        console.error("Unexpected data format:", data);
         setEvents([]);
       }
     } catch (error) {
-      console.error('Error fetching events:', error);
+      console.error("Error fetching events:", error);
       setEvents([]);
     } finally {
       setLoading(false);
