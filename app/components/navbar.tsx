@@ -108,13 +108,7 @@ const Navbar: React.FC = () => {
       label: 'Games',
       href: '/games',
       icon: <FaGamepad />,
-      dropdown: [
-        { id: 'all-games', label: 'All Games', href: '/games' },
-        { id: 'board-games', label: 'Board Games', href: '/games/board' },
-        { id: 'card-games', label: 'Card Games', href: '/games/card' },
-        { id: 'strategy-games', label: 'Strategy Games', href: '/games/strategy' },
-        { id: 'new-releases', label: 'New Releases', href: '/games/new' }
-      ]
+      
     },
     {
       id: 'events',

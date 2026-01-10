@@ -677,12 +677,12 @@ const AdminWalletPage: React.FC = () => {
                 <p className="stat-subtitle">Registered accounts</p>
               </div>
               
-              <div className="stat-card">
+              {/* <div className="stat-card">
                 <FaCoins className="stat-icon" />
                 <h3>Points Issued</h3>
-                <p className="stat-value">{stats.totalPointsIssued.toLocaleString()}</p>
+                <p className="stat-value">{stats.totalpoints.toLocaleString()}</p>
                 <p className="stat-subtitle">Total earned by users</p>
-              </div>
+              </div> */}
               
               <div className="stat-card">
                 <FaGift className="stat-icon" />

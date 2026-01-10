@@ -474,3 +474,129 @@ grid-template-columns: 1fr;
 grid-template-columns: 1fr;
 }
 }
+/* /* ===========================
+   WALLET STATS – PREMIUM UI
+   =========================== */
+
+/* .stats-section {
+  margin-top: 2.5rem;
+}
+
+.stats-section h2 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 2rem;
+  letter-spacing: 0.5px;
+}
+
+/* GRID */
+/* .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.75rem;
+} */
+
+/* CARD */
+/* .stat-card {
+  position: relative;
+  background: radial-gradient(
+    circle at top left,
+    rgba(255, 140, 0, 0.18),
+    rgba(10, 10, 10, 0.95)
+  );
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: 18px;
+  padding: 1.75rem;
+  transition: all 0.35s ease;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+} */
+
+/* Animated glow border */
+/* .stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 140, 0, 0.35),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.stat-card:hover::before {
+  opacity: 1;
+}
+
+.stat-card:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow:
+    0 25px 60px rgba(255, 140, 0, 0.35),
+    inset 0 0 40px rgba(255, 140, 0, 0.15);
+  border-color: rgba(255, 140, 0, 0.8);
+} */
+
+/* ICON */
+/* .stat-icon {
+  font-size: 2.1rem;
+  color: #ff8c00;
+  margin-bottom: 0.8rem;
+  filter: drop-shadow(0 0 16px rgba(255, 140, 0, 0.8));
+} */
+
+/* TITLE */
+/* .stat-card h3 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #ffc285;
+  margin-bottom: 0.4rem;
+  font-weight: 800;
+} */
+
+/* VALUE */
+/* .stat-value {
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+} */
+
+/* SUBTEXT */
+/* .stat-subtitle {
+  font-size: 0.85rem;
+  color: #b5b5b5;
+  font-weight: 500;
+} */
+
+/* CORNER ACCENT DOT */
+/* .stat-card::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff8c00;
+  box-shadow: 0 0 18px rgba(255, 140, 0, 1);
+} */
+
+/* ===========================
+   MOBILE REFINEMENTS
+   =========================== */
+
+/* @media (max-width: 768px) {
+  .stat-value {
+    font-size: 2.1rem;
+  }
+
+  .stats-grid {
+    gap: 1.2rem;
+  }
+} */ 
