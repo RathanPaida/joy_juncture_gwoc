@@ -20,8 +20,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .admin-container {
@@ -216,22 +220,22 @@
   .admin-header {
     padding: 20px;
   }
-  
+
   .admin-header-content {
     flex-direction: column;
     gap: 15px;
     text-align: center;
   }
-  
+
   .admin-info {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .admin-content {
     padding: 20px;
   }
-  
+
   .welcome-section h2 {
     font-size: 2rem;
   }

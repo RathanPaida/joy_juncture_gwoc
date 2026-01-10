@@ -45,7 +45,7 @@ export interface Booking {
   duration: string;
   selectedGames: string[];
   notes: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: "pending" | "confirmed" | "completed" | "cancelled";
   createdAt: string;
   updatedAt?: string;
 }
@@ -54,6 +54,6 @@ export interface User {
   id: string;
   email: string;
   password: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
   createdAt: string;
 }

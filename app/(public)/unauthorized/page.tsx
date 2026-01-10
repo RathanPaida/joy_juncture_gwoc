@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 export default function UnauthorizedPage() {
   return (
@@ -9,7 +9,7 @@ export default function UnauthorizedPage() {
         <p className="text-gray-400 mb-8">
           You don't have permission to access this page.
         </p>
-        <Link 
+        <Link
           href="/"
           className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700"
         >

@@ -7,7 +7,7 @@ const howToPlaySchema = new Schema(
     gameplay: { type: String, required: true },
     winning: { type: String, required: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const videoSchema = new Schema(
@@ -15,16 +15,16 @@ const videoSchema = new Schema(
     url: { type: String },
     provider: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // NEW: Multiple Images Schema
 const imageSchema = new Schema(
   {
     url: { type: String, required: true },
-    isPrimary: { type: Boolean, default: false }
+    isPrimary: { type: Boolean, default: false },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const mediaSchema = new Schema(
@@ -33,7 +33,7 @@ const mediaSchema = new Schema(
     images: [{ type: String }],
     video: videoSchema,
   },
-  { _id: false }
+  { _id: false },
 );
 
 const metaSchema = new Schema(
@@ -41,15 +41,15 @@ const metaSchema = new Schema(
     players: { type: String, required: true },
     duration: { type: String, required: true },
     age: { type: String, required: true },
-    difficulty: { 
-      type: String, 
+    difficulty: {
+      type: String,
       required: true,
-      enum: ['Very Easy', 'Easy', 'Medium', 'Hard']
+      enum: ["Very Easy", "Easy", "Medium", "Hard"],
     },
     moods: [{ type: String }],
     badges: [{ type: String }],
   },
-  { _id: false }
+  { _id: false },
 );
 
 const priceSchema = new Schema(
@@ -57,14 +57,14 @@ const priceSchema = new Schema(
     amount: { type: Number, required: true },
     currency: { type: String, default: "INR" },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const pointsSchema = new Schema(
   {
     purchase: { type: Number, default: 0 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const stockSchema = new Schema(
@@ -72,7 +72,7 @@ const stockSchema = new Schema(
     available: { type: Boolean, default: true },
     quantity: { type: Number, default: 0 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const faqSchema = new Schema(
@@ -80,7 +80,7 @@ const faqSchema = new Schema(
     question: { type: String },
     answer: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const productSchema = new Schema(
@@ -98,7 +98,10 @@ const productSchema = new Schema(
     price: { type: priceSchema, required: true },
     points: { type: pointsSchema, default: () => ({ purchase: 0 }) },
     media: { type: mediaSchema, required: true },
-    stock: { type: stockSchema, default: () => ({ available: true, quantity: 0 }) },
+    stock: {
+      type: stockSchema,
+      default: () => ({ available: true, quantity: 0 }),
+    },
 
     keyFeatures: [{ type: String }],
     faqs: [faqSchema],
@@ -107,7 +110,7 @@ const productSchema = new Schema(
     category: [{ type: String }],
     relatedSlugs: [{ type: String }],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Text search index
@@ -118,15 +121,15 @@ productSchema.index({
 });
 
 // Pre-save hook to ensure at least one primary image
-productSchema.pre('save', function(next) {
+productSchema.pre("save", function (next) {
   if (this.images && this.images.length > 0) {
-    const hasPrimary = this.images.some(img => img.isPrimary);
+    const hasPrimary = this.images.some((img) => img.isPrimary);
     if (!hasPrimary) {
       this.images[0].isPrimary = true;
     }
-    
+
     // Update media.thumbnail with primary image for backward compatibility
-    const primaryImage = this.images.find(img => img.isPrimary);
+    const primaryImage = this.images.find((img) => img.isPrimary);
     if (primaryImage && this.media) {
       this.media.thumbnail = primaryImage.url;
     }

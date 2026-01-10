@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { format } from 'date-fns';
-import PaymentModal from '@/app/components/PaymentModal';
+import { useState } from "react";
+import { format } from "date-fns";
+import PaymentModal from "@/app/components/PaymentModal";
 
 interface EventCardProps {
   event: {
@@ -19,16 +19,21 @@ interface EventCardProps {
   onRegisterSuccess?: () => void;
 }
 
-export default function EventCard({ event, isUpcoming, user, onRegisterSuccess }: EventCardProps) {
+export default function EventCard({
+  event,
+  isUpcoming,
+  user,
+  onRegisterSuccess,
+}: EventCardProps) {
   const [showPayment, setShowPayment] = useState(false);
 
   const handleRegister = () => {
     if (!user) {
       // Redirect to login
-      alert('Please login to register');
+      alert("Please login to register");
       return;
     }
-    
+
     if (isUpcoming) {
       setShowPayment(true);
     }
@@ -40,33 +45,39 @@ export default function EventCard({ event, isUpcoming, user, onRegisterSuccess }
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-xl font-bold text-gray-800">{event.name}</h3>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              isUpcoming ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-            }`}>
-              {isUpcoming ? 'Upcoming' : 'Past'}
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                isUpcoming
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {isUpcoming ? "Upcoming" : "Past"}
             </span>
           </div>
-          
+
           <p className="text-gray-600 mb-4">{event.description}</p>
-          
+
           <div className="flex justify-between items-center mb-4">
             <div>
               <p className="text-sm text-gray-500">Date</p>
-              <p className="font-medium">{format(new Date(event.date), 'PPP')}</p>
+              <p className="font-medium">
+                {format(new Date(event.date), "PPP")}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Price</p>
               <p className="font-medium">₹{event.price}</p>
             </div>
           </div>
-          
+
           <div className="flex justify-between items-center mb-4">
             <div>
               <p className="text-sm text-gray-500">Coins Reward</p>
               <p className="font-medium text-yellow-600">{event.coins} coins</p>
             </div>
           </div>
-          
+
           {isUpcoming ? (
             <button
               onClick={handleRegister}

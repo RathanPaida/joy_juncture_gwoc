@@ -19,8 +19,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .nav-content {
@@ -60,7 +65,7 @@
 }
 
 .logo-text {
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   letter-spacing: -0.5px;
 }
 
@@ -85,7 +90,7 @@
 
 .hamburger::before,
 .hamburger::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 24px;
   height: 2px;
@@ -183,8 +188,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dropdown-item {
@@ -410,7 +421,11 @@
 
 .profile-header {
   padding: 20px;
-  background: linear-gradient(135deg, rgba(255, 140, 0, 0.1) 0%, rgba(255, 107, 0, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 140, 0, 0.1) 0%,
+    rgba(255, 107, 0, 0.05) 100%
+  );
   border-bottom: 1px solid #333333;
 }
 
@@ -502,17 +517,17 @@
   .nav-items {
     gap: 0;
   }
-  
+
   .nav-link {
     padding: 10px 12px;
     font-size: 13px;
   }
-  
+
   .admin-text,
   .wallet-amount {
     display: none;
   }
-  
+
   .admin-button,
   .wallet-balance {
     padding: 8px 12px;
@@ -523,7 +538,7 @@
   .mobile-menu-toggle {
     display: block;
   }
-  
+
   .nav-items {
     position: fixed;
     top: 70px;
@@ -540,22 +555,22 @@
     overflow-y: auto;
     z-index: 999;
   }
-  
+
   .nav-items.active {
     transform: translateX(0);
   }
-  
+
   .nav-item {
     width: 100%;
   }
-  
+
   .nav-link {
     padding: 16px;
     border-radius: 8px;
     margin-bottom: 4px;
     justify-content: space-between;
   }
-  
+
   .dropdown-menu {
     position: static;
     background: rgba(0, 0, 0, 0.2);
@@ -565,21 +580,21 @@
     padding: 0;
     min-width: auto;
   }
-  
+
   .dropdown-item {
     padding: 12px 24px;
     border-radius: 6px;
     margin: 2px 0;
   }
-  
+
   .dropdown-item:hover {
     padding-left: 28px;
   }
-  
+
   .nav-actions {
     gap: 12px;
   }
-  
+
   .admin-button,
   .wallet-balance,
   .login-button,
@@ -587,12 +602,12 @@
     padding: 8px 12px;
     font-size: 13px;
   }
-  
+
   .admin-text,
   .wallet-amount {
     display: inline;
   }
-  
+
   .profile-dropdown {
     position: fixed;
     top: 70px;
@@ -600,7 +615,7 @@
     right: 20px;
     width: auto;
   }
-  
+
   .mobile-overlay {
     display: block;
     position: fixed;
@@ -617,22 +632,22 @@
   .nav-content {
     padding: 0 16px;
   }
-  
+
   .logo-text {
     font-size: 20px;
   }
-  
+
   .auth-buttons {
     flex-direction: column;
     gap: 4px;
   }
-  
+
   .login-button,
   .signup-button {
     padding: 6px 12px;
     font-size: 12px;
   }
-  
+
   .admin-button {
     padding: 6px 12px;
     font-size: 12px;
@@ -693,7 +708,7 @@
 }
 
 .logo-text {
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   font-weight: 800;
   font-size: 24px;
   background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
@@ -725,16 +740,16 @@
   .logo-container {
     gap: 8px;
   }
-  
+
   .logo-image {
     width: 32px;
     height: 32px;
   }
-  
+
   .logo-text {
     font-size: 20px;
   }
-  
+
   .logo-fallback {
     font-size: 20px;
   }
@@ -745,11 +760,11 @@
     width: 28px;
     height: 28px;
   }
-  
+
   .logo-text {
     font-size: 18px;
   }
-  
+
   .logo-fallback {
     font-size: 18px;
   }
@@ -768,7 +783,7 @@
 }
 
 .logo-image {
-  width: 52px;   /* increase logo size */
+  width: 52px; /* increase logo size */
   height: 52px;
   margin-top: 10px;
   display: flex;

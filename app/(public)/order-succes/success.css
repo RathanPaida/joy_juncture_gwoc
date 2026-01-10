@@ -113,7 +113,8 @@
 }
 
 @keyframes sparkle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0;
     transform: scale(0) rotate(0deg);
   }
@@ -192,12 +193,15 @@
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  animation: fadeIn 0.6s ease-out 0.7s both, pulse 2s ease-in-out infinite;
+  animation:
+    fadeIn 0.6s ease-out 0.7s both,
+    pulse 2s ease-in-out infinite;
   box-shadow: 0 8px 20px rgba(251, 191, 36, 0.3);
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {

@@ -1,27 +1,27 @@
 // app/admin/dashboard/page.tsx
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
-import './admin.css';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
+import "./admin.css";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [userEmail, setUserEmail] = useState('');
+  const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is admin
-    const isAdmin = localStorage.getItem('isAdmin') === 'true';
-    const email = localStorage.getItem('userEmail') || '';
-    
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+    const email = localStorage.getItem("userEmail") || "";
+
     if (!isAdmin) {
-      router.push('/');
+      router.push("/");
       return;
     }
-    
+
     setUserEmail(email);
     setLoading(false);
   }, [router]);
@@ -29,7 +29,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await signOut(auth);
     localStorage.clear();
-    router.push('/login');
+    router.push("/login");
   };
 
   if (loading) {

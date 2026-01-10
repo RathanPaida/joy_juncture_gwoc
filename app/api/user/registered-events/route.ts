@@ -1,8 +1,8 @@
 // app/api/user/registered-events/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
-import connectDb from '@/lib/mongodb';
-import mongoose from 'mongoose';
+import { NextRequest, NextResponse } from "next/server";
+import { adminAuth } from "@/lib/firebase-admin";
+import connectDb from "@/lib/mongodb";
+import mongoose from "mongoose";
 
 // Define EventRegistration schema if not exists
 const EventRegistrationSchema = new mongoose.Schema({
@@ -15,25 +15,26 @@ const EventRegistrationSchema = new mongoose.Schema({
   ticketType: { type: String, required: true },
   participants: { type: Number, default: 1 },
   totalAmount: { type: Number, required: true },
-  status: { 
-    type: String, 
-    enum: ['confirmed', 'pending', 'cancelled'], 
-    default: 'confirmed' 
+  status: {
+    type: String,
+    enum: ["confirmed", "pending", "cancelled"],
+    default: "confirmed",
   },
-  registeredAt: { type: Date, default: Date.now }
+  registeredAt: { type: Date, default: Date.now },
 });
 
-const EventRegistration = mongoose.models.EventRegistration || 
-  mongoose.model('EventRegistration', EventRegistrationSchema);
+const EventRegistration =
+  mongoose.models.EventRegistration ||
+  mongoose.model("EventRegistration", EventRegistrationSchema);
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const token = authHeader.split('Bearer ')[1];
+    const token = authHeader.split("Bearer ")[1];
     const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
@@ -44,19 +45,19 @@ export async function GET(request: NextRequest) {
       .sort({ registeredAt: -1 })
       .lean();
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       events: JSON.parse(JSON.stringify(events)),
-      count: events.length 
+      count: events.length,
     });
   } catch (error: any) {
-    console.error('❌ Error fetching registered events:', error);
-    
+    console.error("❌ Error fetching registered events:", error);
+
     // Return empty array on error
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       events: [],
-      count: 0 
+      count: 0,
     });
   }
 }
