@@ -24,7 +24,6 @@ export default function RootLayout({
 }>) {
   return (
     <>
-        <h1>Joy Juncture</h1>
         {children}</>
 
   );

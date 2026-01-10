@@ -139,12 +139,6 @@ const Navbar: React.FC = () => {
       label: 'Community',
       href: '/community',
       icon: <FaUsers />,
-      dropdown: [
-        { id: 'forum', label: 'Forum', href: '/community/forum' },
-        { id: 'groups', label: 'Groups', href: '/community/groups' },
-        { id: 'leaderboard', label: 'Leaderboard', href: '/community/leaderboard' },
-        { id: 'photos', label: 'Photos & Videos', href: '/community/media' }
-      ]
     },
     {
       id: 'blog',
@@ -360,7 +354,7 @@ const Navbar: React.FC = () => {
                       <FaUser /> My Profile
                     </Link>
                     <Link 
-                      href="/orders" 
+                      href="/cart" 
                       className="profile-link"
                       onClick={() => {
                         setIsProfileOpen(false);

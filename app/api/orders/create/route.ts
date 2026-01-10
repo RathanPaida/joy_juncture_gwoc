@@ -1,6 +1,5 @@
-// app/api/payment/verify/route.ts - REPLACE WITH THIS
+// app/api/orders/create/route.ts - REPLACE WITH THIS
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import connectDb from '@/lib/mongodb';
 import { Order } from '@/models/Order';
 import { User } from '@/models/User';
@@ -34,57 +33,55 @@ export async function POST(request: NextRequest) {
     const firebaseUid = decodedToken.uid;
 
     const { 
-      razorpay_payment_id, 
-      razorpay_order_id, 
-      razorpay_signature
+      cartItems, 
+      shippingAddress, 
+      paymentMethod,
+      total
     } = await request.json();
 
-    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+    if (!cartItems || !shippingAddress || !paymentMethod || !cartItems.length) {
       return NextResponse.json(
-        { error: 'Missing payment details' },
-        { status: 400 }
-      );
-    }
-    
-    // Verify Razorpay signature
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
-      .update(body.toString())
-      .digest('hex');
-    
-    if (expectedSignature !== razorpay_signature) {
-      return NextResponse.json(
-        { error: 'Invalid payment signature' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Update all orders for this user that are processing
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-    
-    const updatedOrders = await Order.updateMany(
-      {
+    // Get user
+    const user = await User.findOne({ firebaseUid: firebaseUid });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found in database. Please complete your profile first.' },
+        { status: 404 }
+      );
+    }
+
+    console.log('📦 Creating orders for', cartItems.length, 'items');
+
+    // Create separate order for EACH item
+    const orders = [];
+    for (const item of cartItems) {
+      const orderData = {
+        userId: user._id.toString(),
         firebaseUid: firebaseUid,
-        status: 'processing',
-        purchaseDate: { $gte: tenMinutesAgo }
-      },
-      {
-        $set: {
-          status: 'completed',
-          trackingNumber: razorpay_payment_id
-        }
-      }
-    );
+        productId: item.productId,
+        productName: item.productName,
+        productImage: item.productImage || '',
+        quantity: item.quantity || 1,
+        price: item.price,
+        totalAmount: item.price * (item.quantity || 1),
+        purchaseDate: new Date(),
+        status: 'completed',
+        paymentMethod: paymentMethod,
+        shippingAddress: shippingAddress,
+        trackingNumber: `COD-${Date.now()}-${Math.random().toString(36).substring(7)}`
+      };
 
-    console.log('✅ Orders updated:', updatedOrders.modifiedCount);
+      const order = await Order.create(orderData);
+      orders.push(order);
+      console.log('✅ Order created:', order._id);
+    }
 
-    // Calculate total amount from all updated orders
-    const orders = await Order.find({
-      firebaseUid: firebaseUid,
-      trackingNumber: razorpay_payment_id
-    });
-
+    // Calculate total amount from all orders
     const totalAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
     console.log('💰 Total amount:', totalAmount);
 
@@ -109,14 +106,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      ordersUpdated: updatedOrders.modifiedCount,
       orderIds: orders.map(o => o._id.toString()),
+      ordersCreated: orders.length,
       joyPointsEarned: joyPoints
     });
   } catch (error: any) {
-    console.error('❌ Payment verification failed:', error);
+    console.error('❌ Error creating order:', error);
     return NextResponse.json(
-      { error: error.message || 'Payment verification failed' },
+      { error: error.message || 'Failed to create order' },
       { status: 500 }
     );
   }

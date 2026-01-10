@@ -1,4 +1,4 @@
-// app/admin/wallet/page.tsx - FIXED VERSION
+// app/admin/wallet/page.tsx - FIXED getIdToken Error
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -9,8 +9,6 @@ import {
   FaEdit, FaTrash, FaSave, FaTimes, FaChartLine, FaExclamationCircle, FaSpinner, FaHistory
 } from 'react-icons/fa';
 import './admin-wallet.css';
-
-// ... rest of your interfaces remain the same ...
 
 interface PointsCriteria {
   _id?: string;
@@ -76,6 +74,39 @@ const AdminWalletPage: React.FC = () => {
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [showAchievementModal, setShowAchievementModal] = useState(false);
 
+  // Helper function to get auth token
+  const getAuthToken = async () => {
+    if (!user) return null;
+    
+    try {
+      // Try Firebase getIdToken method
+      if (typeof user.getIdToken === 'function') {
+        return await user.getIdToken(true);
+      }
+      
+      // Try accessing token directly (for some auth implementations)
+      if (user.token) {
+        return user.token;
+      }
+      
+      // Try accessing accessToken
+      if (user.accessToken) {
+        return user.accessToken;
+      }
+      
+      // If user has stsTokenManager (Firebase)
+      if (user.stsTokenManager?.accessToken) {
+        return user.stsTokenManager.accessToken;
+      }
+      
+      console.warn('⚠️ Could not get auth token from user object');
+      return null;
+    } catch (error) {
+      console.error('❌ Error getting auth token:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!authLoading) {
       if (user) {
@@ -94,17 +125,30 @@ const AdminWalletPage: React.FC = () => {
     setLoading(true);
     try {
       console.log('📥 Fetching all admin data...');
-      const token = await user.getIdToken(true);
+      const token = await getAuthToken();
+      
+      if (!token) {
+        console.error('❌ No auth token available');
+        alert('⚠️ Authentication token not available. Please try logging in again.');
+        router.push('/login?redirect=/admin/wallet');
+        return;
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
       
       // Fetch rewards
       try {
-        const rewardsRes = await fetch('/api/admin/wallet/rewards', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const rewardsRes = await fetch('/api/admin/wallet/rewards', { headers });
         if (rewardsRes.ok) {
           const data = await rewardsRes.json();
           setRewards(data.rewards || []);
           console.log('✅ Rewards loaded:', data.rewards?.length);
+        } else if (rewardsRes.status === 401) {
+          console.error('❌ Unauthorized - redirecting to login');
+          router.push('/login?redirect=/admin/wallet');
         }
       } catch (err) {
         console.error('❌ Error fetching rewards:', err);
@@ -112,9 +156,7 @@ const AdminWalletPage: React.FC = () => {
 
       // Fetch achievements
       try {
-        const achievementsRes = await fetch('/api/admin/wallet/achievements', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const achievementsRes = await fetch('/api/admin/wallet/achievements', { headers });
         if (achievementsRes.ok) {
           const data = await achievementsRes.json();
           setAchievements(data.achievements || []);
@@ -126,9 +168,7 @@ const AdminWalletPage: React.FC = () => {
 
       // Fetch criteria
       try {
-        const criteriaRes = await fetch('/api/admin/wallet/criteria', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const criteriaRes = await fetch('/api/admin/wallet/criteria', { headers });
         if (criteriaRes.ok) {
           const data = await criteriaRes.json();
           setPointsCriteria(data.criteria || []);
@@ -140,9 +180,7 @@ const AdminWalletPage: React.FC = () => {
 
       // Fetch stats
       try {
-        const statsRes = await fetch('/api/admin/wallet/stats', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const statsRes = await fetch('/api/admin/wallet/stats', { headers });
         if (statsRes.ok) {
           const data = await statsRes.json();
           setStats(data);
@@ -167,7 +205,12 @@ const AdminWalletPage: React.FC = () => {
     try {
       console.log('💾 Saving reward...', reward);
       
-      const token = await user.getIdToken(true);
+      const token = await getAuthToken();
+      if (!token) {
+        alert('❌ Authentication error. Please login again.');
+        return;
+      }
+
       const method = reward._id ? 'PUT' : 'POST';
       const url = reward._id 
         ? `/api/admin/wallet/rewards/${reward._id}`
@@ -203,7 +246,9 @@ const AdminWalletPage: React.FC = () => {
     if (!confirm('Are you sure you want to delete this reward?')) return;
 
     try {
-      const token = await user.getIdToken(true);
+      const token = await getAuthToken();
+      if (!token) return;
+
       const response = await fetch(`/api/admin/wallet/rewards/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -229,7 +274,12 @@ const AdminWalletPage: React.FC = () => {
     }
 
     try {
-      const token = await user.getIdToken(true);
+      const token = await getAuthToken();
+      if (!token) {
+        alert('❌ Authentication error. Please login again.');
+        return;
+      }
+
       const method = achievement._id ? 'PUT' : 'POST';
       const url = achievement._id 
         ? `/api/admin/wallet/achievements/${achievement._id}`
@@ -265,7 +315,9 @@ const AdminWalletPage: React.FC = () => {
     if (!confirm('Are you sure you want to delete this achievement?')) return;
 
     try {
-      const token = await user.getIdToken(true);
+      const token = await getAuthToken();
+      if (!token) return;
+
       const response = await fetch(`/api/admin/wallet/achievements/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -291,7 +343,12 @@ const AdminWalletPage: React.FC = () => {
     }
 
     try {
-      const token = await user.getIdToken(true);
+      const token = await getAuthToken();
+      if (!token) {
+        alert('❌ Authentication error. Please login again.');
+        return;
+      }
+
       const method = criteria._id ? 'PUT' : 'POST';
       const url = criteria._id 
         ? `/api/admin/wallet/criteria/${criteria._id}`
@@ -327,7 +384,9 @@ const AdminWalletPage: React.FC = () => {
     if (!confirm('Are you sure you want to delete this criteria?')) return;
 
     try {
-      const token = await user.getIdToken(true);
+      const token = await getAuthToken();
+      if (!token) return;
+
       const response = await fetch(`/api/admin/wallet/criteria/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -377,7 +436,7 @@ const AdminWalletPage: React.FC = () => {
           <h1><FaCog /> Wallet System Management</h1>
           <p>Manage points criteria, rewards, and achievements</p>
           <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
-            Logged in as: {user.email}
+            Logged in as: {user.email || 'Unknown User'}
           </p>
         </div>
         <button className="btn-primary" onClick={fetchAllData}>
@@ -817,7 +876,7 @@ const RewardModal: React.FC<{
                 onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })}
               />
             </div>
-            <div className="form-group">
+<div className="form-group">
               <label>Stock *</label>
               <input
                 type="number"
@@ -879,103 +938,106 @@ const RewardModal: React.FC<{
           </button>
         </div>
       </div>
-      </div>
-);
+    </div>
+  );
 };
+
 const AchievementModal: React.FC<{
-achievement: Achievement;
-onSave: (achievement: Achievement) => void;
-onClose: () => void;
+  achievement: Achievement;
+  onSave: (achievement: Achievement) => void;
+  onClose: () => void;
 }> = ({ achievement, onSave, onClose }) => {
-const [formData, setFormData] = useState(achievement);
-return (
-<div className="modal-overlay" onClick={onClose}>
-<div className="modal" onClick={(e) => e.stopPropagation()}>
-<div className="modal-header">
-<h3>{achievement._id ? 'Edit' : 'Add'} Achievement</h3>
-<button onClick={onClose}><FaTimes /></button>
-</div>
-<div className="modal-body">
-<div className="form-group">
-<label>Name *</label>
-<input
-type="text"
-value={formData.name}
-onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-placeholder="e.g., First Steps"
-/>
-</div>
-<div className="form-group">
-<label>Description *</label>
-<textarea
-value={formData.description}
-onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-rows={3}
-placeholder="Describe the achievement..."
-/>
-</div>
-<div className="form-row">
-<div className="form-group">
-<label>Points Reward *</label>
-<input
-type="number"
-value={formData.points}
-onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })}
-/>
-</div>
-<div className="form-group">
-<label>Requirement *</label>
-<input
-type="number"
-value={formData.requirement}
-onChange={(e) => setFormData({ ...formData, requirement: Number(e.target.value) })}
-placeholder="e.g., 5"
-/>
-</div>
-</div>
-<div className="form-row">
-<div className="form-group">
-<label>Category</label>
-<input
-type="text"
-value={formData.category}
-onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-placeholder="general"
-/>
-</div>
-<div className="form-group">
-<label>Icon</label>
-<input
-type="text"
-value={formData.icon}
-onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-placeholder="FaTrophy"
-/>
-</div>
-</div>
-<div className="form-group checkbox">
-<label>
-<input
-type="checkbox"
-checked={formData.isActive}
-onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-/>
-Active
-</label>
-</div>
-</div>
-<div className="modal-footer">
-<button className="btn-secondary" onClick={onClose}>Cancel</button>
-<button
-className="btn-primary"
-onClick={() => onSave(formData)}
-disabled={!formData.name || !formData.description}
->
-<FaSave /> Save Achievement
-</button>
-</div>
-</div>
-</div>
-);
+  const [formData, setFormData] = useState(achievement);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{achievement._id ? 'Edit' : 'Add'} Achievement</h3>
+          <button onClick={onClose}><FaTimes /></button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label>Name *</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., First Steps"
+            />
+          </div>
+          <div className="form-group">
+            <label>Description *</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              placeholder="Describe the achievement..."
+            />
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Points Reward *</label>
+              <input
+                type="number"
+                value={formData.points}
+                onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })}
+              />
+            </div>
+            <div className="form-group">
+              <label>Requirement *</label>
+              <input
+                type="number"
+                value={formData.requirement}
+                onChange={(e) => setFormData({ ...formData, requirement: Number(e.target.value) })}
+                placeholder="e.g., 5"
+              />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Category</label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="general"
+              />
+            </div>
+            <div className="form-group">
+              <label>Icon</label>
+              <input
+                type="text"
+                value={formData.icon}
+                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                placeholder="FaTrophy"
+              />
+            </div>
+          </div>
+          <div className="form-group checkbox">
+            <label>
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              />
+              Active
+            </label>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button 
+            className="btn-primary" 
+            onClick={() => onSave(formData)}
+            disabled={!formData.name || !formData.description}
+          >
+            <FaSave /> Save Achievement
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
+
 export default AdminWalletPage;

@@ -3,6 +3,7 @@
 import React from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Anton } from "next/font/google";
+import { useRouter } from "next/navigation";
 
 // Load the Anton font for the high-energy headers
 const anton = Anton({
@@ -12,6 +13,7 @@ const anton = Anton({
 });
 
 export default function JoyJuncture() {
+  const router = useRouter();
   const { scrollY } = useScroll();
 
   // Parallax effects for background and shapes
@@ -72,16 +74,13 @@ export default function JoyJuncture() {
           {title.split(" ").map((word, wIdx) => (
             <span key={wIdx} className="flex">
               {word.split("").map((char, cIdx) => {
-                // Special leaning white J in "JUNCTURE"
                 const isBigJ =
                   wIdx === 1 && cIdx === 0 && char.toUpperCase() === "J";
 
-                // Base styles
                 const baseClass = isBigJ
                   ? "cursor-default inline-block text-white drop-shadow-[0_0_30px_rgba(255,94,0,0.9)]"
                   : "cursor-default inline-block text-[#FF5E00] drop-shadow-[0_0_15px_rgba(255,94,0,0.4)]";
 
-                // Static pose for that J (tilted toward the U and lifted)
                 const bigJStyle = isBigJ ? { rotate: 10, y: -12 } : {};
 
                 return (
@@ -92,7 +91,6 @@ export default function JoyJuncture() {
                     whileHover={{
                       y: -20,
                       scale: 1.2,
-                      // keep it leaning toward U even on hover
                       rotate: isBigJ ? 12 : 5,
                       color: "#FFFFFF",
                       textShadow: "0px 0px 25px #FF5E00",
@@ -116,63 +114,31 @@ export default function JoyJuncture() {
         >
           Where Connections Spark and Games Begin
         </motion.p>
+
+        {/* 🔥 Added Button (ONLY addition) */}
+        <motion.button
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.6, type: "spring" }}
+          onClick={() => router.push("/home")}
+          className="
+            mt-12
+            px-10 py-4
+            rounded-full
+            text-lg font-semibold
+            tracking-widest uppercase
+            text-black
+            bg-[#FF5E00]
+            hover:bg-[#ff7a2f]
+            hover:scale-105
+            active:scale-95
+            transition-all
+            shadow-[0_0_30px_rgba(255,94,0,0.6)]
+          "
+        >
+          Enter Joy Juncture
+        </motion.button>
       </section>
-
-      {/* 4. Feature Cards Section */}
-      <section className="relative z-10 py-24 bg-[#050505]">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="border-l-4 border-[#FF5E00] pl-6 mb-16">
-            <h2 className={`${anton.className} text-5xl uppercase`}>
-              The Collection
-            </h2>
-            <p className="text-gray-500 mt-2">
-              Curated board games for unforgettable nights.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard
-              title="MEHFIL"
-              desc="The musical card game celebrating culture and rhythm."
-            />
-            <FeatureCard
-              title="TAMASHA"
-              desc="High-stakes Bollywood bidding wars and drama."
-            />
-            <FeatureCard
-              title="NOIR"
-              desc="Deduction in darkness. Trust no one, find the truth."
-            />
-          </div>
-        </div>
-      </section>
-
-      <footer className="py-12 text-center text-gray-600 border-t border-gray-900">
-        <p>© 2026 JOY JUNCTURE. CRAFTED IN ORANGE & BLACK.</p>
-      </footer>
     </main>
-  );
-}
-
-function FeatureCard({ title, desc }: { title: string; desc: string }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
-      whileHover={{ y: -15 }}
-      className="group relative bg-[#111] p-10 border border-gray-800 transition-colors hover:border-[#FF5E00]"
-    >
-      {/* Animated accent line on hover */}
-      <div className="absolute left-0 top-0 w-1 h-0 bg-[#FF5E00] transition-all duration-300 group-hover:h-full" />
-
-      <h3 className={`${anton.className} text-2xl mb-4 tracking-wider`}>
-        {title}
-      </h3>
-      <p className="text-gray-400 leading-relaxed mb-6">{desc}</p>
-      <button className="px-6 py-2 border border-[#FF5E00] text-[#FF5E00] font-bold hover:bg-[#FF5E00] hover:text-black transition-all">
-        VIEW GAME
-      </button>
-    </motion.div>
   );
 }
