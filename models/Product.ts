@@ -131,7 +131,6 @@ productSchema.pre('save', function(next) {
       this.media.thumbnail = primaryImage.url;
     }
   }
-  next();
 });
 
 const Product = models.Product || model("Product", productSchema);
