@@ -75,23 +75,26 @@
 //     </div>
 //   );
 // }
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import EventList from '@/app/components/admin/EventList';
 import AddEventForm from '@/app/components/admin/AddEventForm';
+import './adminEvents.css';
 
 interface Event {
   _id: string;
   name: string;
   description: string;
+  detailedDescription: string;
   date: string;
   price: number;
   coins: number;
   registrationLink: string;
   collabWith: string;
   isActive: boolean;
+  totalSeats: number;
+  availableSeats: number;
 }
 
 export default function AdminEventsPage() {
@@ -112,7 +115,6 @@ export default function AdminEventsPage() {
       
       console.log('Fetched data:', data);
       
-      // Handle both formats: direct array or nested in object
       if (Array.isArray(data)) {
         setEvents(data);
       } else if (data.events && Array.isArray(data.events)) {
@@ -143,24 +145,25 @@ export default function AdminEventsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-8">
-        <div className="flex items-center justify-center">
-          <div className="text-lg">Loading events...</div>
+      <div className="admin-events-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">Loading events...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Event Management</h1>
+    <div className="admin-events-container">
+      <div className="admin-header">
+        <h1>Event Management</h1>
         {!showAddForm && (
           <button
             onClick={() => setShowAddForm(true)}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2 transition-colors"
+            className="add-event-btn"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             <span>Add New Event</span>
@@ -169,14 +172,16 @@ export default function AdminEventsPage() {
       </div>
 
       {showAddForm ? (
-        <div className="mb-8">
+        <div className="form-container">
           <AddEventForm 
             onSuccess={handleAddSuccess}
             onCancel={() => setShowAddForm(false)}
           />
         </div>
       ) : (
-        <EventList events={events} onUpdate={fetchEvents} />
+        <div className="events-list-container">
+          <EventList events={events} onUpdate={fetchEvents} />
+        </div>
       )}
     </div>
   );

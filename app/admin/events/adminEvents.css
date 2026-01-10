@@ -1,0 +1,405 @@
+/* app/admin/events/adminEvents.css */
+
+/* Container Animations */
+@keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+  
+  /* Main Container */
+  .admin-events-container {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    min-height: 100vh;
+    padding: 2rem;
+    animation: fadeInUp 0.6s ease-out;
+  }
+  
+  /* Header Section */
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(255, 107, 0, 0.3);
+    animation: slideInRight 0.8s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .admin-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      45deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    animation: shimmer 3s infinite;
+  }
+  
+  .admin-header h1 {
+    color: #1a1a1a;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Add Event Button */
+  .add-event-btn {
+    background: #1a1a1a;
+    color: #ff6b00;
+    border: 2px solid #ff6b00;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+  
+  .add-event-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: #ff6b00;
+    transition: width 0.6s, height 0.6s, top 0.6s, left 0.6s;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+  }
+  
+  .add-event-btn:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+  
+  .add-event-btn:hover {
+    color: #1a1a1a;
+    border-color: #ff8c00;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(255, 107, 0, 0.4);
+  }
+  
+  .add-event-btn svg {
+    transition: transform 0.3s ease;
+  }
+  
+  .add-event-btn:hover svg {
+    transform: rotate(90deg);
+  }
+  
+  /* Loading State */
+  .loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: #ff6b00;
+    font-size: 1.5rem;
+    animation: pulse 2s infinite;
+  }
+  
+  .loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid #2d2d2d;
+    border-top-color: #ff6b00;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  /* Form Container */
+  .form-container {
+    background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 2px solid #ff6b00;
+    box-shadow: 0 10px 40px rgba(255, 107, 0, 0.2);
+    animation: fadeInUp 0.5s ease-out;
+  }
+  
+  /* Event List Container */
+  .events-list-container {
+    background: #2d2d2d;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: fadeInUp 0.7s ease-out;
+  }
+  
+  /* Event Table */
+  .event-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 1rem;
+  }
+  
+  .event-table thead {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  }
+  
+  .event-table th {
+    padding: 1.25rem;
+    text-align: left;
+    color: #1a1a1a;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .event-table th:first-child {
+    border-radius: 12px 0 0 12px;
+  }
+  
+  .event-table th:last-child {
+    border-radius: 0 12px 12px 0;
+  }
+  
+  .event-table tbody tr {
+    background: #1a1a1a;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+  }
+  
+  .event-table tbody tr:hover {
+    transform: translateX(10px);
+    box-shadow: 0 5px 20px rgba(255, 107, 0, 0.3);
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  }
+  
+  .event-table td {
+    padding: 1.5rem 1.25rem;
+    color: #fff;
+    border-top: 1px solid rgba(255, 107, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 107, 0, 0.1);
+  }
+  
+  .event-table td:first-child {
+    border-left: 3px solid #ff6b00;
+    border-radius: 12px 0 0 12px;
+  }
+  
+  .event-table td:last-child {
+    border-right: 1px solid rgba(255, 107, 0, 0.1);
+    border-radius: 0 12px 12px 0;
+  }
+  
+  /* Status Badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  
+  .status-active {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+    color: #1a1a1a;
+    box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
+  }
+  
+  .status-inactive {
+    background: #2d2d2d;
+    color: #888;
+    border: 1px solid #444;
+  }
+  
+  /* Action Buttons */
+  .action-buttons {
+    display: flex;
+    gap: 0.75rem;
+  }
+  
+  .btn-edit,
+  .btn-delete,
+  .btn-toggle {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .btn-edit {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+    color: #1a1a1a;
+  }
+  
+  .btn-edit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 107, 0, 0.4);
+  }
+  
+  .btn-delete {
+    background: #2d2d2d;
+    color: #ff6b00;
+    border: 1px solid #ff6b00;
+  }
+  
+  .btn-delete:hover {
+    background: #ff6b00;
+    color: #1a1a1a;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 107, 0, 0.4);
+  }
+  
+  .btn-toggle {
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #444;
+  }
+  
+  .btn-toggle:hover {
+    border-color: #ff6b00;
+    color: #ff6b00;
+    transform: translateY(-2px);
+  }
+  
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #888;
+  }
+  
+  .empty-state-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+  
+  .empty-state h3 {
+    color: #ff6b00;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .admin-events-container {
+      padding: 1rem;
+    }
+  
+    .admin-header {
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+  
+    .admin-header h1 {
+      font-size: 1.8rem;
+    }
+  
+    .event-table {
+      font-size: 0.85rem;
+    }
+  
+    .event-table th,
+    .event-table td {
+      padding: 0.75rem 0.5rem;
+    }
+  
+    .action-buttons {
+      flex-direction: column;
+    }
+  }
+  
+  /* Scroll Animations */
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out forwards;
+  }
+  
+  /* Glow Effect */
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(255, 107, 0, 0.5),
+                  0 0 10px rgba(255, 107, 0, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(255, 107, 0, 0.8),
+                  0 0 30px rgba(255, 107, 0, 0.5);
+    }
+  }
+  
+  .glow-border {
+    animation: glow 2s infinite;
+  }

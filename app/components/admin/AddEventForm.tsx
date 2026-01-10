@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import './adminForms.css';
 
 interface AddEventFormProps {
   onSuccess: () => void;
@@ -11,12 +12,15 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    detailedDescription: '',
     date: '',
     price: 0,
     coins: 0,
     registrationLink: '',
     collabWith: '',
     isActive: true,
+    totalSeats: 0,
+    availableSeats: 0
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,17 +42,21 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
     setLoading(true);
 
     try {
-      // Validate required fields
       if (!formData.name || !formData.description || !formData.date) {
         throw new Error('Please fill in all required fields');
       }
+
+      const submissionData = {
+        ...formData,
+        availableSeats: formData.totalSeats
+      };
 
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       });
 
       const data = await response.json();
@@ -68,32 +76,32 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Add New Event</h2>
+    <div className="event-form-container">
+      <div className="form-header">
+        <h2>Add New Event</h2>
         <button
           onClick={onCancel}
-          className="text-gray-500 hover:text-gray-700"
+          className="close-button"
           type="button"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-800 text-sm">{error}</p>
+        <div className="error-message">
+          <p>{error}</p>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form onSubmit={handleSubmit} className="event-form">
+        <div className="form-grid">
           {/* Event Name */}
-          <div className="md:col-span-2">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              Event Name <span className="text-red-500">*</span>
+          <div className="form-field full-width">
+            <label htmlFor="name" className="form-label">
+              Event Name <span className="required">*</span>
             </label>
             <input
               type="text"
@@ -102,15 +110,15 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
               placeholder="e.g., DMD Pune Tournament Day 1"
             />
           </div>
 
           {/* Description */}
-          <div className="md:col-span-2">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              Description <span className="text-red-500">*</span>
+          <div className="form-field full-width">
+            <label htmlFor="description" className="form-label">
+              Description <span className="required">*</span>
             </label>
             <textarea
               id="description"
@@ -119,15 +127,32 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
               onChange={handleChange}
               required
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-textarea"
               placeholder="Describe your event..."
             />
           </div>
 
+          {/* Detailed Description */}
+          <div className="form-field full-width">
+            <label htmlFor="detailedDescription" className="form-label">
+              Detailed Description <span className="required">*</span>
+            </label>
+            <textarea
+              id="detailedDescription"
+              name="detailedDescription"
+              value={formData.detailedDescription}
+              onChange={handleChange}
+              required
+              rows={4}
+              className="form-textarea"
+              placeholder="Provide detailed information about the event..."
+            />
+          </div>
+
           {/* Date */}
-          <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
-              Event Date <span className="text-red-500">*</span>
+          <div className="form-field">
+            <label htmlFor="date" className="form-label">
+              Event Date <span className="required">*</span>
             </label>
             <input
               type="date"
@@ -136,13 +161,13 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
               value={formData.date}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
             />
           </div>
 
           {/* Price */}
-          <div>
-            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="form-field">
+            <label htmlFor="price" className="form-label">
               Price (₹)
             </label>
             <input
@@ -153,14 +178,32 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
               onChange={handleChange}
               min="0"
               step="0.01"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
+              placeholder="0"
+            />
+          </div>
+
+          {/* Total Seats */}
+          <div className="form-field">
+            <label htmlFor="totalSeats" className="form-label">
+              Total Seats Available
+            </label>
+            <input
+              type="number"
+              id="totalSeats"
+              name="totalSeats"
+              value={formData.totalSeats}
+              onChange={handleChange}
+              min="0"
+              step="1"
+              className="form-input"
               placeholder="0"
             />
           </div>
 
           {/* Coins */}
-          <div>
-            <label htmlFor="coins" className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="form-field">
+            <label htmlFor="coins" className="form-label">
               Reward Coins
             </label>
             <input
@@ -170,14 +213,14 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
               value={formData.coins}
               onChange={handleChange}
               min="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
               placeholder="0"
             />
           </div>
 
           {/* Registration Link */}
-          <div>
-            <label htmlFor="registrationLink" className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="form-field">
+            <label htmlFor="registrationLink" className="form-label">
               Registration Link
             </label>
             <input
@@ -186,14 +229,14 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
               name="registrationLink"
               value={formData.registrationLink}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
               placeholder="https://..."
             />
           </div>
 
           {/* Collaboration */}
-          <div className="md:col-span-2">
-            <label htmlFor="collabWith" className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="form-field full-width">
+            <label htmlFor="collabWith" className="form-label">
               Collaboration With
             </label>
             <input
@@ -202,42 +245,40 @@ export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps)
               name="collabWith"
               value={formData.collabWith}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="form-input"
               placeholder="e.g., Partner Organization Name"
             />
           </div>
 
           {/* Active Status */}
-          <div className="md:col-span-2">
-            <label className="flex items-center space-x-3">
+          <div className="form-field full-width">
+            <label className="checkbox-label">
               <input
                 type="checkbox"
                 name="isActive"
                 checked={formData.isActive}
                 onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="form-checkbox"
               />
-              <span className="text-sm font-medium text-gray-700">
-                Set event as active (visible to users)
-              </span>
+              <span>Set event as active (visible to users)</span>
             </label>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-4 pt-4 border-t">
+        <div className="form-actions">
           <button
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="btn-secondary"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary"
           >
             {loading ? 'Creating...' : 'Create Event'}
           </button>

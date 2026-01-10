@@ -101,6 +101,7 @@ export async function POST(request: Request) {
     const eventData = {
       name: body.name,
       description: body.description,
+      detailedDescription: body.detailedDescription,
       date: new Date(body.date),
       price: body.price || 0,
       coins: body.coins || 0,
@@ -108,7 +109,9 @@ export async function POST(request: Request) {
       collabWith: body.collabWith || '',
       isActive: body.isActive !== undefined ? body.isActive : true,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      totalSeats:body.totalSeats,
+      availableSeats:body.availableSeats
     }; 
     const result = await collection.insertOne({
       ...body,

@@ -153,10 +153,10 @@ export async function getDatabase() {
 }
 
 // Helper function to get events collection
-export async function getEventsCollection() {
-  const db = await getDatabase();
-  return db.collection('events');
-}
+// export async function getEventsCollection() {
+//   const db = await getDatabase();
+//   return db.collection('events');
+// }
 
 // Helper function to get any collection by name
 export async function getCollection(collectionName: string) {
