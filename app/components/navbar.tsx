@@ -106,7 +106,7 @@ const Navbar: React.FC = () => {
     {
       id: "games",
       label: "Games",
-      href: "/games",
+      href: "/zone",
       icon: <FaGamepad />,
     },
     {
@@ -116,14 +116,6 @@ const Navbar: React.FC = () => {
       icon: <FaCalendarAlt />,
       dropdown: [
         { id: "all-events", label: "All Events", href: "/events" },
-        { id: "upcoming", label: "Upcoming Events", href: "/events/upcoming" },
-        { id: "past-events", label: "Past Events", href: "/events/past" },
-        { id: "workshops", label: "Workshops", href: "/events/workshops" },
-        {
-          id: "tournaments",
-          label: "Tournaments",
-          href: "/events/tournaments",
-        },
       ],
     },
     {
