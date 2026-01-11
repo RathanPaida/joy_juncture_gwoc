@@ -61,22 +61,47 @@ export async function disconnectFromDatabase() {
   }
 }
 
+// Helper function to get database instance
+export async function getDatabase() {
+  await connectToDatabase();
+  
+  if (!mongoose.connection.db) {
+    throw new Error('Database connection not established');
+  }
+  
+  return mongoose.connection.db;
+}
+
+// Helper function to get events collection
+// export async function getEventsCollection() {
+//   const db = await getDatabase();
+//   return db.collection('events');
+// }
+
+// Helper function to get any collection by name
+export async function getCollection(collectionName: string) {
+  const db = await getDatabase();
+  return db.collection(collectionName);
+}
+
 // Handle MongoDB connection events
-mongoose.connection.on("connected", () => {
-  console.log("MongoDB connected successfully");
+mongoose.connection.on('connected', () => {
+  console.log('✅ MongoDB connected successfully');
+  console.log(`📊 Using database: ${MONGODB_DB || 'default'}`);
 });
 
-mongoose.connection.on("error", (err) => {
-  console.error("MongoDB connection error:", err);
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB connection error:', err);
 });
 
-mongoose.connection.on("disconnected", () => {
-  console.log("MongoDB disconnected");
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️ MongoDB disconnected');
 });
 
 // Close the Mongoose connection when the Node process ends
 process.on("SIGINT", async () => {
   await mongoose.connection.close();
+  console.log('MongoDB connection closed due to app termination');
   process.exit(0);
 });
 
