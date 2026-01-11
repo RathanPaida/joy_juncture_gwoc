@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface EventFormProps {
   event?: any;
@@ -14,20 +14,19 @@ export default function EventForm({
   onCancel,
 }: EventFormProps) {
   const [formData, setFormData] = useState({
-<<<<<<< HEAD
     name: event?.name || "",
     description: event?.description || "",
     date: event?.date ? new Date(event.date).toISOString().split("T")[0] : "",
+    time: event?.time || "",
+    Venue: event?.Venue || event?.venue || "",
+    address: event?.address || "",
     registrationLink: event?.registrationLink || "",
-=======
-    name: event?.name || '',
-    description: event?.description || '',
-    date: event?.date ? new Date(event.date).toISOString().split('T')[0] : '',
-    Venue: event?.Venue || '',
->>>>>>> 3405c5197d1982576768b0be9767a5a59f21d62b
     price: event?.price || 0,
     coins: event?.coins || 0,
+    totalSeats: event?.totalSeats || 0,
+    availableSeats: event?.availableSeats || 0,
     collabWith: event?.collabWith || "",
+    imageUrl: event?.imageUrl || "",
     isActive: event?.isActive !== undefined ? event.isActive : true,
   });
 
@@ -47,7 +46,7 @@ export default function EventForm({
 
     if (!formData.date) {
       newErrors.date = "Date is required";
-    } else if (new Date(formData.date) < new Date()) {
+    } else if (new Date(formData.date) < new Date(new Date().setHours(0, 0, 0, 0))) {
       newErrors.date = "Date cannot be in the past";
     }
 
@@ -57,6 +56,18 @@ export default function EventForm({
 
     if (formData.coins < 0) {
       newErrors.coins = "Coins cannot be negative";
+    }
+
+    if (formData.totalSeats < 0) {
+      newErrors.totalSeats = "Total seats cannot be negative";
+    }
+
+    if (formData.availableSeats < 0) {
+      newErrors.availableSeats = "Available seats cannot be negative";
+    }
+
+    if (formData.totalSeats > 0 && formData.availableSeats > formData.totalSeats) {
+      newErrors.availableSeats = "Available seats cannot exceed total seats";
     }
 
     setErrors(newErrors);
@@ -84,6 +95,8 @@ export default function EventForm({
           date: new Date(formData.date),
           price: Number(formData.price),
           coins: Number(formData.coins),
+          totalSeats: Number(formData.totalSeats) || undefined,
+          availableSeats: Number(formData.availableSeats) || undefined,
         }),
       });
 
@@ -121,7 +134,7 @@ export default function EventForm({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
       <h3 className="text-2xl font-bold text-gray-900 mb-6">
         {event ? "Edit Event" : "Create New Event"}
       </h3>
@@ -169,6 +182,53 @@ export default function EventForm({
             )}
           </div>
 
+          {/* Time */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Event Time (Optional)
+            </label>
+            <input
+              type="time"
+              name="time"
+              value={formData.time}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              e.g., 6:00 PM
+            </p>
+          </div>
+
+          {/* Venue */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Venue (Optional)
+            </label>
+            <input
+              type="text"
+              name="Venue"
+              value={formData.Venue}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., Main Auditorium"
+            />
+          </div>
+
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Address (Optional)
+            </label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Full address"
+            />
+          </div>
+
           {/* Price */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -214,6 +274,48 @@ export default function EventForm({
             )}
           </div>
 
+          {/* Total Seats */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Total Seats (Optional)
+            </label>
+            <input
+              type="number"
+              name="totalSeats"
+              min="0"
+              value={formData.totalSeats || ""}
+              onChange={handleChange}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.totalSeats ? "border-red-500" : "border-gray-300"
+              }`}
+              placeholder="100"
+            />
+            {errors.totalSeats && (
+              <p className="mt-1 text-sm text-red-600">{errors.totalSeats}</p>
+            )}
+          </div>
+
+          {/* Available Seats */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Available Seats (Optional)
+            </label>
+            <input
+              type="number"
+              name="availableSeats"
+              min="0"
+              value={formData.availableSeats || ""}
+              onChange={handleChange}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                errors.availableSeats ? "border-red-500" : "border-gray-300"
+              }`}
+              placeholder="100"
+            />
+            {errors.availableSeats && (
+              <p className="mt-1 text-sm text-red-600">{errors.availableSeats}</p>
+            )}
+          </div>
+
           {/* Collaboration */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -227,9 +329,6 @@ export default function EventForm({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="e.g., Company Name, Organization"
             />
-            <p className="mt-1 text-xs text-gray-500">
-              Leave empty if no collaboration
-            </p>
           </div>
 
           {/* Registration Link */}
@@ -238,16 +337,35 @@ export default function EventForm({
               Registration Link (Optional)
             </label>
             <input
-              name="Venue"
-              value={formData.Venue}
+              type="url"
+              name="registrationLink"
+              value={formData.registrationLink}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="https://example.com/register"
             />
           </div>
 
+          {/* Image URL */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Image URL (Optional)
+            </label>
+            <input
+              type="url"
+              name="imageUrl"
+              value={formData.imageUrl}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="https://example.com/image.jpg"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Provide a URL to an event banner or poster
+            </p>
+          </div>
+
           {/* Active Status */}
-          <div className="flex items-center">
+          <div className="md:col-span-2 flex items-center pt-4">
             <input
               type="checkbox"
               id="isActive"
@@ -286,6 +404,9 @@ export default function EventForm({
           {errors.description && (
             <p className="mt-1 text-sm text-red-600">{errors.description}</p>
           )}
+          <p className="mt-1 text-xs text-gray-500">
+            Provide a detailed description of the event, including activities, schedule, and any special instructions.
+          </p>
         </div>
 
         {/* Action Buttons */}
@@ -293,7 +414,7 @@ export default function EventForm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
             disabled={loading}
           >
             Cancel
@@ -301,7 +422,7 @@ export default function EventForm({
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? (
               <span className="flex items-center">
@@ -318,12 +439,12 @@ export default function EventForm({
                     r="10"
                     stroke="currentColor"
                     strokeWidth="4"
-                  ></circle>
+                  />
                   <path
                     className="opacity-75"
                     fill="currentColor"
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
+                  />
                 </svg>
                 Saving...
               </span>

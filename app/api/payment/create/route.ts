@@ -86,12 +86,9 @@ async function handleMongooseEventPayment(eventId: string, userId: string) {
     console.log('✅ Razorpay order created (Mongoose):', order.id);
 
     return NextResponse.json({
+      ...order,
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID,
-      orderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      eventName: event.name,
-      ...order
+      eventName: event.name
     });
   } catch (error) {
     console.error('❌ Mongoose event payment error:', error);

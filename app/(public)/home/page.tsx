@@ -18,11 +18,6 @@ export default function App() {
   }, []);
 
   return (
-<<<<<<< HEAD
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Home</h1>
-      <p className="mt-2">HOME PAGE</p>
-=======
     <div className="relative bg-black min-h-screen overflow-hidden">
       {/* Header */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-black/90 backdrop-blur-md' : 'bg-transparent'}`}>
@@ -124,7 +119,6 @@ export default function App() {
 
       {/* Footer Spacer */}
       <div className="h-20 bg-black"></div>
->>>>>>> origin/home
     </div>
   );
 }

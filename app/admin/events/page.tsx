@@ -1,207 +1,16 @@
-// // 'use client';
 
-// // import { useState, useEffect } from 'react';
-// // import EventForm from '@/app/components/admin/EventForm';
-// // import EventList from '@/app/components/admin/EventList';
 
-// // export default function AdminEventsPage() {
-// //   const [events, setEvents] = useState([]);
-// //   const [showForm, setShowForm] = useState(false);
-// //   const [selectedEvent, setSelectedEvent] = useState(null);
-
-// //   useEffect(() => {
-// //     fetchEvents();
-// //   }, []);
-
-// //   const fetchEvents = async () => {
-// //     try {
-// //       const response = await fetch('/api/events');
-// //       if (response.ok) {
-// //         const data = await response.json();
-// //         setEvents(data);
-// //       }
-// //     } catch (error) {
-// //       console.error('Error fetching events:', error);
-// //     }
-// //   };
-
-// //   const handleEdit = (event: any) => {
-// //     setSelectedEvent(event);
-// //     setShowForm(true);
-// //   };
-
-// //   const handleFormSuccess = () => {
-// //     setShowForm(false);
-// //     setSelectedEvent(null);
-// //     fetchEvents();
-// //   };
-
-// //   const handleCancel = () => {
-// //     setShowForm(false);
-// //     setSelectedEvent(null);
-// //   };
-
-// //   return (
-// //     <div>
-// //       <div className="flex justify-between items-center mb-8">
-// //         <div>
-// //           <h2 className="text-2xl font-bold text-gray-900">Manage Events</h2>
-// //           <p className="text-gray-600 mt-1">
-// //             Create, edit, and manage your events
-// //           </p>
-// //         </div>
-// //         <button
-// //           onClick={() => {
-// //             setSelectedEvent(null);
-// //             setShowForm(!showForm);
-// //           }}
-// //           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
-// //         >
-// //           {showForm ? 'Cancel' : 'Create New Event'}
-// //         </button>
-// //       </div>
-
-// //       {showForm && (
-// //         <div className="mb-8">
-// //           <EventForm
-// //             event={selectedEvent}
-// //             onSuccess={handleFormSuccess}
-// //             onCancel={handleCancel}
-// //           />
-// //         </div>
-// //       )}
-
-// //       <EventList events={events} onUpdate={fetchEvents} />
-// //     </div>
-// //   );
-// // }
-// 'use client';
-
-// import { useEffect, useState } from 'react';
-// import EventList from '@/app/components/admin/EventList';
-// import AddEventForm from '@/app/components/admin/AddEventForm';
-// import './adminEvents.css';
-
-// interface Event {
-//   _id: string;
-//   name: string;
-//   description: string;
-//   detailedDescription: string;
-//   date: string;
-//   price: number;
-//   coins: number;
-//   Venue: string;
-//   collabWith: string;
-//   isActive: boolean;
-//   totalSeats: number;
-//   availableSeats: number;
-// }
-
-// export default function AdminEventsPage() {
-//   const [events, setEvents] = useState<Event[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [showAddForm, setShowAddForm] = useState(false);
-
-//   const fetchEvents = async () => {
-//     try {
-//       setLoading(true);
-//       const response = await fetch('/api/events');
-      
-//       if (!response.ok) {
-//         throw new Error(`HTTP error! status: ${response.status}`);
-//       }
-      
-//       const data = await response.json();
-      
-//       console.log('Fetched data:', data);
-      
-//       if (Array.isArray(data)) {
-//         setEvents(data);
-//       } else if (data.events && Array.isArray(data.events)) {
-//         setEvents(data.events);
-//       } else if (data.error) {
-//         console.error('API error:', data.error);
-//         setEvents([]);
-//       } else {
-//         console.error('Unexpected data format:', data);
-//         setEvents([]);
-//       }
-//     } catch (error) {
-//       console.error('Error fetching events:', error);
-//       setEvents([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchEvents();
-//   }, []);
-
-//   const handleAddSuccess = () => {
-//     setShowAddForm(false);
-//     fetchEvents();
-//   };
-
-//   if (loading) {
-//     return (
-//       <div className="admin-events-container">
-//         <div className="loading-container">
-//           <div className="loading-spinner"></div>
-//           <div className="loading-text">Loading events...</div>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="admin-events-container">
-//       <div className="admin-header">
-//         <h1>Event Management</h1>
-//         {!showAddForm && (
-//           <button
-//             onClick={() => setShowAddForm(true)}
-//             className="add-event-btn"
-//           >
-//             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-//             </svg>
-//             <span>Add New Event</span>
-//           </button>
-//         )}
-//       </div>
-
-//       {showAddForm ? (
-//         <div className="form-container">
-//           <AddEventForm 
-//             onSuccess={handleAddSuccess}
-//             onCancel={() => setShowAddForm(false)}
-//           />
-//         </div>
-//       ) : (
-//         <div className="events-list-container">
-//           {/* @ts-expect-error: EventList props typing needs to be updated */}
-//           <EventList events={events} onUpdate={fetchEvents} />
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-<<<<<<< HEAD
 "use client";
 
-import { useEffect, useState } from "react";
-// Remove the faulty import of EventList as a module
-import EventList from "@/app/components/admin/EventList"; // Make sure this path is correct and that EventList is a valid component
-=======
-'use client';
+// import { useEffect, useState } from "react";
+// // Remove the faulty import of EventList as a module
+// import EventList from "@/app/components/admin/EventList"; // Make sure this path is correct and that EventList is a valid component
+// 'use client';
 
 import { useEffect, useState } from 'react';
 import EventList from '@/app/components/admin/EventList';
 import AddEventForm from '@/app/components/admin/AddEventForm';
 import './adminEvents.css';
->>>>>>> 3405c5197d1982576768b0be9767a5a59f21d62b
 
 interface Event {
   _id: string;
@@ -229,32 +38,20 @@ export default function AdminEventsPage() {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-<<<<<<< HEAD
-      const response = await fetch("/api/events");
-
-=======
       console.log('🔄 Fetching events...');
       
       const response = await fetch('/api/events');
       
->>>>>>> 3405c5197d1982576768b0be9767a5a59f21d62b
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-<<<<<<< HEAD
-
-      console.log("Fetched data:", data); // Debug log
-
-      // Handle both formats: direct array or nested in object
-=======
       
       console.log('📦 Fetched data:', data);
       console.log('📦 Data type:', typeof data);
       console.log('📦 Is array:', Array.isArray(data));
       
->>>>>>> 3405c5197d1982576768b0be9767a5a59f21d62b
       if (Array.isArray(data)) {
         console.log('✅ Setting events from array, count:', data.length);
         setEvents(data);
@@ -262,16 +59,6 @@ export default function AdminEventsPage() {
         console.log('✅ Setting events from data.events, count:', data.events.length);
         setEvents(data.events);
       } else if (data.error) {
-<<<<<<< HEAD
-        console.error("API error:", data.error);
-        setEvents([]);
-      } else {
-        console.error("Unexpected data format:", data);
-        setEvents([]);
-      }
-    } catch (error) {
-      console.error("Error fetching events:", error);
-=======
         console.error('❌ API error:', data.error);
         setEvents([]);
       } else {
@@ -280,7 +67,6 @@ export default function AdminEventsPage() {
       }
     } catch (error) {
       console.error('❌ Error fetching events:', error);
->>>>>>> 3405c5197d1982576768b0be9767a5a59f21d62b
       setEvents([]);
     } finally {
       setLoading(false);
