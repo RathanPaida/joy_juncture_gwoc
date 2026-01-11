@@ -20,16 +20,16 @@ export default function App() {
   return (
     <div className="relative bg-black min-h-screen overflow-hidden">
       {/* Header */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-black/90 backdrop-blur-md' : 'bg-transparent'}`}>
-        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+      {/* <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-black/90 backdrop-blur-md' : 'bg-transparent'}`}>
+        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between"> */}
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="text-orange-500 font-black text-2xl tracking-tighter leading-tight">
+          {/* <div className="flex items-center gap-2"> */}
+            {/* <div className="text-orange-500 font-black text-2xl tracking-tighter leading-tight">
               JOY<br />JUNCTURE
-            </div>
-          </div>
+            </div> */}
+          {/* </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center px-4 pt-20">

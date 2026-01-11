@@ -388,62 +388,10 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="py-32 px-6 relative overflow-hidden">
+      {/* <section className="py-32 px-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-orange-500/20 via-orange-500/5 to-transparent" />
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-orange-500/30 rounded-full blur-[150px]" />
-
-        <motion.div
-          className="max-w-4xl mx-auto text-center relative z-10"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <h2 className="text-4xl md:text-6xl font-black mb-6">
-            Ready to <span className="text-orange-400">Play?</span>
-          </h2>
-          <p className="text-xl text-white/60 mb-10 max-w-xl mx-auto">
-            Join thousands of players who've discovered that the best memories
-            are made around a game table.
-          </p>
-          <div
-            className="flex flex-wrap justify-center gap-4"
-            data-testid="cta-buttons"
-          >
-            <motion.a
-              href="/community"
-              className="px-10 py-5 bg-white text-black rounded-2xl font-bold text-lg hover:bg-white/90 transition-colors shadow-[0_0_60px_rgba(255,255,255,0.2)]"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-              data-testid="link-community"
-            >
-              Join the Community
-            </motion.a>
-            <motion.a
-              href="/events"
-              className="px-10 py-5 border-2 border-white/30 rounded-2xl font-bold text-lg hover:bg-white/10 hover:border-white/50 transition-all"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-              data-testid="link-events"
-            >
-              Find an Event
-            </motion.a>
-          </div>
-        </motion.div>
-      </section>
-
-      <footer className="py-12 px-6 border-t border-white/10">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center">
-              <FaDice className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-xl">Joy Juncture</span>
-          </div>
-          <p className="text-white/40 text-sm">
-            © {new Date().getFullYear()} Joy Juncture. All rights reserved.
-          </p>
-        </div>
-      </footer>
+        </section> */}
     </div>
   );
 }
