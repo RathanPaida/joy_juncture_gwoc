@@ -30,6 +30,6 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "app/admin/packages"
-  ],
+, "scripts/importData.js"  ],
   "exclude": ["node_modules"]
 }

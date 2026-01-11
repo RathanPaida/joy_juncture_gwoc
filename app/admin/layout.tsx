@@ -1,3 +1,8 @@
+// 'use client';
+
+// import { useRouter } from 'next/navigation';
+// import { useAuth } from '@/contexts/AuthContext';
+// import { useEffect } from 'react';
 // app/admin/layout.tsx
 // This ensures admin pages have access to AuthContext (for wallets/auth)
 "use client";
