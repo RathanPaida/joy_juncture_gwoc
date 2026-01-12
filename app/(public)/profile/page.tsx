@@ -1,10 +1,10 @@
 // app/profile/page.tsx - FIXED TO SHOW POINTS
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useAuth } from "@/app/contexts/AuthContext";
-import { useRouter } from "next/navigation";
-import { getAuth } from "firebase/auth";
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { getAuth } from 'firebase/auth';
 import {
   User,
   Mail,
@@ -24,9 +24,9 @@ import {
   Package,
   CreditCard,
   Users,
-  Coins,
-} from "lucide-react";
-import "./profile.css";
+  Coins
+} from 'lucide-react';
+import './profile.css';
 
 interface UserProfile {
   uid: string;
@@ -52,7 +52,7 @@ interface RegisteredEvent {
   ticketType: string;
   participants: number;
   totalAmount: number;
-  status: "confirmed" | "pending" | "cancelled";
+  status: 'confirmed' | 'pending' | 'cancelled';
   registeredAt: string;
 }
 
@@ -65,7 +65,7 @@ interface PurchasedProduct {
   price: number;
   totalAmount: number;
   purchaseDate: string;
-  status: "delivered" | "shipped" | "processing" | "cancelled";
+  status: 'delivered' | 'shipped' | 'processing' | 'cancelled';
 }
 
 interface UserBlog {
@@ -73,7 +73,7 @@ interface UserBlog {
   title: string;
   excerpt: string;
   coverImage?: string;
-  status: "draft" | "published";
+  status: 'draft' | 'published';
   views: number;
   likes: number;
   publishedDate: string;
@@ -93,17 +93,11 @@ export default function ProfilePage() {
   const auth = getAuth();
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"events" | "products" | "blogs">(
-    "events",
-  );
-
+  const [activeTab, setActiveTab] = useState<'events' | 'products' | 'blogs'>('events');
+  
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>(
-    [],
-  );
-  const [purchasedProducts, setPurchasedProducts] = useState<
-    PurchasedProduct[]
-  >([]);
+  const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
+  const [purchasedProducts, setPurchasedProducts] = useState<PurchasedProduct[]>([]);
   const [userBlogs, setUserBlogs] = useState<UserBlog[]>([]);
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
 
@@ -112,7 +106,7 @@ export default function ProfilePage() {
       if (user) {
         fetchProfileData();
       } else {
-        router.push("/login?redirect=/profile");
+        router.push('/login?redirect=/profile');
       }
     }
   }, [user, authLoading]);
@@ -123,32 +117,31 @@ export default function ProfilePage() {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        console.error("No Firebase user found");
-        router.push("/login");
+        console.error('No Firebase user found');
+        router.push('/login');
         return;
       }
 
       const token = await currentUser.getIdToken();
 
       // Fetch all profile data in parallel
-      const [profileRes, eventsRes, productsRes, blogsRes, walletRes] =
-        await Promise.all([
-          fetch("/api/user/profile", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch("/api/user/registered-events", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch("/api/user/purchased-products", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch("/api/user/blogs", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch("/api/user/wallet", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+      const [profileRes, eventsRes, productsRes, blogsRes, walletRes] = await Promise.all([
+        fetch('/api/user/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/user/registered-events', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/user/purchased-products', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/user/blogs', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/user/wallet', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
 
       if (profileRes.ok) {
         const data = await profileRes.json();
@@ -174,20 +167,21 @@ export default function ProfilePage() {
         const data = await walletRes.json();
         setWalletInfo(data.wallet);
       }
+
     } catch (error) {
-      console.error("Error fetching profile data:", error);
+      console.error('Error fetching profile data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    if (confirm("Are you sure you want to logout?")) {
+    if (confirm('Are you sure you want to logout?')) {
       try {
-        await fetch("/api/auth/logout", { method: "POST" });
-        router.push("/login");
+        await fetch('/api/auth/logout', { method: 'POST' });
+        router.push('/login');
       } catch (error) {
-        console.error("Error logging out:", error);
+        console.error('Error logging out:', error);
       }
     }
   };
@@ -208,7 +202,7 @@ export default function ProfilePage() {
       <div className="profile-page">
         <div className="error-container">
           <p>Failed to load profile</p>
-          <button onClick={() => router.push("/")}>Go Home</button>
+          <button onClick={() => router.push('/')}>Go Home</button>
         </div>
       </div>
     );
@@ -219,7 +213,7 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <div className="profile-header">
         <div className="profile-banner"></div>
-
+        
         <div className="profile-info-section">
           <div className="profile-page-avatar-container">
             <div className="profile-page-avatar">
@@ -247,10 +241,9 @@ export default function ProfilePage() {
               </span>
               <span className="profile-joined">
                 <Calendar size={14} />
-                Joined{" "}
-                {new Date(profile.createdAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  year: "numeric",
+                Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  year: 'numeric' 
                 })}
               </span>
               {/* ADDED: Show level and points */}
@@ -266,10 +259,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="profile-actions">
-            <button
-              className="btn-secondary"
-              onClick={() => router.push("/settings")}
-            >
+            <button className="btn-secondary" onClick={() => router.push('/settings')}>
               <Settings size={18} />
               Settings
             </button>
@@ -283,18 +273,13 @@ export default function ProfilePage() {
 
       {/* Stats Cards */}
       <div className="stats-grid">
-        <div
-          className="stat-card"
-          onClick={() => router.push("/walletandpoints")}
-        >
+        <div className="stat-card" onClick={() => router.push('/walletandpoints')}>
           <div className="stat-icon wallet">
             <Wallet size={24} />
           </div>
           <div className="stat-content">
             <h3>Wallet Balance</h3>
-            <p className="stat-value">
-              {profile.totalPoints?.toLocaleString() || 0}
-            </p>
+            <p className="stat-value">{profile.totalPoints?.toLocaleString() || 0}</p>
             <span className="stat-link">
               View Wallet <ArrowRight size={14} />
             </span>
@@ -354,9 +339,7 @@ export default function ProfilePage() {
           <div className="stat-content">
             <h3>Login Streak</h3>
             <p className="stat-value">{profile.streak || 0}</p>
-            <span className="stat-label">
-              {profile.streak === 1 ? "day" : "days"} in a row
-            </span>
+            <span className="stat-label">{profile.streak === 1 ? 'day' : 'days'} in a row</span>
           </div>
         </div>
       </div>
@@ -364,22 +347,22 @@ export default function ProfilePage() {
       {/* Tabs */}
       <div className="profile-tabs">
         <button
-          className={`tab-btn ${activeTab === "events" ? "active" : ""}`}
-          onClick={() => setActiveTab("events")}
+          className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`}
+          onClick={() => setActiveTab('events')}
         >
           <Trophy size={18} />
           Registered Events ({registeredEvents.length})
         </button>
         <button
-          className={`tab-btn ${activeTab === "products" ? "active" : ""}`}
-          onClick={() => setActiveTab("products")}
+          className={`tab-btn ${activeTab === 'products' ? 'active' : ''}`}
+          onClick={() => setActiveTab('products')}
         >
           <Package size={18} />
           Purchased Products ({purchasedProducts.length})
         </button>
         <button
-          className={`tab-btn ${activeTab === "blogs" ? "active" : ""}`}
-          onClick={() => setActiveTab("blogs")}
+          className={`tab-btn ${activeTab === 'blogs' ? 'active' : ''}`}
+          onClick={() => setActiveTab('blogs')}
         >
           <FileText size={18} />
           My Blogs ({userBlogs.length})
@@ -389,17 +372,14 @@ export default function ProfilePage() {
       {/* Tab Content */}
       <div className="tab-content">
         {/* Events Tab */}
-        {activeTab === "events" && (
+        {activeTab === 'events' && (
           <div className="events-list">
             {registeredEvents.length === 0 ? (
               <div className="empty-state">
                 <Trophy className="empty-icon" />
                 <h3>No Events Yet</h3>
                 <p>You haven't registered for any events yet</p>
-                <button
-                  className="btn-primary"
-                  onClick={() => router.push("/events")}
-                >
+                <button className="btn-primary" onClick={() => router.push('/events')}>
                   Browse Events
                 </button>
               </div>
@@ -412,18 +392,16 @@ export default function ProfilePage() {
                       {event.status}
                     </span>
                   </div>
-
+                  
                   <div className="event-details">
                     <div className="detail-item">
                       <Calendar size={16} />
-                      <span>
-                        {new Date(event.eventDate).toLocaleDateString("en-US", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </span>
+                      <span>{new Date(event.eventDate).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}</span>
                     </div>
                     <div className="detail-item">
                       <MapPin size={16} />
@@ -441,10 +419,9 @@ export default function ProfilePage() {
 
                   <div className="event-footer">
                     <span className="event-date">
-                      Registered on{" "}
-                      {new Date(event.registeredAt).toLocaleDateString()}
+                      Registered on {new Date(event.registeredAt).toLocaleDateString()}
                     </span>
-                    <button
+                    <button 
                       className="btn-view"
                       onClick={() => router.push(`/events/${event.eventId}`)}
                     >
@@ -458,17 +435,14 @@ export default function ProfilePage() {
         )}
 
         {/* Products Tab */}
-        {activeTab === "products" && (
+        {activeTab === 'products' && (
           <div className="products-list">
             {purchasedProducts.length === 0 ? (
               <div className="empty-state">
                 <ShoppingBag className="empty-icon" />
                 <h3>No Products Yet</h3>
                 <p>You haven't purchased any products yet</p>
-                <button
-                  className="btn-primary"
-                  onClick={() => router.push("/shop")}
-                >
+                <button className="btn-primary" onClick={() => router.push('/shop')}>
                   Browse Shop
                 </button>
               </div>
@@ -478,7 +452,7 @@ export default function ProfilePage() {
                   <div className="product-image">
                     <img src={product.productImage} alt={product.productName} />
                   </div>
-
+                  
                   <div className="product-info">
                     <div className="product-header">
                       <h3>{product.productName}</h3>
@@ -486,7 +460,7 @@ export default function ProfilePage() {
                         {product.status}
                       </span>
                     </div>
-
+                    
                     <div className="product-details">
                       <div className="detail-row">
                         <span>Quantity:</span>
@@ -498,9 +472,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="detail-row">
                         <span>Total:</span>
-                        <strong className="total-amount">
-                          ₹{product.totalAmount.toLocaleString()}
-                        </strong>
+                        <strong className="total-amount">₹{product.totalAmount.toLocaleString()}</strong>
                       </div>
                     </div>
 
@@ -509,7 +481,7 @@ export default function ProfilePage() {
                         <Clock size={14} />
                         {new Date(product.purchaseDate).toLocaleDateString()}
                       </span>
-                      <button
+                      <button 
                         className="btn-view"
                         onClick={() => router.push(`/orders/${product._id}`)}
                       >
@@ -524,17 +496,14 @@ export default function ProfilePage() {
         )}
 
         {/* Blogs Tab */}
-        {activeTab === "blogs" && (
+        {activeTab === 'blogs' && (
           <div className="blogs-list">
             {userBlogs.length === 0 ? (
               <div className="empty-state">
                 <FileText className="empty-icon" />
                 <h3>No Blogs Yet</h3>
                 <p>You haven't written any blogs yet</p>
-                <button
-                  className="btn-primary"
-                  onClick={() => router.push("/admin/blog")}
-                >
+                <button className="btn-primary" onClick={() => router.push('/admin/blog')}>
                   Write Your First Blog
                 </button>
               </div>
@@ -574,7 +543,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="blog-actions">
-                      <button
+                      <button 
                         className="btn-view"
                         onClick={() => router.push(`/blog/${blog.slug}`)}
                       >
