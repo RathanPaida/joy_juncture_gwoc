@@ -19,17 +19,6 @@ export default function App() {
 
   return (
     <div className="relative bg-black min-h-screen overflow-hidden">
-      {/* Header */}
-      {/* <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-black/90 backdrop-blur-md' : 'bg-transparent'}`}>
-        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between"> */}
-          {/* Logo */}
-          {/* <div className="flex items-center gap-2"> */}
-            {/* <div className="text-orange-500 font-black text-2xl tracking-tighter leading-tight">
-              JOY<br />JUNCTURE
-            </div> */}
-          {/* </div>
-        </div>
-      </header> */}
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center px-4 pt-20">
@@ -83,17 +72,11 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <a 
-              href="/home" 
-              className="inline-block bg-gradient-to-r from-orange-500 to-orange-600 text-black font-black py-4 px-12 rounded-full text-lg hover:shadow-2xl hover:shadow-orange-500/50 transition-all duration-300 hover:scale-105"
-            >
-              Enter Joy Juncture
-            </a>
           </motion.div>
         </div>
 
         {/* Scroll Indicator */}
-        <motion.div 
+        {/* <motion.div 
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
@@ -105,7 +88,7 @@ export default function App() {
               className="w-1.5 h-1.5 bg-orange-500 rounded-full"
             />
           </div>
-        </motion.div>
+        </motion.div> */}
       </section>
 
       {/* Play Style Cards Section */}
