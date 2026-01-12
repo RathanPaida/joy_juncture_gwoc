@@ -2278,65 +2278,7 @@ export default function CardGamesPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer
-        style={{
-          padding: "40px 20px",
-          background: colors.dark,
-          borderTop: `1px solid ${colors.border}`,
-          textAlign: "center",
-        }}
-      >
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <h3
-            style={{
-              color: colors.text,
-              fontSize: "1.5rem",
-              fontWeight: 700,
-              marginBottom: "1rem",
-            }}
-          >
-            Joy Juncture Premium Card Games
-          </h3>
-          <p
-            style={{
-              color: colors.textLight,
-              fontSize: "1rem",
-              marginBottom: "2rem",
-              maxWidth: "600px",
-              margin: "0 auto 2rem",
-            }}
-          >
-            Professional card game event planning for all celebrations. Let us
-            make your event unforgettable!
-          </p>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "2rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ color: colors.textLight }}>📞 +91 12345 67890</div>
-            <div style={{ color: colors.textLight }}>
-              ✉️ contact@joyjuncture.com
-            </div>
-            <div style={{ color: colors.textLight }}>📍 Mumbai, India</div>
-          </div>
-          <div
-            style={{
-              marginTop: "2rem",
-              paddingTop: "2rem",
-              borderTop: `1px solid ${colors.border}`,
-              color: colors.textLight,
-              fontSize: "0.9rem",
-            }}
-          >
-            © {new Date().getFullYear()} Joy Juncture. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      
     </div>
   );
 }

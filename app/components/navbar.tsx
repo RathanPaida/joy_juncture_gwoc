@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { getAuth } from "firebase/auth";
+import Image from "next/image";
 import {
   FaUser,
   FaShoppingCart,
@@ -21,8 +22,6 @@ import {
   FaBook,
   FaCogs,
   FaHome,
-  FaTimes,
-  FaBars,
 } from "react-icons/fa";
 import "./Navbar.css";
 
@@ -45,7 +44,6 @@ const Navbar: React.FC = () => {
   const [userPoints, setUserPoints] = useState<number>(0);
   const [cartItems, setCartItems] = useState<number>(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
 
   const getFirebaseToken = async () => {
     const currentUser = auth.currentUser;
@@ -54,29 +52,6 @@ const Navbar: React.FC = () => {
     }
     return await currentUser.getIdToken();
   };
-
-  // Handle scroll for navbar background
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (isMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isMenuOpen]);
 
   // Fetch user points and cart items
   useEffect(() => {
@@ -89,6 +64,7 @@ const Navbar: React.FC = () => {
     try {
       const token = await getFirebaseToken();
 
+      // Fetch user profile to get points
       const profileRes = await fetch("/api/user/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -97,6 +73,15 @@ const Navbar: React.FC = () => {
         const data = await profileRes.json();
         setUserPoints(data.profile?.totalPoints || 0);
       }
+
+      // TODO: Fetch cart items count from your cart API
+      // const cartRes = await fetch('/api/cart', {
+      //   headers: { 'Authorization': `Bearer ${token}` }
+      // });
+      // if (cartRes.ok) {
+      //   const cartData = await cartRes.json();
+      //   setCartItems(cartData.items?.length || 0);
+      // }
 
       setCartItems(0); // Default to 0 for now
     } catch (error) {
@@ -121,7 +106,7 @@ const Navbar: React.FC = () => {
     {
       id: "games",
       label: "Games",
-      href: "/zone",
+      href: "/games",
       icon: <FaGamepad />,
     },
     {
@@ -129,6 +114,9 @@ const Navbar: React.FC = () => {
       label: "Events",
       href: "/events",
       icon: <FaCalendarAlt />,
+      dropdown: [
+        { id: "all-events", label: "All Events", href: "/events" },
+      ],
     },
     {
       id: "experiences",
@@ -159,7 +147,6 @@ const Navbar: React.FC = () => {
       await logout();
       router.push("/");
       setIsProfileOpen(false);
-      setIsMenuOpen(false);
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -176,7 +163,6 @@ const Navbar: React.FC = () => {
   const closeAllDropdowns = () => {
     setActiveDropdown(null);
     setIsProfileOpen(false);
-    setIsMenuOpen(false);
   };
 
   if (authLoading) {
@@ -191,17 +177,19 @@ const Navbar: React.FC = () => {
   }
 
   return (
-    <nav className={`navbar ${scrolled ? "scrolled" : ""}`}>
+    <nav className="navbar">
       <div className="nav-content">
-        {/* Logo */}
+        {/* Logo with Image */}
         <Link href="/" className="nav-logo" onClick={closeAllDropdowns}>
           <div className="logo-container">
+            {/* Using Image component with external URL */}
             <div className="logo-image">
               <img
-                src="https://res.cloudinary.com/dwvb2cgmq/image/upload/v1767973882/50a5ca49-d3e1-4441-89dd-4cfd1177c9b5.png"
+                src="https://res.cloudinary.com/dwvb2cgmq/image/upload/v1767973882/50a5ca49-d3e1-4441-89dd-4cfd1177c9b5.png" // Replace with your actual logo URL
                 alt="JoyJuncture Logo"
                 className="logo-img"
                 onError={(e) => {
+                  // Fallback if image fails to load
                   const target = e.target as HTMLImageElement;
                   target.style.display = "none";
                   const fallback =
@@ -211,6 +199,7 @@ const Navbar: React.FC = () => {
                   }
                 }}
               />
+              {/* Fallback logo */}
               <div className="logo-fallback">
                 <span className="logo-icon">🎮</span>
               </div>
@@ -218,19 +207,41 @@ const Navbar: React.FC = () => {
           </div>
         </Link>
 
-        {/* Desktop Navigation Items */}
-        <div className="nav-items desktop-nav">
+        {/* Mobile Menu Toggle */}
+        <button
+          className="mobile-menu-toggle"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <span className={`hamburger ${isMenuOpen ? "active" : ""}`}></span>
+        </button>
+
+        {/* Navigation Items */}
+        <div className={`nav-items ${isMenuOpen ? "active" : ""}`}>
           {navItems.map((item) => (
             <div
               key={item.id}
               className={`nav-item ${activeDropdown === item.id ? "active" : ""}`}
-              onMouseEnter={() => item.dropdown && setActiveDropdown(item.id)}
-              onMouseLeave={() => item.dropdown && setActiveDropdown(null)}
+              onMouseEnter={() =>
+                window.innerWidth > 768 &&
+                item.dropdown &&
+                setActiveDropdown(item.id)
+              }
+              onMouseLeave={() =>
+                window.innerWidth > 768 &&
+                item.dropdown &&
+                setActiveDropdown(null)
+              }
             >
               <Link
                 href={item.href}
                 className={`nav-link ${pathname === item.href ? "active" : ""}`}
-                onClick={() => !item.dropdown && closeAllDropdowns()}
+                onClick={() => {
+                  if (!item.dropdown) {
+                    closeAllDropdowns();
+                    setIsMenuOpen(false);
+                  }
+                }}
               >
                 {item.icon && <span className="nav-icon">{item.icon}</span>}
                 {item.label}
@@ -239,6 +250,7 @@ const Navbar: React.FC = () => {
                 )}
               </Link>
 
+              {/* Dropdown Menu */}
               {item.dropdown && activeDropdown === item.id && (
                 <div className="dropdown-menu">
                   {item.dropdown.map((subItem) => (
@@ -246,7 +258,10 @@ const Navbar: React.FC = () => {
                       key={subItem.id}
                       href={subItem.href}
                       className="dropdown-item"
-                      onClick={closeAllDropdowns}
+                      onClick={() => {
+                        closeAllDropdowns();
+                        setIsMenuOpen(false);
+                      }}
                     >
                       {subItem.label}
                     </Link>
@@ -259,11 +274,11 @@ const Navbar: React.FC = () => {
 
         {/* Right Side Actions */}
         <div className="nav-actions">
-          {/* Admin Dashboard Button (Desktop) */}
+          {/* Admin Dashboard Button (only for admins) */}
           {(isAdmin || user?.email === "paidarajarathan@gmail.com") && (
             <Link
               href="/admin/wallet"
-              className="admin-button desktop-only"
+              className="admin-button"
               onClick={closeAllDropdowns}
             >
               <FaCogs />
@@ -271,20 +286,17 @@ const Navbar: React.FC = () => {
             </Link>
           )}
 
-          {/* Wallet Balance (Desktop) */}
+          {/* Wallet Balance (only for logged in users) */}
           {user && (
-            <button
-              className="wallet-balance desktop-only"
-              onClick={() => {
-                router.push("/walletandpoints");
-                closeAllDropdowns();
-              }}
+            <div
+              className="wallet-balance"
+              onClick={() => router.push("/walletandpoints")}
             >
               <FaWallet />
               <span className="wallet-amount">
                 {userPoints.toLocaleString()} pts
               </span>
-            </button>
+            </div>
           )}
 
           {/* Cart Icon */}
@@ -293,14 +305,19 @@ const Navbar: React.FC = () => {
             {cartItems > 0 && <span className="cart-badge">{cartItems}</span>}
           </Link>
 
-          {/* Desktop User Profile */}
+          {/* User Profile or Auth Buttons */}
           {user ? (
             <div
-              className="user-profile desktop-only"
-              onMouseEnter={() => setIsProfileOpen(true)}
-              onMouseLeave={() => setIsProfileOpen(false)}
+              className="user-profile"
+              onMouseEnter={() =>
+                window.innerWidth > 768 && setIsProfileOpen(true)
+              }
             >
-              <button className="profile-button" aria-label="User profile">
+              <button
+                className="profile-button"
+                onClick={toggleProfile}
+                aria-label="User profile"
+              >
                 {user.photoURL ? (
                   <img
                     src={user.photoURL}
@@ -317,8 +334,14 @@ const Navbar: React.FC = () => {
                 />
               </button>
 
+              {/* Profile Dropdown */}
               {isProfileOpen && (
-                <div className="profile-dropdown">
+                <div
+                  className="profile-dropdown"
+                  onMouseLeave={() =>
+                    window.innerWidth > 768 && setIsProfileOpen(false)
+                  }
+                >
                   <div className="profile-header">
                     <div className="profile-info">
                       <h4>{user.displayName || "User"}</h4>
@@ -335,21 +358,30 @@ const Navbar: React.FC = () => {
                     <Link
                       href="/profile"
                       className="profile-link"
-                      onClick={closeAllDropdowns}
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        setIsMenuOpen(false);
+                      }}
                     >
                       <FaUser /> My Profile
                     </Link>
                     <Link
                       href="/cart"
                       className="profile-link"
-                      onClick={closeAllDropdowns}
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        setIsMenuOpen(false);
+                      }}
                     >
                       <FaShoppingCart /> My Orders
                     </Link>
                     <Link
                       href="/walletandpoints"
                       className="profile-link"
-                      onClick={closeAllDropdowns}
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        setIsMenuOpen(false);
+                      }}
                     >
                       <FaWallet /> My Wallet
                     </Link>
@@ -357,7 +389,10 @@ const Navbar: React.FC = () => {
                       <Link
                         href="/admin"
                         className="profile-link admin-link"
-                        onClick={closeAllDropdowns}
+                        onClick={() => {
+                          setIsProfileOpen(false);
+                          setIsMenuOpen(false);
+                        }}
                       >
                         <FaCogs /> Admin Dashboard
                       </Link>
@@ -373,7 +408,7 @@ const Navbar: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="auth-buttons desktop-only">
+            <div className="auth-buttons">
               <Link
                 href="/login"
                 className="login-button"
@@ -384,161 +419,6 @@ const Navbar: React.FC = () => {
               <Link
                 href="/register"
                 className="signup-button"
-                onClick={closeAllDropdowns}
-              >
-                <FaUserPlus /> Sign Up
-              </Link>
-            </div>
-          )}
-
-          {/* Mobile Menu Toggle */}
-          <button
-            className="mobile-menu-toggle"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? <FaTimes /> : <FaBars />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      <div className={`mobile-menu ${isMenuOpen ? "active" : ""}`}>
-        <div className="mobile-menu-content">
-          {/* Mobile User Info */}
-          {user && (
-            <div className="mobile-user-info">
-              <div className="mobile-user-avatar">
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || "User"}
-                    className="mobile-avatar-img"
-                  />
-                ) : (
-                  <div className="mobile-avatar-default">
-                    <FaUser />
-                  </div>
-                )}
-              </div>
-              <div className="mobile-user-details">
-                <h4>{user.displayName || "User"}</h4>
-                <p>{user.email}</p>
-                {isAdmin && (
-                  <span className="mobile-admin-badge">
-                    <FaCrown /> Admin
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Mobile Wallet */}
-          {user && (
-            <Link
-              href="/walletandpoints"
-              className="mobile-wallet"
-              onClick={closeAllDropdowns}
-            >
-              <FaWallet />
-              <span>Wallet Balance</span>
-              <span className="mobile-wallet-amount">
-                {userPoints.toLocaleString()} pts
-              </span>
-            </Link>
-          )}
-
-          {/* Mobile Navigation Items */}
-          <div className="mobile-nav-items">
-            {navItems.map((item) => (
-              <div key={item.id} className="mobile-nav-item">
-                {item.dropdown ? (
-                  <>
-                    <button
-                      className="mobile-nav-link"
-                      onClick={() => toggleDropdown(item.id)}
-                    >
-                      {item.icon && (
-                        <span className="mobile-nav-icon">{item.icon}</span>
-                      )}
-                      <span>{item.label}</span>
-                      <FaChevronDown
-                        className={`mobile-dropdown-chevron ${activeDropdown === item.id ? "active" : ""}`}
-                      />
-                    </button>
-                    {activeDropdown === item.id && (
-                      <div className="mobile-dropdown">
-                        {item.dropdown.map((subItem) => (
-                          <Link
-                            key={subItem.id}
-                            href={subItem.href}
-                            className="mobile-dropdown-item"
-                            onClick={closeAllDropdowns}
-                          >
-                            {subItem.label}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <Link
-                    href={item.href}
-                    className={`mobile-nav-link ${pathname === item.href ? "active" : ""}`}
-                    onClick={closeAllDropdowns}
-                  >
-                    {item.icon && (
-                      <span className="mobile-nav-icon">{item.icon}</span>
-                    )}
-                    <span>{item.label}</span>
-                  </Link>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Mobile User Actions */}
-          {user ? (
-            <div className="mobile-user-actions">
-              <Link
-                href="/profile"
-                className="mobile-action-link"
-                onClick={closeAllDropdowns}
-              >
-                <FaUser /> My Profile
-              </Link>
-              <Link
-                href="/cart"
-                className="mobile-action-link"
-                onClick={closeAllDropdowns}
-              >
-                <FaShoppingCart /> My Orders
-              </Link>
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="mobile-action-link admin"
-                  onClick={closeAllDropdowns}
-                >
-                  <FaCogs /> Admin Dashboard
-                </Link>
-              )}
-              <button onClick={handleLogout} className="mobile-logout-button">
-                <FaSignOutAlt /> Logout
-              </button>
-            </div>
-          ) : (
-            <div className="mobile-auth-buttons">
-              <Link
-                href="/login"
-                className="mobile-login-button"
-                onClick={closeAllDropdowns}
-              >
-                <FaSignInAlt /> Login
-              </Link>
-              <Link
-                href="/register"
-                className="mobile-signup-button"
                 onClick={closeAllDropdowns}
               >
                 <FaUserPlus /> Sign Up
