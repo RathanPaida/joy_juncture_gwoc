@@ -221,8 +221,8 @@ export default function ProfilePage() {
         <div className="profile-banner"></div>
 
         <div className="profile-info-section">
-          <div className="profile-avatar-container">
-            <div className="profile-avatar">
+          <div className="profile-page-avatar-container">
+            <div className="profile-page-avatar">
               {profile.photoURL ? (
                 <img src={profile.photoURL} alt={profile.displayName} />
               ) : (
