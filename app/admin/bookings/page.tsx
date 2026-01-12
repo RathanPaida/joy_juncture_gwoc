@@ -6,7 +6,9 @@ import { Trash2, Edit, Check, X, Plus, ArrowLeft } from "lucide-react";
 import { getAuth, getIdToken, onAuthStateChanged } from "firebase/auth";
 import { app } from "@/lib/firebase";
 
+
 const auth = getAuth(app);
+
 
 interface Booking {
   id: string;

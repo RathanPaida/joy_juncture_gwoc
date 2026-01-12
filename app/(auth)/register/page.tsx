@@ -1,25 +1,131 @@
-// app/register/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithPopup,
+  getRedirectResult,
+} from "firebase/auth";
+import { auth, googleProvider, db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import "./register.css";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [step, setStep] = useState<'form' | 'otp'>('form');
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
+  const [otp, setOtp] = useState("");
+  const [generatedOtp, setGeneratedOtp] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [tempUserData, setTempUserData] = useState<any>(null);
+
+  // Helper function to sync user to MongoDB
+  const syncUserToMongoDB = async (user: any, additionalData: any = {}) => {
+    try {
+      const idToken = await user.getIdToken();
+      
+      console.log('🔄 Syncing user to MongoDB...', user.uid);
+      
+      const response = await fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          email: user.email,
+          name: additionalData.name || user.displayName || user.email?.split('@')[0],
+          avatar: additionalData.avatar || user.photoURL || 'https://i.pravatar.cc/150?img=12',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('⚠️ MongoDB sync failed:', errorData);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log('✅ User synced to MongoDB successfully:', data);
+      return data;
+    } catch (error: any) {
+      console.error('❌ MongoDB sync error:', error);
+      return null;
+    }
+  };
+
+  // Handle redirect result from Google Sign-In
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const wasGoogleSignIn = sessionStorage.getItem('googleSignInAttempt');
+        if (!wasGoogleSignIn) return;
+
+        setGoogleLoading(true);
+        const result = await getRedirectResult(auth);
+        
+        if (result && result.user) {
+          sessionStorage.removeItem('googleSignInAttempt');
+          const user = result.user;
+          const isAdmin = user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+
+          // Save to Firestore
+          if (db) {
+            await setDoc(doc(db, 'users', user.uid), {
+              uid: user.uid,
+              email: user.email,
+              username: user.email?.split('@')[0] || 'user',
+              name: user.displayName || '',
+              photoURL: user.photoURL || 'https://i.pravatar.cc/150?img=12',
+              occupation: null,
+              phone: null,
+              dob: null,
+              gender: null,
+              isProfileComplete: false,
+              role: isAdmin ? 'admin' : 'user',
+              status: 'active',
+              theme: 'dark',
+              reminders: true,
+              emailVerified: true,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            }, { merge: true });
+          }
+
+          // Sync to MongoDB
+          await syncUserToMongoDB(user, {
+            name: user.displayName,
+            avatar: user.photoURL,
+          });
+
+          if (isAdmin) {
+            router.push("/admin/dashboard");
+          } else {
+            router.push("/home");
+          }
+        }
+      } catch (err: any) {
+        console.error("Redirect result error:", err);
+        sessionStorage.removeItem('googleSignInAttempt');
+        setError("Google sign-in failed. Please try again.");
+      } finally {
+        setGoogleLoading(false);
+      }
+    };
+
+    handleRedirectResult();
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,11 +135,74 @@ export default function RegisterPage() {
     }));
   };
 
+  // Generate 6-digit OTP
+  const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  // Send OTP via email
+  const sendOTPEmail = async (email: string, otpCode: string) => {
+    const emailJsConfigured = 
+      process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID &&
+      process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID &&
+      process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
+
+    if (emailJsConfigured) {
+      try {
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            service_id: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
+            template_id: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+            user_id: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY,
+            template_params: {
+              user_email: email,
+              passcode: otpCode,
+              time: '15 minutes',
+            }
+          })
+        });
+
+        if (response.ok) {
+          console.log('✅ OTP sent via EmailJS');
+          return true;
+        } else {
+          const errorData = await response.text();
+          console.error('EmailJS error:', errorData);
+          throw new Error('EmailJS failed');
+        }
+      } catch (error) {
+        console.warn('EmailJS failed, using development mode:', error);
+      }
+    }
+
+    // Development mode fallback
+    console.log('🔐 DEVELOPMENT MODE - OTP for', email, ':', otpCode);
+    console.log('%c OTP CODE: ' + otpCode, 'background: #222; color: #bada55; font-size: 20px; padding: 10px;');
+    
+    const userConfirmed = window.confirm(
+      `📧 EMAIL SERVICE NOT CONFIGURED\n\n` +
+      `Your OTP code is: ${otpCode}\n\n` +
+      `Copy this code and click OK to continue.\n` +
+      `(In production, this will be sent to your email)`
+    );
+    
+    if (!userConfirmed) {
+      throw new Error('User cancelled OTP');
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
-    // Simple validation
+    // Validation
     if (!formData.name.trim()) {
       setError("Name is required");
       return;
@@ -62,42 +231,141 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Create user with Firebase
-      await createUserWithEmailAndPassword(
+      // Generate OTP
+      const otpCode = generateOTP();
+      setGeneratedOtp(otpCode);
+
+      // Send OTP to email
+      await sendOTPEmail(formData.email, otpCode);
+
+      // Store form data temporarily
+      setTempUserData(formData);
+
+      // Move to OTP verification step
+      setStep('otp');
+      setSuccess(`OTP sent to ${formData.email}`);
+      
+    } catch (err: any) {
+      console.error("Error sending OTP:", err);
+      setError("Failed to send OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      // Verify OTP
+      if (otp !== generatedOtp) {
+        setError("Invalid OTP. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("✅ OTP verified! Creating account...");
+
+      // Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
         auth,
-        formData.email,
-        formData.password,
+        tempUserData.email,
+        tempUserData.password,
       );
 
-      // Store in localStorage
-      localStorage.setItem("userName", formData.name);
-      localStorage.setItem("userEmail", formData.email);
+      const user = userCredential.user;
+      console.log("✅ User created in Firebase Auth:", user.uid);
 
-      // Check if admin (from .env)
-      const isAdmin = formData.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-      localStorage.setItem("isAdmin", isAdmin ? "true" : "false");
+      // Check if admin
+      const isAdmin = tempUserData.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+      const autoUsername = tempUserData.email.split('@')[0];
 
-      // Redirect
-      if (isAdmin) {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/home");
+      // Save to Firestore
+      if (db) {
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            email: user.email,
+            username: autoUsername,
+            name: tempUserData.name,
+            photoURL: 'https://i.pravatar.cc/150?img=12',
+            occupation: null,
+            phone: null,
+            dob: null,
+            gender: null,
+            isProfileComplete: false,
+            role: isAdmin ? 'admin' : 'user',
+            status: 'active',
+            theme: 'dark',
+            reminders: true,
+            emailVerified: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          console.log("✅ User saved to Firestore");
+        } catch (firestoreError) {
+          console.warn("⚠️ Firestore save failed:", firestoreError);
+        }
       }
-    } catch (err: any) {
-      console.error("Registration error:", err);
 
-      // Simple error messages
+      // Sync to MongoDB - CRITICAL STEP
+      const syncResult = await syncUserToMongoDB(user, {
+        name: tempUserData.name,
+        avatar: 'https://i.pravatar.cc/150?img=12',
+      });
+
+      if (!syncResult) {
+        console.warn("⚠️ MongoDB sync failed, but account was created");
+      }
+
+      // Success!
+      alert("✅ Account created successfully!");
+
+      // Clear form
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
+      setOtp("");
+      setAgreeTerms(false);
+      setTempUserData(null);
+
+      // Redirect to login
+      router.push("/login");
+
+    } catch (err: any) {
+      console.error("❌ Registration error:", err);
+
       if (err.code === "auth/email-already-in-use") {
         setError("Email already in use. Please login instead.");
       } else if (err.code === "auth/weak-password") {
-        setError("Password is too weak. Please use a stronger password.");
+        setError("Password is too weak.");
       } else if (err.code === "auth/invalid-email") {
         setError("Invalid email address.");
       } else {
-        setError("Registration failed. Please try again.");
+        setError(`Registration failed: ${err.message}`);
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setError("");
+    setSuccess("");
+    
+    const otpCode = generateOTP();
+    setGeneratedOtp(otpCode);
+    
+    try {
+      await sendOTPEmail(tempUserData.email, otpCode);
+      setSuccess("OTP resent successfully!");
+    } catch (err) {
+      setError("Failed to resend OTP");
     }
   };
 
@@ -106,47 +374,178 @@ export default function RegisterPage() {
     setGoogleLoading(true);
 
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      // Try popup first
+      let result;
+      try {
+        result = await signInWithPopup(auth, googleProvider);
+      } catch (popupError: any) {
+        // If popup is blocked, use redirect method
+        if (popupError.code === 'auth/popup-blocked') {
+          console.log('Popup blocked, using redirect...');
+          sessionStorage.setItem('googleSignInAttempt', 'true');
+          const { signInWithRedirect } = await import('firebase/auth');
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        }
+        throw popupError;
+      }
+
       const user = result.user;
-
-      // Store user info
-      localStorage.setItem("userName", user.displayName || "");
-      localStorage.setItem("userEmail", user.email || "");
-      localStorage.setItem("userPhoto", user.photoURL || "");
-
-      // Check if admin (compare with .env email)
       const isAdmin = user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-      localStorage.setItem("isAdmin", isAdmin ? "true" : "false");
 
-      // Redirect
+      // Save to Firestore
+      if (db) {
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            email: user.email,
+            username: user.email?.split('@')[0] || 'user',
+            name: user.displayName || '',
+            photoURL: user.photoURL || 'https://i.pravatar.cc/150?img=12',
+            occupation: null,
+            phone: null,
+            dob: null,
+            gender: null,
+            isProfileComplete: false,
+            role: isAdmin ? 'admin' : 'user',
+            status: 'active',
+            theme: 'dark',
+            reminders: true,
+            emailVerified: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+          console.log("✅ Google user saved to Firestore");
+        } catch (firestoreError) {
+          console.warn("⚠️ Firestore save failed:", firestoreError);
+        }
+      }
+
+      // Sync to MongoDB
+      await syncUserToMongoDB(user, {
+        name: user.displayName,
+        avatar: user.photoURL,
+      });
+
       if (isAdmin) {
         router.push("/admin/dashboard");
       } else {
         router.push("/home");
       }
     } catch (err: any) {
-      console.error("Google sign-up error:", err);
-
-      if (err.code === "auth/popup-closed-by-user") {
+      console.error("❌ Google sign-up error:", err);
+      
+      if (err.code === 'auth/popup-blocked') {
+        setError("Please allow popups for this site, or we'll redirect you automatically.");
+      } else if (err.code === "auth/popup-closed-by-user") {
         setError("Sign-up popup was closed. Please try again.");
-      } else if (err.code === "auth/popup-blocked") {
-        setError(
-          "Popup was blocked by your browser. Please allow popups for this site.",
-        );
       } else if (err.code === "auth/cancelled-popup-request") {
         setError("Sign-up was cancelled.");
       } else if (err.code === "auth/account-exists-with-different-credential") {
-        setError(
-          "An account already exists with the same email address but different sign-in credentials.",
-        );
+        setError("An account already exists with the same email address but different sign-in credentials.");
       } else {
-        setError("Failed to sign up with Google. Please try again.");
+        setError(`Google sign-up failed: ${err.message || 'Please try again.'}`);
       }
     } finally {
       setGoogleLoading(false);
     }
   };
 
+  // OTP Input Step
+  if (step === 'otp') {
+    return (
+      <div className="register-container">
+        <div className="register-card">
+          <div className="register-header">
+            <h1 className="logo">
+              Joy<span className="logo-accent">Juncture</span>
+            </h1>
+            <h2>Verify Your Email</h2>
+            <p className="subtitle">Enter the 6-digit code sent to {tempUserData?.email}</p>
+          </div>
+
+          <form onSubmit={handleVerifyOTP} className="register-form">
+            {error && (
+              <div className="error-message">
+                <span>{error}</span>
+              </div>
+            )}
+
+            {success && (
+              <div className="success-message" style={{
+                padding: '12px',
+                backgroundColor: '#d4edda',
+                color: '#155724',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                textAlign: 'center'
+              }}>
+                <span>{success}</span>
+              </div>
+            )}
+
+            <div className="input-group">
+              <label htmlFor="otp">Verification Code</label>
+              <input
+                type="text"
+                id="otp"
+                name="otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="Enter 6-digit OTP"
+                maxLength={6}
+                required
+                style={{
+                  textAlign: 'center',
+                  fontSize: '24px',
+                  letterSpacing: '8px',
+                  fontWeight: 'bold'
+                }}
+              />
+            </div>
+
+            <button type="submit" className="register-btn" disabled={loading || otp.length !== 6}>
+              {loading ? "Verifying..." : "Verify & Create Account"}
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+              <button
+                type="button"
+                onClick={handleResendOTP}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#10B981',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Resend OTP
+              </button>
+              <span style={{ margin: '0 8px', color: '#64748B' }}>|</span>
+              <button
+                type="button"
+                onClick={() => setStep('form')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#10B981',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Change Email
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Registration Form Step
   return (
     <div className="register-container">
       <div className="register-card">
@@ -240,7 +639,7 @@ export default function RegisterPage() {
           </div>
 
           <button type="submit" className="register-btn" disabled={loading}>
-            {loading ? "Creating Account..." : "Create Account"}
+            {loading ? "Sending OTP..." : "Send OTP"}
           </button>
 
           <div className="divider">
@@ -252,6 +651,10 @@ export default function RegisterPage() {
             className="google-btn"
             onClick={handleGoogleSignUp}
             disabled={googleLoading}
+            style={{
+              opacity: googleLoading ? 0.7 : 1,
+              cursor: googleLoading ? 'not-allowed' : 'pointer',
+            }}
           >
             <svg className="google-icon" viewBox="0 0 24 24">
               <path
@@ -273,6 +676,17 @@ export default function RegisterPage() {
             </svg>
             {googleLoading ? "Signing up..." : "Sign up with Google"}
           </button>
+
+          {googleLoading && (
+            <p style={{ 
+              textAlign: 'center', 
+              color: '#64748B', 
+              fontSize: '13px',
+              marginTop: '12px'
+            }}>
+              Please wait, redirecting to Google...
+            </p>
+          )}
 
           <p className="login-link">
             Already have an account? <Link href="/login">Sign in</Link>

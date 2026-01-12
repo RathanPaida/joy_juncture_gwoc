@@ -383,10 +383,6 @@ const AdminBlogPage: React.FC = () => {
           <p>{accessError}</p>
           <div className="access-denied-actions">
             <button onClick={() => router.push("/")}>Go Home</button>
-            <button onClick={() => router.push("/login")}>Login</button>
-            <button onClick={() => router.push("/admin/setup")}>
-              Setup Admin
-            </button>
           </div>
           <div className="help-text">
             <h3>Need admin access?</h3>

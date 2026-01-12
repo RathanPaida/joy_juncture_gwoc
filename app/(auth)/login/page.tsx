@@ -1,10 +1,14 @@
 // app/login/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { 
+  signInWithEmailAndPassword, 
+  signInWithPopup,
+  getRedirectResult 
+} from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import "./login.css";
 
@@ -16,6 +20,87 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // Helper function to sync user to MongoDB
+  const syncUserToMongoDB = async (user: any) => {
+    try {
+      const idToken = await user.getIdToken();
+      
+      console.log('🔄 Syncing user to MongoDB on login...', user.uid);
+      
+      const response = await fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.displayName || user.email?.split('@')[0],
+          avatar: user.photoURL || 'https://i.pravatar.cc/150?img=12',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('⚠️ MongoDB sync failed:', errorData);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log('✅ User synced to MongoDB on login:', data);
+      return data;
+    } catch (error: any) {
+      console.error('❌ MongoDB sync error on login:', error);
+      // Don't throw - allow login to continue even if sync fails
+      return null;
+    }
+  };
+
+  // Handle redirect result from Google Sign-In
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const wasGoogleSignIn = sessionStorage.getItem('googleSignInAttempt');
+        if (!wasGoogleSignIn) return;
+
+        setGoogleLoading(true);
+        const result = await getRedirectResult(auth);
+        
+        if (result && result.user) {
+          sessionStorage.removeItem('googleSignInAttempt');
+          const user = result.user;
+
+          // Sync to MongoDB
+          await syncUserToMongoDB(user);
+
+          // Store user info
+          localStorage.setItem("userEmail", user.email || "");
+          localStorage.setItem("userName", user.displayName || "");
+          localStorage.setItem("userPhoto", user.photoURL || "");
+
+          // Check if admin
+          const isAdmin = user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+          localStorage.setItem("isAdmin", isAdmin ? "true" : "false");
+
+          // Redirect
+          if (isAdmin) {
+            router.push("/admin/dashboard");
+          } else {
+            router.push("/home");
+          }
+        }
+      } catch (err: any) {
+        console.error("Redirect result error:", err);
+        sessionStorage.removeItem('googleSignInAttempt');
+        setError("Google sign-in failed. Please try again.");
+      } finally {
+        setGoogleLoading(false);
+      }
+    };
+
+    handleRedirectResult();
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -23,7 +108,13 @@ export default function LoginPage() {
 
     try {
       // Sign in with Firebase
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      console.log("✅ User logged in:", user.uid);
+
+      // Sync to MongoDB - CRITICAL for old users
+      await syncUserToMongoDB(user);
 
       // Check if it's admin (from .env)
       const isAdmin = email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
@@ -46,10 +137,16 @@ export default function LoginPage() {
         setError("No account found with this email.");
       } else if (err.code === "auth/invalid-credential") {
         setError(
-          "Incorrect Email id or password,If you are new please register",
+          "Incorrect Email id or password, If you are new please register",
         );
       } else if (err.code === "auth/invalid-email") {
         setError("Please enter a valid email address.");
+      } else if (err.code === "auth/wrong-password") {
+        setError("Incorrect password. Please try again.");
+      } else if (err.code === "auth/user-disabled") {
+        setError("This account has been disabled.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError("Too many failed attempts. Please try again later.");
       } else {
         setError("Login failed. Please try again.");
       }
@@ -63,8 +160,28 @@ export default function LoginPage() {
     setGoogleLoading(true);
 
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      let result;
+      
+      // Try popup first
+      try {
+        result = await signInWithPopup(auth, googleProvider);
+      } catch (popupError: any) {
+        // If popup is blocked, use redirect
+        if (popupError.code === 'auth/popup-blocked') {
+          console.log('Popup blocked, using redirect...');
+          sessionStorage.setItem('googleSignInAttempt', 'true');
+          const { signInWithRedirect } = await import('firebase/auth');
+          await signInWithRedirect(auth, googleProvider);
+          return; // Function will complete after redirect
+        }
+        throw popupError;
+      }
+
       const user = result.user;
+      console.log("✅ Google login successful:", user.uid);
+
+      // Sync to MongoDB - CRITICAL for all users
+      await syncUserToMongoDB(user);
 
       // Store user info
       localStorage.setItem("userEmail", user.email || "");
@@ -92,6 +209,8 @@ export default function LoginPage() {
         );
       } else if (err.code === "auth/cancelled-popup-request") {
         setError("Sign-in was cancelled.");
+      } else if (err.code === "auth/account-exists-with-different-credential") {
+        setError("An account already exists with the same email address but different sign-in credentials.");
       } else {
         setError("Failed to sign in with Google. Please try again.");
       }
@@ -166,6 +285,10 @@ export default function LoginPage() {
             className="google-btn"
             onClick={handleGoogleSignIn}
             disabled={googleLoading}
+            style={{
+              opacity: googleLoading ? 0.7 : 1,
+              cursor: googleLoading ? 'not-allowed' : 'pointer',
+            }}
           >
             <svg className="google-icon" viewBox="0 0 24 24">
               <path
@@ -187,6 +310,17 @@ export default function LoginPage() {
             </svg>
             {googleLoading ? "Signing in..." : "Sign in with Google"}
           </button>
+
+          {googleLoading && (
+            <p style={{ 
+              textAlign: 'center', 
+              color: '#64748B', 
+              fontSize: '13px',
+              marginTop: '12px'
+            }}>
+              Please wait, processing...
+            </p>
+          )}
 
           <p className="register-link">
             Don&apos;t have an account? <Link href="/register">Sign up</Link>
