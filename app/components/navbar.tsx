@@ -106,7 +106,7 @@ const Navbar: React.FC = () => {
     {
       id: "games",
       label: "Games",
-      href: "/games",
+      href: "/zone",
       icon: <FaGamepad />,
     },
     {

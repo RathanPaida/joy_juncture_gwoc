@@ -15,7 +15,7 @@ const CATEGORIES = [
 ];
 
 export default function CreateBlogPage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -45,7 +45,13 @@ export default function CreateBlogPage() {
     setLoading(true);
 
     try {
-      const token = await user.getIdToken();
+      const token = await getToken();
+      
+      if (!token) {
+        alert("Authentication token not available. Please login again.");
+        router.push("/login");
+        return;
+      }
 
       const tags = formData.tags
         .split(",")

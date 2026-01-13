@@ -1,6 +1,4 @@
-
-
-// app/app/contextss/AuthContext.tsx - ADD DAILY LOGIN LOGIC - ADD DAILY LOGIN LOGIC
+// app/contexts/AuthContext.tsx
 "use client";
 
 import React, {
@@ -26,7 +24,9 @@ import { app } from "@/lib/firebase";
 interface AuthContextType {
   user: any;
   loading: boolean;
-  isAdmin: boolean; // ADDED
+  isAdmin: boolean;
+  firebaseUser: FirebaseUser | null; // Added Firebase user reference
+  getToken: () => Promise<string | null>; // Added token getter
   login: (
     email: string,
     password: string,
@@ -59,14 +59,29 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const auth = getAuth(app);
   const googleProvider = new GoogleAuthProvider();
 
-  // ADDED: Check and claim daily login bonus
-  const checkDailyLogin = async (firebaseUser: FirebaseUser) => {
+  // Centralized token getter
+  const getToken = async (): Promise<string | null> => {
+    if (firebaseUser) {
+      return await firebaseUser.getIdToken();
+    }
+    
+    // Fallback to session token for local auth
+    const sessionToken = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("session="))
+      ?.split("=")[1];
+    
+    return sessionToken || null;
+  };
+
+  // Check and claim daily login bonus
+  const checkDailyLogin = async (token: string) => {
     try {
-      const token = await firebaseUser.getIdToken();
       const response = await fetch("/api/wallet/daily-login", {
         method: "POST",
         headers: {
@@ -80,7 +95,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Show notification if new login bonus was claimed
         if (data.newLogin && data.pointsEarned) {
-          // You can show a toast/notification here
           console.log(
             `🎉 Daily login bonus: +${data.pointsEarned} points! (${data.currentStreak} day streak)`,
           );
@@ -95,7 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           }
 
-          // Optional: Show alert (you can replace with a better toast notification)
+          // Optional: Show alert
           setTimeout(() => {
             if (typeof window !== "undefined") {
               alert(
@@ -114,12 +128,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Check Firebase auth first
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setFirebaseUser(fbUser);
+
+      if (fbUser) {
         // Firebase user is logged in, sync with MongoDB
         try {
-          const token = await firebaseUser.getIdToken();
+          const token = await fbUser.getIdToken();
           const response = await fetch("/api/auth/sync", {
             method: "POST",
             headers: {
@@ -127,25 +142,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              name: firebaseUser.displayName,
-              avatar: firebaseUser.photoURL,
+              uid: fbUser.uid,
+              email: fbUser.email,
+              name: fbUser.displayName,
+              avatar: fbUser.photoURL,
             }),
           });
 
           if (response.ok) {
             const userData = await response.json();
-            setUser({ ...firebaseUser, ...userData });
+            setUser({
+              uid: fbUser.uid,
+              email: fbUser.email,
+              displayName: fbUser.displayName,
+              photoURL: fbUser.photoURL,
+              ...userData,
+            });
 
-            // ADDED: Check and claim daily login bonus
-            await checkDailyLogin(firebaseUser);
+            // Check and claim daily login bonus
+            await checkDailyLogin(token);
           } else {
-            setUser(firebaseUser);
+            setUser({
+              uid: fbUser.uid,
+              email: fbUser.email,
+              displayName: fbUser.displayName,
+              photoURL: fbUser.photoURL,
+            });
           }
         } catch (error) {
           console.error("Error syncing user:", error);
-          setUser(firebaseUser);
+          setUser({
+            uid: fbUser.uid,
+            email: fbUser.email,
+            displayName: fbUser.displayName,
+            photoURL: fbUser.photoURL,
+          });
         }
       } else {
         // Check for local auth session
@@ -165,9 +196,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (response.ok) {
               const userData = await response.json();
               setUser(userData);
+            } else {
+              setUser(null);
             }
           } catch (error) {
             console.error("Error fetching local user:", error);
+            setUser(null);
           }
         } else {
           setUser(null);
@@ -213,6 +247,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Clear local session
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
+    setFirebaseUser(null);
   };
 
   const register = async (
@@ -257,11 +292,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) return;
 
     try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("No authentication token available");
+      }
+
       const response = await fetch("/api/wallet/add-points", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: user.uid ? `Bearer ${await user.getIdToken()}` : "",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: "manual",
@@ -281,13 +321,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     user,
+    firebaseUser,
     loading,
+    isAdmin: false,
+    getToken,
     login,
     logout,
     register,
     loginWithGoogle,
     updateUserPoints,
-    isAdmin: false,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
