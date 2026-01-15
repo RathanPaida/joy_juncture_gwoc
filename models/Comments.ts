@@ -1,5 +1,5 @@
 // models/Comment.ts
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface IComment extends Document {
   blogId: string;
@@ -19,41 +19,41 @@ const CommentSchema = new Schema<IComment>(
     blogId: {
       type: String,
       required: true,
-      index: true
+      index: true,
     },
     userId: {
       type: String,
-      required: true
+      required: true,
     },
     userName: {
       type: String,
-      required: true
+      required: true,
     },
     userAvatar: {
       type: String,
-      default: null
+      default: null,
     },
     content: {
       type: String,
       required: true,
-      maxlength: 1000
+      maxlength: 1000,
     },
     parentId: {
       type: String,
-      default: null
+      default: null,
     },
     likes: {
       type: Number,
-      default: 0
+      default: 0,
     },
     likedBy: {
       type: [String],
-      default: []
-    }
+      default: [],
+    },
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
 // Indexes
@@ -61,4 +61,5 @@ CommentSchema.index({ blogId: 1, createdAt: -1 });
 CommentSchema.index({ parentId: 1 });
 CommentSchema.index({ userId: 1 });
 
-export const Comment = mongoose.models.Comment || mongoose.model<IComment>('Comment', CommentSchema);
+export const Comment =
+  mongoose.models.Comment || mongoose.model<IComment>("Comment", CommentSchema);

@@ -1,5 +1,5 @@
-import { IBlog } from '../../../models/Blog';
-import BlogCard from './BlogCard';
+import { IBlog } from "../../../models/Blog";
+import BlogCard from "./BlogCard";
 
 interface BlogGridProps {
   blogs: IBlog[];

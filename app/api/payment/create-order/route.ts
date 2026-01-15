@@ -1,10 +1,10 @@
 // app/api/payment/create-order/route.ts - ADD PAYMENT METHOD
-import { NextRequest, NextResponse } from 'next/server';
-import Razorpay from 'razorpay';
-import connectDb from '@/lib/mongodb';
-import { Order } from '@/models/Order';
-import { User } from '@/models/User';
-import { verifyIdToken } from '@/lib/firebase-admin';
+import { NextRequest, NextResponse } from "next/server";
+import Razorpay from "razorpay";
+import connectDb from "@/lib/mongodb";
+import { Order } from "@/models/Order";
+import { User } from "@/models/User";
+import { verifyIdToken } from "@/lib/firebase-admin";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -16,23 +16,23 @@ export async function POST(request: NextRequest) {
     await connectDb();
 
     // Verify Firebase token
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
+        { error: "Unauthorized - No token provided" },
+        { status: 401 },
       );
     }
 
-    const token = authHeader.split('Bearer ')[1];
+    const token = authHeader.split("Bearer ")[1];
     let decodedToken;
-    
+
     try {
       decodedToken = await verifyIdToken(token);
     } catch (error: any) {
       return NextResponse.json(
-        { error: error.message || 'Invalid token' },
-        { status: 401 }
+        { error: error.message || "Invalid token" },
+        { status: 401 },
       );
     }
 
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
 
     if (!amount || !cartItems || !shippingAddress || !cartItems.length) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
+        { error: "Missing required fields" },
+        { status: 400 },
       );
     }
 
@@ -51,14 +51,18 @@ export async function POST(request: NextRequest) {
     const user = await User.findOne({ firebaseUid: firebaseUid });
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found in database. Please complete your profile first.' },
-        { status: 404 }
+        {
+          error:
+            "User not found in database. Please complete your profile first.",
+        },
+        { status: 404 },
       );
     }
 
     // Calculate totals
-    const subtotal = cartItems.reduce((sum: number, item: any) => 
-      sum + (item.price * item.quantity), 0
+    const subtotal = cartItems.reduce(
+      (sum: number, item: any) => sum + item.price * item.quantity,
+      0,
     );
     const shipping = subtotal > 500 ? 0 : 50;
     const tax = subtotal * 0.18;
@@ -72,15 +76,15 @@ export async function POST(request: NextRequest) {
         firebaseUid: firebaseUid,
         productId: item.productId,
         productName: item.productName,
-        productImage: item.productImage || '',
+        productImage: item.productImage || "",
         quantity: item.quantity || 1,
         price: item.price,
         totalAmount: item.price * (item.quantity || 1),
         purchaseDate: new Date(),
-        status: 'processing',
-        paymentMethod: 'razorpay', // Added required field
+        status: "processing",
+        paymentMethod: "razorpay", // Added required field
         shippingAddress: shippingAddress,
-        trackingNumber: null
+        trackingNumber: null,
       };
 
       const order = await Order.create(orderData);
@@ -90,12 +94,12 @@ export async function POST(request: NextRequest) {
     // Create Razorpay order
     const options = {
       amount: Math.round(total * 100),
-      currency: 'INR',
+      currency: "INR",
       receipt: `receipt_${orders[0]._id}`,
       notes: {
-        orderIds: orders.map(o => o._id.toString()).join(','),
+        orderIds: orders.map((o) => o._id.toString()).join(","),
         firebaseUid: firebaseUid,
-        itemCount: cartItems.length
+        itemCount: cartItems.length,
       },
     };
 
@@ -105,18 +109,19 @@ export async function POST(request: NextRequest) {
       ...razorpayOrder,
       notes: {
         ...razorpayOrder.notes,
-        orders: orders.map(o => o._id.toString())
-      }
+        orders: orders.map((o) => o._id.toString()),
+      },
     });
   } catch (error: any) {
-    console.error('❌ ERROR in payment/create-order:', error);
-    
+    console.error("❌ ERROR in payment/create-order:", error);
+
     return NextResponse.json(
-      { 
-        error: error.message || 'Failed to create payment order',
-        details: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+      {
+        error: error.message || "Failed to create payment order",
+        details:
+          process.env.NODE_ENV === "development" ? error.toString() : undefined,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -6,11 +6,25 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import {
-  Search, Filter, Trash2, Eye, Shield, MessageSquare,
-  User, Clock, TrendingUp, ChevronLeft, ChevronRight,
-  CheckCircle, XCircle, Pin, AlertTriangle, Archive, ArchiveRestore
+  Search,
+  Filter,
+  Trash2,
+  Eye,
+  Shield,
+  MessageSquare,
+  User,
+  Clock,
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
+  XCircle,
+  Pin,
+  AlertTriangle,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
-import './community-admin.css';
+import "./community-admin.css";
 
 interface Discussion {
   _id: string;
@@ -23,7 +37,7 @@ interface Discussion {
   likes: number;
   isHot: boolean;
   isPinned: boolean;
-  status: 'active' | 'archived' | 'deleted';
+  status: "active" | "archived" | "deleted";
   createdAt: string;
   tags: string[];
 }
@@ -51,7 +65,7 @@ export default function AdminCommunityPage() {
       if (!token) return;
 
       const response = await fetch("/api/user/role", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) {
@@ -61,12 +75,12 @@ export default function AdminCommunityPage() {
 
       const data = await response.json();
       const userRole = data.success ? data.role : data.role;
-      
-      if (!['admin', 'super_admin'].includes(userRole)) {
+
+      if (!["admin", "super_admin"].includes(userRole)) {
         router.push("/community");
         return;
       }
-      
+
       setIsAdmin(true);
     } catch (error) {
       console.error("Error checking admin role:", error);
@@ -82,16 +96,16 @@ export default function AdminCommunityPage() {
 
       const queryParams = new URLSearchParams({
         page: currentPage.toString(),
-        status: statusFilter !== 'all' ? statusFilter : '',
-        search: searchQuery
+        status: statusFilter !== "all" ? statusFilter : "",
+        search: searchQuery,
       });
 
       const response = await fetch(`/api/admin/discussions?${queryParams}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setDiscussions(data.discussions);
         setTotalPages(data.pagination.pages);
@@ -104,12 +118,14 @@ export default function AdminCommunityPage() {
   };
 
   // Updated bulk actions with unarchive
-  const handleBulkAction = async (action: 'delete' | 'archive' | 'unarchive' | 'pin' | 'unpin') => {
+  const handleBulkAction = async (
+    action: "delete" | "archive" | "unarchive" | "pin" | "unpin",
+  ) => {
     if (selectedDiscussions.length === 0) return;
 
-    const actionText = action === 'unarchive' ? 'unarchive' : action;
+    const actionText = action === "unarchive" ? "unarchive" : action;
     const confirmMessage = `Are you sure you want to ${actionText} ${selectedDiscussions.length} discussion(s)?`;
-    
+
     if (!confirm(confirmMessage)) return;
 
     try {
@@ -117,24 +133,26 @@ export default function AdminCommunityPage() {
       if (!token) return;
 
       // Map 'unarchive' to 'restore' for the API
-      const apiAction = action === 'unarchive' ? 'restore' : action;
+      const apiAction = action === "unarchive" ? "restore" : action;
 
       const response = await fetch("/api/admin/discussions/bulk", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           action: apiAction,
-          discussionIds: selectedDiscussions
-        })
+          discussionIds: selectedDiscussions,
+        }),
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
-        alert(`Successfully ${actionText}d ${selectedDiscussions.length} discussion(s)`);
+        alert(
+          `Successfully ${actionText}d ${selectedDiscussions.length} discussion(s)`,
+        );
         setSelectedDiscussions([]);
         fetchAdminDiscussions();
       } else {
@@ -147,10 +165,13 @@ export default function AdminCommunityPage() {
   };
 
   // Single discussion action
-  const handleSingleAction = async (discussionId: string, action: 'delete' | 'archive' | 'unarchive' | 'pin' | 'unpin') => {
-    const actionText = action === 'unarchive' ? 'unarchive' : action;
+  const handleSingleAction = async (
+    discussionId: string,
+    action: "delete" | "archive" | "unarchive" | "pin" | "unpin",
+  ) => {
+    const actionText = action === "unarchive" ? "unarchive" : action;
     const confirmMessage = `Are you sure you want to ${actionText} this discussion?`;
-    
+
     if (!confirm(confirmMessage)) return;
 
     try {
@@ -158,22 +179,22 @@ export default function AdminCommunityPage() {
       if (!token) return;
 
       // Map 'unarchive' to 'restore' for the API
-      const apiAction = action === 'unarchive' ? 'restore' : action;
+      const apiAction = action === "unarchive" ? "restore" : action;
 
       const response = await fetch("/api/admin/discussions/bulk", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           action: apiAction,
-          discussionIds: [discussionId]
-        })
+          discussionIds: [discussionId],
+        }),
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         alert(`Successfully ${actionText}d discussion`);
         fetchAdminDiscussions();
@@ -188,7 +209,9 @@ export default function AdminCommunityPage() {
 
   const toggleSelection = (discussionId: string) => {
     if (selectedDiscussions.includes(discussionId)) {
-      setSelectedDiscussions(selectedDiscussions.filter(id => id !== discussionId));
+      setSelectedDiscussions(
+        selectedDiscussions.filter((id) => id !== discussionId),
+      );
     } else {
       setSelectedDiscussions([...selectedDiscussions, discussionId]);
     }
@@ -198,26 +221,26 @@ export default function AdminCommunityPage() {
     if (selectedDiscussions.length === discussions.length) {
       setSelectedDiscussions([]);
     } else {
-      setSelectedDiscussions(discussions.map(d => d._id));
+      setSelectedDiscussions(discussions.map((d) => d._id));
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
   // Check if selected discussions are archived
-  const hasArchivedSelected = selectedDiscussions.some(id => 
-    discussions.find(d => d._id === id)?.status === 'archived'
+  const hasArchivedSelected = selectedDiscussions.some(
+    (id) => discussions.find((d) => d._id === id)?.status === "archived",
   );
 
   // Check if selected discussions are active
-  const hasActiveSelected = selectedDiscussions.some(id => 
-    discussions.find(d => d._id === id)?.status === 'active'
+  const hasActiveSelected = selectedDiscussions.some(
+    (id) => discussions.find((d) => d._id === id)?.status === "active",
   );
 
   useEffect(() => {
@@ -259,7 +282,7 @@ export default function AdminCommunityPage() {
           </div>
           <div className="stat-content">
             <h3 className="stat-number">
-              {discussions.filter(d => d.status === 'active').length}
+              {discussions.filter((d) => d.status === "active").length}
             </h3>
             <p className="stat-label">Active Discussions</p>
           </div>
@@ -270,7 +293,7 @@ export default function AdminCommunityPage() {
           </div>
           <div className="stat-content">
             <h3 className="stat-number">
-              {discussions.filter(d => d.isHot).length}
+              {discussions.filter((d) => d.isHot).length}
             </h3>
             <p className="stat-label">Hot Discussions</p>
           </div>
@@ -281,7 +304,7 @@ export default function AdminCommunityPage() {
           </div>
           <div className="stat-content">
             <h3 className="stat-number">
-              {discussions.filter(d => d.isPinned).length}
+              {discussions.filter((d) => d.isPinned).length}
             </h3>
             <p className="stat-label">Pinned</p>
           </div>
@@ -292,7 +315,7 @@ export default function AdminCommunityPage() {
           </div>
           <div className="stat-content">
             <h3 className="stat-number">
-              {discussions.filter(d => d.status === 'archived').length}
+              {discussions.filter((d) => d.status === "archived").length}
             </h3>
             <p className="stat-label">Archived</p>
           </div>
@@ -324,10 +347,7 @@ export default function AdminCommunityPage() {
             <option value="deleted">Deleted</option>
           </select>
 
-          <select
-            className="filter-select"
-            onChange={(e) => setCurrentPage(1)}
-          >
+          <select className="filter-select" onChange={(e) => setCurrentPage(1)}>
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
             <option value="popular">Most Popular</option>
@@ -346,14 +366,14 @@ export default function AdminCommunityPage() {
           <div className="bulk-buttons">
             <button
               className="bulk-btn pin-btn"
-              onClick={() => handleBulkAction('pin')}
+              onClick={() => handleBulkAction("pin")}
             >
               <Pin size={16} />
               Pin
             </button>
             <button
               className="bulk-btn unpin-btn"
-              onClick={() => handleBulkAction('unpin')}
+              onClick={() => handleBulkAction("unpin")}
             >
               <Pin size={16} />
               Unpin
@@ -361,7 +381,7 @@ export default function AdminCommunityPage() {
             {hasActiveSelected && (
               <button
                 className="bulk-btn archive-btn"
-                onClick={() => handleBulkAction('archive')}
+                onClick={() => handleBulkAction("archive")}
               >
                 <Archive size={16} />
                 Archive
@@ -370,7 +390,7 @@ export default function AdminCommunityPage() {
             {hasArchivedSelected && (
               <button
                 className="bulk-btn restore-btn"
-                onClick={() => handleBulkAction('unarchive')}
+                onClick={() => handleBulkAction("unarchive")}
               >
                 <ArchiveRestore size={16} />
                 Unarchive
@@ -378,7 +398,7 @@ export default function AdminCommunityPage() {
             )}
             <button
               className="bulk-btn delete-btn"
-              onClick={() => handleBulkAction('delete')}
+              onClick={() => handleBulkAction("delete")}
             >
               <Trash2 size={16} />
               Delete
@@ -407,7 +427,10 @@ export default function AdminCommunityPage() {
                 <th className="select-cell">
                   <input
                     type="checkbox"
-                    checked={selectedDiscussions.length === discussions.length && discussions.length > 0}
+                    checked={
+                      selectedDiscussions.length === discussions.length &&
+                      discussions.length > 0
+                    }
                     onChange={toggleSelectAll}
                     className="checkbox"
                   />
@@ -467,10 +490,15 @@ export default function AdminCommunityPage() {
                   </td>
                   <td className="status-cell">
                     <span className={`status-badge ${discussion.status}`}>
-                      {discussion.status === 'active' && <CheckCircle size={12} />}
-                      {discussion.status === 'archived' && <AlertTriangle size={12} />}
-                      {discussion.status === 'deleted' && <XCircle size={12} />}
-                      {discussion.status.charAt(0).toUpperCase() + discussion.status.slice(1)}
+                      {discussion.status === "active" && (
+                        <CheckCircle size={12} />
+                      )}
+                      {discussion.status === "archived" && (
+                        <AlertTriangle size={12} />
+                      )}
+                      {discussion.status === "deleted" && <XCircle size={12} />}
+                      {discussion.status.charAt(0).toUpperCase() +
+                        discussion.status.slice(1)}
                     </span>
                   </td>
                   <td className="date-cell">
@@ -483,31 +511,42 @@ export default function AdminCommunityPage() {
                     <div className="action-buttons">
                       <button
                         className="action-btn view-btn"
-                        onClick={() => router.push(`/community/discussion/${discussion._id}`)}
+                        onClick={() =>
+                          router.push(`/community/discussion/${discussion._id}`)
+                        }
                         title="View"
                       >
                         <Eye size={14} />
                       </button>
                       <button
                         className="action-btn pin-btn"
-                        onClick={() => handleSingleAction(discussion._id, discussion.isPinned ? 'unpin' : 'pin')}
+                        onClick={() =>
+                          handleSingleAction(
+                            discussion._id,
+                            discussion.isPinned ? "unpin" : "pin",
+                          )
+                        }
                         title={discussion.isPinned ? "Unpin" : "Pin"}
                       >
                         <Pin size={14} />
                       </button>
-                      {discussion.status === 'active' && (
+                      {discussion.status === "active" && (
                         <button
                           className="action-btn archive-btn"
-                          onClick={() => handleSingleAction(discussion._id, 'archive')}
+                          onClick={() =>
+                            handleSingleAction(discussion._id, "archive")
+                          }
                           title="Archive"
                         >
                           <Archive size={14} />
                         </button>
                       )}
-                      {discussion.status === 'archived' && (
+                      {discussion.status === "archived" && (
                         <button
                           className="action-btn restore-btn"
-                          onClick={() => handleSingleAction(discussion._id, 'unarchive')}
+                          onClick={() =>
+                            handleSingleAction(discussion._id, "unarchive")
+                          }
                           title="Unarchive"
                         >
                           <ArchiveRestore size={14} />
@@ -515,7 +554,9 @@ export default function AdminCommunityPage() {
                       )}
                       <button
                         className="action-btn delete-btn"
-                        onClick={() => handleSingleAction(discussion._id, 'delete')}
+                        onClick={() =>
+                          handleSingleAction(discussion._id, "delete")
+                        }
                         title="Delete"
                       >
                         <Trash2 size={14} />
@@ -533,13 +574,13 @@ export default function AdminCommunityPage() {
           <div className="pagination">
             <button
               className="pagination-btn"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
             >
               <ChevronLeft size={16} />
               Previous
             </button>
-            
+
             <div className="page-numbers">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum;
@@ -552,18 +593,18 @@ export default function AdminCommunityPage() {
                 } else {
                   pageNum = currentPage - 2 + i;
                 }
-                
+
                 return (
                   <button
                     key={pageNum}
-                    className={`page-btn ${currentPage === pageNum ? 'active' : ''}`}
+                    className={`page-btn ${currentPage === pageNum ? "active" : ""}`}
                     onClick={() => setCurrentPage(pageNum)}
                   >
                     {pageNum}
                   </button>
                 );
               })}
-              
+
               {totalPages > 5 && currentPage < totalPages - 2 && (
                 <>
                   <span className="page-dots">...</span>
@@ -576,10 +617,12 @@ export default function AdminCommunityPage() {
                 </>
               )}
             </div>
-            
+
             <button
               className="pagination-btn"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+              }
               disabled={currentPage === totalPages}
             >
               Next

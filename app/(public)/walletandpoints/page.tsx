@@ -1,25 +1,57 @@
-// app/(public)/walletandpoints/page.tsx - FIXED getIdToken
-'use client';
+// app/(public)/walletandpoints/page.tsx - COMPLETE WITH ALL FEATURES
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { getAuth } from 'firebase/auth'; // ADDED
-import { 
-  FaWallet, FaCoins, FaTrophy, FaGift, FaHistory, 
-  FaGamepad, FaUsers, FaCalendarAlt, FaShoppingCart,
-  FaStar, FaFire, FaCrown, FaBolt, FaMedal, FaGem,
-  FaSync, FaExclamationCircle, FaSignInAlt, FaInfoCircle
-} from 'react-icons/fa';
-import './wallet.css';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { getAuth } from "firebase/auth";
+import {
+  FaWallet,
+  FaCoins,
+  FaTrophy,
+  FaGift,
+  FaHistory,
+  FaGamepad,
+  FaUsers,
+  FaCalendarAlt,
+  FaShoppingCart,
+  FaStar,
+  FaFire,
+  FaCrown,
+  FaBolt,
+  FaMedal,
+  FaGem,
+  FaSync,
+  FaExclamationCircle,
+  FaSignInAlt,
+  FaInfoCircle,
+  FaFilter,
+  FaCheck,
+} from "react-icons/fa";
+import {
+  calculateLevel,
+  getLevelProgress,
+  getLevelName,
+  LEVEL_THRESHOLDS,
+} from "@/lib/levelHelper";
+import "./wallet.css";
 
 interface Transaction {
   _id: string;
   userId: string;
-  type: string;
+  type:
+    | "purchase"
+    | "event"
+    | "game"
+    | "daily_login"
+    | "referral"
+    | "bonus"
+    | "achievement"
+    | "redeem";
   amount: number;
   description: string;
   createdAt: string;
   metadata?: any;
+  balance?: number;
 }
 
 interface Reward {
@@ -63,170 +95,354 @@ interface WalletUser {
   level: number;
   streak: number;
   lastActivity: string;
+  lastLogin?: string;
   achievements: any[];
 }
 
 const WalletPointsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const auth = getAuth(); // ADDED
+  const auth = getAuth();
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // User Data
   const [walletUser, setWalletUser] = useState<WalletUser | null>(null);
   const [userPoints, setUserPoints] = useState<number>(0);
   const [level, setLevel] = useState<number>(1);
   const [streak, setStreak] = useState<number>(0);
-  const [userName, setUserName] = useState<string>('');
-  
+  const [userName, setUserName] = useState<string>("");
+
   // Dynamic Data
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [pointsCriteria, setPointsCriteria] = useState<PointsCriteria[]>([]);
-  
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  // Transaction filters
+  const [transactionFilter, setTransactionFilter] = useState<string>("all");
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [totalTransactionPages, setTotalTransactionPages] = useState(1);
+
+  // Daily login - UPDATED WITH COUNTDOWN
+  const [canClaimDaily, setCanClaimDaily] = useState(true);
+  const [claimingDaily, setClaimingDaily] = useState(false);
+  const [timeUntilNextClaim, setTimeUntilNextClaim] = useState<string>("");
+  const [nextClaimDate, setNextClaimDate] = useState<Date | null>(null);
+
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [showRedeemModal, setShowRedeemModal] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [redeeming, setRedeeming] = useState<boolean>(false);
-  
+
   const categories = [
-    { id: 'all', name: 'All Rewards', color: '#FF8C00' },
-    { id: 'discount', name: 'Discounts', color: '#4ECDC4' },
-    { id: 'ticket', name: 'Event Tickets', color: '#9B59B6' },
-    { id: 'bundle', name: 'Game Bundles', color: '#FFCC00' },
-    { id: 'premium', name: 'Premium Access', color: '#3498DB' }
+    { id: "all", name: "All Rewards", color: "#FF8C00" },
+    { id: "discount", name: "Discounts", color: "#4ECDC4" },
+    { id: "ticket", name: "Event Tickets", color: "#9B59B6" },
+    { id: "bundle", name: "Game Bundles", color: "#FFCC00" },
+    { id: "premium", name: "Premium Access", color: "#3498DB" },
   ];
 
-  // ADDED: Helper function to get Firebase token
+  const transactionTypes = [
+    { id: "all", name: "All Transactions", icon: <FaHistory /> },
+    { id: "purchase", name: "Purchases", icon: <FaShoppingCart /> },
+    { id: "event", name: "Events", icon: <FaCalendarAlt /> },
+    { id: "game", name: "Games", icon: <FaGamepad /> },
+    { id: "daily_login", name: "Daily Login", icon: <FaFire /> },
+    { id: "referral", name: "Referrals", icon: <FaUsers /> },
+    { id: "bonus", name: "Bonuses", icon: <FaStar /> },
+    { id: "achievement", name: "Achievements", icon: <FaTrophy /> },
+    { id: "redeem", name: "Redemptions", icon: <FaGift /> },
+  ];
+
+  // Level helper functions using the imported module
+  const getLevelProgressDisplay = () => {
+    if (!walletUser) return 0;
+    const progress = getLevelProgress(walletUser.totalPoints, walletUser.level);
+    return progress.progressPercentage;
+  };
+
+  const getNextLevelPoints = () => {
+    if (!walletUser) return 1000;
+    const progress = getLevelProgress(walletUser.totalPoints, walletUser.level);
+    return progress.nextLevelPoints;
+  };
+
+  const getPointsToNextLevel = () => {
+    if (!walletUser) return 1000;
+    const progress = getLevelProgress(walletUser.totalPoints, walletUser.level);
+    return progress.pointsToNextLevel;
+  };
+
   const getFirebaseToken = async () => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
-      throw new Error('Not authenticated');
+      throw new Error("Not authenticated");
     }
     return await currentUser.getIdToken();
   };
 
-  // Create wallet for new user
   const createWalletForUser = async () => {
-    if (!user) throw new Error('No user found');
-    
+    if (!user) throw new Error("No user found");
+
     try {
-      const token = await getFirebaseToken(); // CHANGED
-      
-      const response = await fetch('/api/wallet/create', {
-        method: 'POST',
+      const token = await getFirebaseToken();
+
+      const response = await fetch("/api/wallet/create", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: user.email,
-          name: user.displayName || user.email?.split('@')[0] || 'User',
+          name: user.displayName || user.email?.split("@")[0] || "User",
           firebaseUid: user.uid,
-          picture: user.photoURL || null
-        })
+          picture: user.photoURL || null,
+        }),
       });
-      
+
       if (!response.ok) {
-        const errorText = await response.text();
         throw new Error(`Failed to create wallet: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error: any) {
       throw new Error(`Wallet creation failed: ${error.message}`);
     }
   };
 
-  // Fetch wallet data
+  const fetchTransactions = async (
+    page: number = 1,
+    filter: string = "all",
+  ) => {
+    try {
+      const token = await getFirebaseToken();
+
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: "20",
+        ...(filter !== "all" && { type: filter }),
+      });
+
+      const response = await fetch(`/api/wallet/transactions?${queryParams}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data.transactions || []);
+        setTotalTransactionPages(data.pagination?.pages || 1);
+        console.log("✅ Loaded transactions:", data.transactions?.length);
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+    }
+  };
+
   const fetchWalletData = async () => {
     if (!user) {
       setPageLoading(false);
       return;
     }
-    
+
     try {
       setPageLoading(true);
       setError(null);
-      
-      const token = await getFirebaseToken(); // CHANGED
-      
+
+      const token = await getFirebaseToken();
+
       // Fetch user wallet data
-      const walletRes = await fetch('/api/wallet', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const walletRes = await fetch("/api/wallet", {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (walletRes.status === 401 || walletRes.status === 404) {
-        // Create wallet if not found
         await createWalletForUser();
-        
-        // Retry fetching after creation
-        const retryRes = await fetch('/api/wallet', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+
+        const retryRes = await fetch("/api/wallet", {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         if (!retryRes.ok) {
-          throw new Error('Failed to load wallet after creation');
+          throw new Error("Failed to load wallet after creation");
         }
-        
+
         const walletData = await retryRes.json();
         updateUserData(walletData);
       } else if (walletRes.ok) {
         const walletData = await walletRes.json();
         updateUserData(walletData);
       } else {
-        throw new Error('Failed to load wallet data');
+        throw new Error("Failed to load wallet data");
       }
-      
-      // Fetch active rewards (public endpoint)
-      const rewardsRes = await fetch('/api/wallet/rewards');
+
+      // Fetch transactions separately
+      await fetchTransactions(transactionPage, transactionFilter);
+
+      // Check if can claim daily reward
+      await checkDailyRewardStatus();
+
+      // Fetch active rewards
+      const rewardsRes = await fetch("/api/wallet/rewards");
       if (rewardsRes.ok) {
         const rewardsData = await rewardsRes.json();
-        // Filter only active rewards for public view
         const activeRewards = (rewardsData.rewards || rewardsData || []).filter(
-          (r: Reward) => r.isActive !== false
+          (r: Reward) => r.isActive !== false,
         );
         setRewards(activeRewards);
       }
-      
-      // Fetch achievements (requires auth)
-      const achievementsRes = await fetch('/api/wallet/achievements', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+
+      // Fetch achievements
+      const achievementsRes = await fetch("/api/wallet/achievements", {
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (achievementsRes.ok) {
         const achievementsData = await achievementsRes.json();
-        // Filter only active achievements
-        const activeAchievements = (achievementsData.achievements || achievementsData || []).filter(
-          (a: Achievement) => a.isActive !== false
-        );
+        const activeAchievements = (
+          achievementsData.achievements ||
+          achievementsData ||
+          []
+        ).filter((a: Achievement) => a.isActive !== false);
         setAchievements(activeAchievements);
       }
-      
-      // Fetch points criteria (public endpoint for display)
-      const criteriaRes = await fetch('/api/wallet/points-criteria');
+
+      // Fetch points criteria
+      const criteriaRes = await fetch("/api/wallet/points-criteria");
       if (criteriaRes.ok) {
         const criteriaData = await criteriaRes.json();
-        // Filter only active criteria
-        const activeCriteria = (criteriaData.criteria || criteriaData || []).filter(
-          (c: PointsCriteria) => c.isActive !== false
-        );
+        const activeCriteria = (
+          criteriaData.criteria ||
+          criteriaData ||
+          []
+        ).filter((c: PointsCriteria) => c.isActive !== false);
         setPointsCriteria(activeCriteria);
-        console.log('✅ Loaded points criteria:', activeCriteria.length);
       }
-      
     } catch (err: any) {
-      console.error('❌ Error fetching wallet data:', err);
-      setError(err.message || 'Failed to load wallet data. Please try refreshing.');
+      console.error("❌ Error fetching wallet data:", err);
+      setError(
+        err.message || "Failed to load wallet data. Please try refreshing.",
+      );
     } finally {
       setPageLoading(false);
+    }
+  };
+
+  // UPDATED: Check daily reward status with API call
+  const checkDailyRewardStatus = async () => {
+    try {
+      const token = await getFirebaseToken();
+
+      const response = await fetch("/api/wallet/daily-login", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      setCanClaimDaily(data.canClaim);
+      setStreak(data.currentStreak || 0);
+
+      if (!data.canClaim && data.nextClaimAt) {
+        const nextClaim = new Date(data.nextClaimAt);
+        setNextClaimDate(nextClaim);
+        updateCountdown(nextClaim);
+      }
+    } catch (error) {
+      console.error("Daily reward status error:", error);
+    }
+  };
+
+  // NEW: Countdown timer function
+  const updateCountdown = (nextClaimAt: string | Date) => {
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const targetTime = new Date(nextClaimAt).getTime();
+      const distance = targetTime - now;
+
+      if (distance < 0) {
+        setTimeUntilNextClaim("Available now!");
+        setCanClaimDaily(true);
+        return;
+      }
+
+      const hours = Math.floor(distance / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      setTimeUntilNextClaim(`${hours}h ${minutes}m ${seconds}s`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return interval;
+  };
+
+  // UPDATED: Claim daily reward with enhanced feedback
+  const claimDailyReward = async () => {
+    if (!canClaimDaily) {
+      alert("You have already claimed your daily reward today!");
+      return;
+    }
+
+    try {
+      setClaimingDaily(true);
+      const token = await getFirebaseToken();
+
+      console.log("🔥 Claiming daily reward...");
+
+      const response = await fetch("/api/wallet/daily-login", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("Response status:", response.status);
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("Response is not JSON");
+        throw new Error("Server returned an invalid response");
+      }
+
+      const data = await response.json();
+      console.log("Response data:", data);
+
+      if (response.ok && data.success) {
+        setCanClaimDaily(false);
+        setStreak(data.streak);
+        setUserPoints(data.newBalance);
+
+        const nextClaim = new Date(data.nextClaimAt);
+        setNextClaimDate(nextClaim);
+        updateCountdown(nextClaim);
+
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3000);
+
+        await fetchWalletData();
+        return;
+      } else {
+        // Already claimed or error
+        setCanClaimDaily(false); // Disable button
+
+        if (data.timeRemaining) {
+          const nextClaim = new Date(data.canClaimAt);
+          setNextClaimDate(nextClaim);
+          updateCountdown(nextClaim);
+        }
+
+        alert(data.error || "Failed to claim daily reward");
+      }
+    } catch (error: any) {
+      console.error("Error claiming daily reward:", error);
+      alert(`Failed to claim daily reward: ${error.message}`);
+    } finally {
+      setClaimingDaily(false);
     }
   };
 
@@ -235,11 +451,14 @@ const WalletPointsPage: React.FC = () => {
     setUserPoints(walletData.user?.totalPoints || 0);
     setLevel(walletData.user?.level || 1);
     setStreak(walletData.user?.streak || 0);
-    setUserName(walletData.user?.name || user?.displayName || user?.email?.split('@')[0] || 'Player');
-    setTransactions(walletData.transactions || []);
+    setUserName(
+      walletData.user?.name ||
+        user?.displayName ||
+        user?.email?.split("@")[0] ||
+        "Player",
+    );
   };
 
-  // Initial data fetch
   useEffect(() => {
     if (!authLoading) {
       if (user) {
@@ -250,54 +469,76 @@ const WalletPointsPage: React.FC = () => {
     }
   }, [user, authLoading]);
 
-  const filteredRewards = selectedCategory === 'all' 
-    ? rewards 
-    : rewards.filter(reward => reward.category === selectedCategory);
+  useEffect(() => {
+    if (user) {
+      fetchTransactions(transactionPage, transactionFilter);
+    }
+  }, [transactionPage, transactionFilter]);
+
+  // NEW: Countdown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (!canClaimDaily && nextClaimDate) {
+      interval = updateCountdown(nextClaimDate);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [canClaimDaily, nextClaimDate]);
+
+  const filteredRewards =
+    selectedCategory === "all"
+      ? rewards
+      : rewards.filter((reward) => reward.category === selectedCategory);
 
   const handleRedeem = (reward: Reward) => {
     if (userPoints >= reward.points) {
       setSelectedReward(reward);
       setShowRedeemModal(true);
     } else {
-      alert(`You need ${reward.points - userPoints} more points to redeem this reward!`);
+      alert(
+        `You need ${reward.points - userPoints} more points to redeem this reward!`,
+      );
     }
   };
 
   const confirmRedeem = async () => {
     if (!selectedReward || !user) return;
-    
+
     try {
       setRedeeming(true);
-      
-      const token = await getFirebaseToken(); // CHANGED
-      
-      const response = await fetch('/api/wallet/redeem', {
-        method: 'POST',
+      const token = await getFirebaseToken();
+
+      const response = await fetch("/api/wallet/redeem", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ rewardId: selectedReward._id }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.error || 'Redemption failed');
+        throw new Error(data.error || "Redemption failed");
       }
-      
+
       setUserPoints(data.newBalance);
       setShowRedeemModal(false);
       setShowConfetti(true);
-      
+
       fetchWalletData();
-      
-      alert(`🎉 Success! You've redeemed ${selectedReward.name}. Your new balance is ${data.newBalance} points.`);
-      
+
+      alert(
+        `🎉 Success! You've redeemed ${selectedReward.name}. Your new balance is ${data.newBalance} points.`,
+      );
+
       setTimeout(() => {
         setShowConfetti(false);
       }, 3000);
-      
     } catch (err: any) {
       alert(`Redemption failed: ${err.message}`);
     } finally {
@@ -305,65 +546,90 @@ const WalletPointsPage: React.FC = () => {
     }
   };
 
-  const getLevelProgress = () => {
-    if (!walletUser) return 0;
-    const levelThresholds = [0, 1000, 2000, 3000, 5000, 7500, 10000];
-    const currentLevelPoints = levelThresholds[walletUser.level - 1] || 0;
-    const nextLevelPoints = levelThresholds[walletUser.level] || levelThresholds[walletUser.level - 1] || 10000;
-    const progress = ((walletUser.totalPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
-    return Math.min(Math.max(progress, 0), 100);
-  };
-
-  const getLevelName = (level: number) => {
-    const names = ['New Player', 'Casual Gamer', 'Game Enthusiast', 'Joy Champion', 'Master Player', 'Legendary Joymaker'];
-    return names[level - 1] || names[names.length - 1];
-  };
-
   const renderIcon = (iconName: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
-      'FaGamepad': <FaGamepad />,
-      'FaUsers': <FaUsers />,
-      'FaCalendarAlt': <FaCalendarAlt />,
-      'FaShoppingCart': <FaShoppingCart />,
-      'FaStar': <FaStar />,
-      'FaFire': <FaFire />,
-      'FaCrown': <FaCrown />,
-      'FaBolt': <FaBolt />,
-      'FaMedal': <FaMedal />,
-      'FaGem': <FaGem />,
-      'FaGift': <FaGift />,
-      'FaHistory': <FaHistory />,
-      'FaTrophy': <FaTrophy />,
-      'FaCoins': <FaCoins />,
-      'FaInfoCircle': <FaInfoCircle />,
+      FaGamepad: <FaGamepad />,
+      FaUsers: <FaUsers />,
+      FaCalendarAlt: <FaCalendarAlt />,
+      FaShoppingCart: <FaShoppingCart />,
+      FaStar: <FaStar />,
+      FaFire: <FaFire />,
+      FaCrown: <FaCrown />,
+      FaBolt: <FaBolt />,
+      FaMedal: <FaMedal />,
+      FaGem: <FaGem />,
+      FaGift: <FaGift />,
+      FaHistory: <FaHistory />,
+      FaTrophy: <FaTrophy />,
+      FaCoins: <FaCoins />,
+      FaInfoCircle: <FaInfoCircle />,
     };
     return iconMap[iconName] || <FaStar />;
   };
 
-  // Map criteria type to appropriate icon and action
+  const getTransactionIcon = (type: string) => {
+    const iconMap: { [key: string]: React.ReactNode } = {
+      purchase: <FaShoppingCart />,
+      event: <FaCalendarAlt />,
+      game: <FaGamepad />,
+      daily_login: <FaFire />,
+      referral: <FaUsers />,
+      bonus: <FaStar />,
+      achievement: <FaTrophy />,
+      redeem: <FaGift />,
+    };
+    return iconMap[type] || <FaCoins />;
+  };
+
+  const getTransactionColor = (type: string) => {
+    const colorMap: { [key: string]: string } = {
+      purchase: "#FF8C00",
+      event: "#4ECDC4",
+      game: "#FFCC00",
+      daily_login: "#E74C3C",
+      referral: "#9B59B6",
+      bonus: "#3498DB",
+      achievement: "#2ECC71",
+      redeem: "#E74C3C",
+    };
+    return colorMap[type] || "#2ECC71";
+  };
+
   const getCriteriaIcon = (type: string) => {
     const lowerType = type.toLowerCase();
-    if (lowerType.includes('purchase') || lowerType.includes('shop')) return <FaShoppingCart />;
-    if (lowerType.includes('event')) return <FaCalendarAlt />;
-    if (lowerType.includes('game') || lowerType.includes('play')) return <FaGamepad />;
-    if (lowerType.includes('refer') || lowerType.includes('friend')) return <FaUsers />;
+    if (lowerType.includes("purchase") || lowerType.includes("shop"))
+      return <FaShoppingCart />;
+    if (lowerType.includes("event")) return <FaCalendarAlt />;
+    if (lowerType.includes("game") || lowerType.includes("play"))
+      return <FaGamepad />;
+    if (lowerType.includes("refer") || lowerType.includes("friend"))
+      return <FaUsers />;
+    if (lowerType.includes("login") || lowerType.includes("daily"))
+      return <FaFire />;
     return <FaStar />;
   };
 
   const getCriteriaColor = (type: string) => {
     const lowerType = type.toLowerCase();
-    if (lowerType.includes('purchase') || lowerType.includes('shop')) return '#FF8C00';
-    if (lowerType.includes('event')) return '#4ECDC4';
-    if (lowerType.includes('game') || lowerType.includes('play')) return '#FFCC00';
-    if (lowerType.includes('refer') || lowerType.includes('friend')) return '#9B59B6';
-    return '#3498DB';
+    if (lowerType.includes("purchase") || lowerType.includes("shop"))
+      return "#FF8C00";
+    if (lowerType.includes("event")) return "#4ECDC4";
+    if (lowerType.includes("game") || lowerType.includes("play"))
+      return "#FFCC00";
+    if (lowerType.includes("refer") || lowerType.includes("friend"))
+      return "#9B59B6";
+    if (lowerType.includes("login") || lowerType.includes("daily"))
+      return "#E74C3C";
+    return "#3498DB";
   };
 
   const getCriteriaAction = (type: string) => {
     const lowerType = type.toLowerCase();
-    if (lowerType.includes('purchase') || lowerType.includes('shop')) return '/shop';
-    if (lowerType.includes('event')) return '/events';
-    if (lowerType.includes('game') || lowerType.includes('play')) return '/play';
+    if (lowerType.includes("purchase") || lowerType.includes("shop"))
+      return "/shop";
+    if (lowerType.includes("event")) return "/events";
+    if (lowerType.includes("game") || lowerType.includes("play"))
+      return "/play";
     return null;
   };
 
@@ -408,9 +674,6 @@ const WalletPointsPage: React.FC = () => {
           <button onClick={fetchWalletData} className="retry-btn">
             <FaSync /> Retry
           </button>
-          <p className="error-help">
-            If the issue persists, please try logging out and back in.
-          </p>
         </div>
       </div>
     );
@@ -418,16 +681,25 @@ const WalletPointsPage: React.FC = () => {
 
   return (
     <div className="wallet-page">
-      {/* Confetti Animation */}
       {showConfetti && (
         <div className="confetti-overlay">
           <div className="confetti">
             {Array.from({ length: 50 }).map((_, i) => (
-              <div key={i} className="confetti-piece" style={{
-                animationDelay: `${Math.random() * 2}s`,
-                left: `${Math.random() * 100}%`,
-                backgroundColor: ['#FF8C00', '#FFCC00', '#4ECDC4', '#9B59B6', '#3498DB'][Math.floor(Math.random() * 5)]
-              }} />
+              <div
+                key={i}
+                className="confetti-piece"
+                style={{
+                  animationDelay: `${Math.random() * 2}s`,
+                  left: `${Math.random() * 100}%`,
+                  backgroundColor: [
+                    "#FF8C00",
+                    "#FFCC00",
+                    "#4ECDC4",
+                    "#9B59B6",
+                    "#3498DB",
+                  ][Math.floor(Math.random() * 5)],
+                }}
+              />
             ))}
           </div>
         </div>
@@ -439,14 +711,15 @@ const WalletPointsPage: React.FC = () => {
           <div className="hero-content">
             <div className="header-top">
               <h1>
-                Welcome, <span className="highlight">{userName || user.displayName || 'Player'}</span>!
+                Welcome, <span className="highlight">{userName}</span>!
               </h1>
               <button onClick={fetchWalletData} className="refresh-btn">
                 <FaSync /> Refresh
               </button>
             </div>
             <p className="subtitle">
-              Manage your Joy Points, unlock rewards, and track your gaming journey!
+              Manage your Joy Points, unlock rewards, and track your gaming
+              journey!
             </p>
           </div>
         </div>
@@ -463,7 +736,9 @@ const WalletPointsPage: React.FC = () => {
               </div>
               <div className="points-display">
                 <FaCoins className="points-icon" />
-                <span className="points-amount">{userPoints.toLocaleString()}</span>
+                <span className="points-amount">
+                  {userPoints.toLocaleString()}
+                </span>
                 <span className="points-label">Joy Points</span>
               </div>
               <p className="card-subtitle">Keep playing to earn more!</p>
@@ -478,42 +753,76 @@ const WalletPointsPage: React.FC = () => {
                 <span className="level-number">Level {level}</span>
                 <span className="level-name">{getLevelName(level)}</span>
                 <div className="progress-bar">
-                  <div 
-                    className="progress-fill" 
-                    style={{ width: `${getLevelProgress()}%` }}
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${getLevelProgressDisplay()}%` }}
                   />
                 </div>
                 <p className="level-progress">
-                  {userPoints} / {(level * 1000)} points to next level
+                  {getPointsToNextLevel().toLocaleString()} points to Level{" "}
+                  {level + 1}
+                </p>
+                <p
+                  className="level-progress-detail"
+                  style={{ fontSize: "12px", opacity: 0.7, marginTop: "5px" }}
+                >
+                  {userPoints.toLocaleString()} /{" "}
+                  {getNextLevelPoints().toLocaleString()} points
                 </p>
               </div>
             </div>
 
+            {/* UPDATED: Streak card with countdown */}
             <div className="wallet-card accent">
               <div className="card-header">
                 <FaFire className="card-icon" />
-                <h3>Current Streak</h3>
+                <h3>Daily Streak</h3>
               </div>
               <div className="streak-display">
                 <div className="streak-count">
                   <span className="streak-number">{streak}</span>
                   <span className="streak-label">days</span>
                 </div>
-                <p className="streak-info">
-                  Visit daily for bonus points!
-                </p>
+                {canClaimDaily ? (
+                  <button
+                    className="claim-daily-btn"
+                    onClick={claimDailyReward}
+                    disabled={claimingDaily}
+                  >
+                    {claimingDaily ? (
+                      <>
+                        <FaSync className="spinning" /> Claiming...
+                      </>
+                    ) : (
+                      <>🎁 Claim Daily Reward</>
+                    )}
+                  </button>
+                ) : (
+                  <div className="streak-info">
+                    <p className="claimed-text">✓ Claimed today!</p>
+                    {timeUntilNextClaim && (
+                      <p className="countdown-text">
+                        Next in: <strong>{timeUntilNextClaim}</strong>
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How to Earn Points - DYNAMIC */}
+      {/* How to Earn Points */}
       <section className="earn-points">
         <div className="container">
           <div className="section-header">
-            <h2>How to <span className="highlight">Earn Points</span></h2>
-            <p className="section-subtitle">Multiple ways to grow your Joy Points balance</p>
+            <h2>
+              How to <span className="highlight">Earn Points</span>
+            </h2>
+            <p className="section-subtitle">
+              Multiple ways to grow your Joy Points balance
+            </p>
           </div>
 
           {pointsCriteria.length === 0 ? (
@@ -527,19 +836,26 @@ const WalletPointsPage: React.FC = () => {
                 const actionUrl = getCriteriaAction(criteria.type);
                 const icon = getCriteriaIcon(criteria.type);
                 const color = getCriteriaColor(criteria.type);
-                
+
                 return (
-                  <div 
-                    key={criteria._id} 
+                  <div
+                    key={criteria._id}
                     className="method-card"
-                    onClick={() => actionUrl && (window.location.href = actionUrl)}
-                    style={{ cursor: actionUrl ? 'pointer' : 'default' }}
+                    onClick={() =>
+                      actionUrl && (window.location.href = actionUrl)
+                    }
+                    style={{ cursor: actionUrl ? "pointer" : "default" }}
                   >
-                    <div className="method-icon" style={{ backgroundColor: color }}>
+                    <div
+                      className="method-icon"
+                      style={{ backgroundColor: color }}
+                    >
                       {icon}
                     </div>
                     <h4>{criteria.type}</h4>
-                    <p className="method-points">{criteria.pointsPerUnit} points</p>
+                    <p className="method-points">
+                      {criteria.pointsPerUnit} points
+                    </p>
                     <p className="method-desc">{criteria.description}</p>
                   </div>
                 );
@@ -553,20 +869,28 @@ const WalletPointsPage: React.FC = () => {
       <section className="rewards-section">
         <div className="container">
           <div className="section-header">
-            <h2>Redeem Your <span className="highlight">Points</span></h2>
+            <h2>
+              Redeem Your <span className="highlight">Points</span>
+            </h2>
             <p className="section-subtitle">Choose from exciting rewards</p>
           </div>
 
           <div className="category-filters">
-            {categories.map(category => (
+            {categories.map((category) => (
               <button
                 key={category.id}
-                className={`category-btn ${selectedCategory === category.id ? 'active' : ''}`}
+                className={`category-btn ${selectedCategory === category.id ? "active" : ""}`}
                 onClick={() => setSelectedCategory(category.id)}
                 style={{
                   borderColor: category.color,
-                  backgroundColor: selectedCategory === category.id ? category.color : 'transparent',
-                  color: selectedCategory === category.id ? '#0B0B0B' : category.color
+                  backgroundColor:
+                    selectedCategory === category.id
+                      ? category.color
+                      : "transparent",
+                  color:
+                    selectedCategory === category.id
+                      ? "#0B0B0B"
+                      : category.color,
                 }}
               >
                 {category.name}
@@ -581,11 +905,11 @@ const WalletPointsPage: React.FC = () => {
             </div>
           ) : (
             <div className="rewards-grid">
-              {filteredRewards.map(reward => (
+              {filteredRewards.map((reward) => (
                 <div key={reward._id} className="reward-card">
-                  <div 
-                    className="reward-icon" 
-                    style={{ backgroundColor: reward.color || '#FF8C00' }}
+                  <div
+                    className="reward-icon"
+                    style={{ backgroundColor: reward.color || "#FF8C00" }}
                   >
                     {renderIcon(reward.icon)}
                   </div>
@@ -593,10 +917,14 @@ const WalletPointsPage: React.FC = () => {
                     <div className="reward-header">
                       <h4>{reward.name}</h4>
                       {reward.stock > 0 && reward.stock < 10 && (
-                        <span className="stock-badge">Only {reward.stock} left!</span>
+                        <span className="stock-badge">
+                          Only {reward.stock} left!
+                        </span>
                       )}
                       {reward.stock <= 0 && (
-                        <span className="stock-badge out-of-stock">Out of Stock</span>
+                        <span className="stock-badge out-of-stock">
+                          Out of Stock
+                        </span>
                       )}
                     </div>
                     <p className="reward-desc">{reward.description}</p>
@@ -606,17 +934,20 @@ const WalletPointsPage: React.FC = () => {
                       </span>
                       <button
                         className={`redeem-btn ${
-                          userPoints >= reward.points && reward.stock > 0 ? 'available' : 'locked'
+                          userPoints >= reward.points && reward.stock > 0
+                            ? "available"
+                            : "locked"
                         }`}
                         onClick={() => handleRedeem(reward)}
-                        disabled={userPoints < reward.points || reward.stock <= 0}
-                      >
-                        {userPoints >= reward.points && reward.stock > 0 
-                          ? 'Redeem' 
-                          : reward.stock <= 0 
-                            ? 'Out of Stock' 
-                            : 'Need More Points'
+                        disabled={
+                          userPoints < reward.points || reward.stock <= 0
                         }
+                      >
+                        {userPoints >= reward.points && reward.stock > 0
+                          ? "Redeem"
+                          : reward.stock <= 0
+                            ? "Out of Stock"
+                            : "Need More Points"}
                       </button>
                     </div>
                   </div>
@@ -627,29 +958,39 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Achievements - DYNAMIC */}
+      {/* Achievements */}
       <section className="achievements-section">
         <div className="container">
           <div className="section-header">
-            <h2>Your <span className="highlight">Achievements</span></h2>
-            <p className="section-subtitle">Complete challenges to unlock exclusive rewards</p>
+            <h2>
+              Your <span className="highlight">Achievements</span>
+            </h2>
+            <p className="section-subtitle">
+              Complete challenges to unlock exclusive rewards
+            </p>
           </div>
 
           <div className="achievements-grid">
             {achievements.length === 0 ? (
               <div className="empty-state">
                 <FaTrophy className="empty-icon" />
-                <p>No achievements yet. Start playing to unlock achievements!</p>
+                <p>
+                  No achievements yet. Start playing to unlock achievements!
+                </p>
               </div>
             ) : (
-              achievements.map(achievement => (
-                <div 
-                  key={achievement._id} 
-                  className={`achievement-card ${achievement.unlocked ? 'unlocked' : 'locked'}`}
+              achievements.map((achievement) => (
+                <div
+                  key={achievement._id}
+                  className={`achievement-card ${achievement.unlocked ? "unlocked" : "locked"}`}
                 >
-                  <div 
+                  <div
                     className="achievement-icon"
-                    style={{ backgroundColor: achievement.unlocked ? '#FF8C00' : '#2A2A2A' }}
+                    style={{
+                      backgroundColor: achievement.unlocked
+                        ? "#FF8C00"
+                        : "#2A2A2A",
+                    }}
                   >
                     {renderIcon(achievement.icon)}
                   </div>
@@ -660,13 +1001,17 @@ const WalletPointsPage: React.FC = () => {
                         <span className="achievement-badge">Unlocked!</span>
                       )}
                     </div>
-                    <p className="achievement-desc">{achievement.description}</p>
+                    <p className="achievement-desc">
+                      {achievement.description}
+                    </p>
                     {!achievement.unlocked && (
                       <div className="achievement-progress">
                         <div className="progress-bar">
-                          <div 
-                            className="progress-fill" 
-                            style={{ width: `${(achievement.progress / achievement.requirement) * 100}%` }}
+                          <div
+                            className="progress-fill"
+                            style={{
+                              width: `${(achievement.progress / achievement.requirement) * 100}%`,
+                            }}
                           />
                         </div>
                         <span className="progress-text">
@@ -686,67 +1031,167 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Transaction History */}
+      {/* Transaction History - ENHANCED & DYNAMIC */}
       <section className="transactions-section">
         <div className="container">
           <div className="section-header">
-            <h2>Points <span className="highlight">History</span></h2>
-            <p className="section-subtitle">Track your points journey</p>
+            <h2>
+              Points <span className="highlight">History</span>
+            </h2>
+            <p className="section-subtitle">Track all your point activities</p>
+          </div>
+
+          {/* Transaction Filters */}
+          <div className="transaction-filters">
+            <FaFilter className="filter-icon" />
+            <div className="filter-buttons">
+              {transactionTypes.map((type) => (
+                <button
+                  key={type.id}
+                  className={`filter-btn ${transactionFilter === type.id ? "active" : ""}`}
+                  onClick={() => {
+                    setTransactionFilter(type.id);
+                    setTransactionPage(1);
+                  }}
+                >
+                  {type.icon}
+                  <span>{type.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {transactions.length === 0 ? (
             <div className="empty-state">
               <FaHistory className="empty-icon" />
-              <p>No transactions yet. Start earning points!</p>
+              <p>
+                {transactionFilter === "all"
+                  ? "No transactions yet. Start earning points!"
+                  : `No ${transactionFilter} transactions found.`}
+              </p>
             </div>
           ) : (
-            <div className="transactions-table">
-              <div className="table-header">
-                <div className="col-1">Description</div>
-                <div className="col-2">Date</div>
-                <div className="col-3">Points</div>
-                <div className="col-4">Type</div>
-              </div>
-              <div className="table-body">
-                {transactions.map(transaction => (
-                  <div key={transaction._id} className="transaction-row">
-                    <div className="col-1">
-                      <div 
-                        className="transaction-icon" 
-                        style={{ 
-                          backgroundColor: transaction.type === 'redeem' ? '#E74C3C' : 
-                                        transaction.type === 'bonus' ? '#9B59B6' : '#2ECC71' 
-                        }}
-                      >
-                        {transaction.type === 'purchase' ? <FaShoppingCart /> :
-                         transaction.type === 'event' ? <FaCalendarAlt /> :
-                         transaction.type === 'game' ? <FaGamepad /> :
-                         transaction.type === 'redeem' ? <FaGift /> :
-                         transaction.type === 'bonus' ? <FaStar /> : <FaCoins />}
+            <>
+              <div className="transactions-list">
+                {transactions.map((transaction) => (
+                  <div key={transaction._id} className="transaction-item">
+                    <div
+                      className="transaction-icon-wrapper"
+                      style={{
+                        backgroundColor: getTransactionColor(transaction.type),
+                      }}
+                    >
+                      {getTransactionIcon(transaction.type)}
+                    </div>
+
+                    <div className="transaction-details">
+                      <h4 className="transaction-description">
+                        {transaction.description}
+                      </h4>
+                      <div className="transaction-meta">
+                        <span
+                          className="transaction-type-badge"
+                          style={{
+                            backgroundColor: `${getTransactionColor(transaction.type)}20`,
+                            color: getTransactionColor(transaction.type),
+                          }}
+                        >
+                          {transaction.type.replace("_", " ")}
+                        </span>
+                        <span className="transaction-date">
+                          {new Date(transaction.createdAt).toLocaleString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </span>
                       </div>
-                      <span className="transaction-desc">{transaction.description}</span>
+
+                      {/* Show metadata if available */}
+                      {transaction.metadata &&
+                        Object.keys(transaction.metadata).length > 0 && (
+                          <div className="transaction-metadata">
+                            {transaction.metadata.streak && (
+                              <span className="meta-tag">
+                                <FaFire /> Streak: {transaction.metadata.streak}{" "}
+                                days
+                              </span>
+                            )}
+                            {transaction.metadata.eventName && (
+                              <span className="meta-tag">
+                                <FaCalendarAlt />{" "}
+                                {transaction.metadata.eventName}
+                              </span>
+                            )}
+                            {transaction.metadata.gameName && (
+                              <span className="meta-tag">
+                                <FaGamepad /> {transaction.metadata.gameName}
+                              </span>
+                            )}
+                            {transaction.metadata.productName && (
+                              <span className="meta-tag">
+                                <FaShoppingCart />{" "}
+                                {transaction.metadata.productName}
+                              </span>
+                            )}
+                          </div>
+                        )}
                     </div>
-                    <div className="col-2">
-                      <span className="transaction-date">
-                        {new Date(transaction.createdAt).toLocaleDateString()}
+
+                    <div className="transaction-amount">
+                      <span
+                        className={`amount ${transaction.amount > 0 ? "positive" : "negative"}`}
+                      >
+                        {transaction.amount > 0 ? "+" : ""}
+                        {transaction.amount}
                       </span>
-                    </div>
-                    <div className="col-3">
-                      <span className={`points-amount ${
-                        transaction.amount > 0 ? 'earned' : 'redeemed'
-                      }`}>
-                        {transaction.amount > 0 ? '+' : ''}{transaction.amount}
-                      </span>
-                    </div>
-                    <div className="col-4">
-                      <span className={`transaction-type ${transaction.type}`}>
-                        {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
-                      </span>
+                      <span className="amount-label">points</span>
+                      {transaction.balance !== undefined && (
+                        <span className="balance-info">
+                          Balance: {transaction.balance}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+
+              {/* Pagination */}
+              {totalTransactionPages > 1 && (
+                <div className="pagination">
+                  <button
+                    className="pagination-btn"
+                    onClick={() =>
+                      setTransactionPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={transactionPage === 1}
+                  >
+                    Previous
+                  </button>
+
+                  <div className="page-info">
+                    Page {transactionPage} of {totalTransactionPages}
+                  </div>
+
+                  <button
+                    className="pagination-btn"
+                    onClick={() =>
+                      setTransactionPage((prev) =>
+                        Math.min(totalTransactionPages, prev + 1),
+                      )
+                    }
+                    disabled={transactionPage === totalTransactionPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
@@ -757,7 +1202,7 @@ const WalletPointsPage: React.FC = () => {
           <div className="redeem-modal">
             <div className="modal-header">
               <h3>Redeem Reward</h3>
-              <button 
+              <button
                 className="close-modal"
                 onClick={() => setShowRedeemModal(false)}
                 disabled={redeeming}
@@ -767,41 +1212,50 @@ const WalletPointsPage: React.FC = () => {
             </div>
             <div className="modal-content">
               <div className="reward-preview">
-                <div 
-                  className="reward-preview-icon" 
-                  style={{ backgroundColor: selectedReward.color || '#FF8C00' }}
+                <div
+                  className="reward-preview-icon"
+                  style={{ backgroundColor: selectedReward.color || "#FF8C00" }}
                 >
                   {renderIcon(selectedReward.icon)}
                 </div>
                 <h4>{selectedReward.name}</h4>
-                <p className="reward-description">{selectedReward.description}</p>
+                <p className="reward-description">
+                  {selectedReward.description}
+                </p>
                 <div className="points-cost">
                   <FaCoins />
                   <span>{selectedReward.points} points</span>
                 </div>
               </div>
               <div className="current-balance">
-                <p>Your current balance: <strong>{userPoints} points</strong></p>
-                <p>After redemption: <strong>{userPoints - selectedReward.points} points</strong></p>
+                <p>
+                  Your current balance: <strong>{userPoints} points</strong>
+                </p>
+                <p>
+                  After redemption:{" "}
+                  <strong>{userPoints - selectedReward.points} points</strong>
+                </p>
                 {selectedReward.stock <= 5 && selectedReward.stock > 0 && (
-                  <p className="stock-warning">⚠️ Only {selectedReward.stock} left in stock!</p>
+                  <p className="stock-warning">
+                    ⚠️ Only {selectedReward.stock} left in stock!
+                  </p>
                 )}
               </div>
               <div className="modal-actions">
-                <button 
+                <button
                   className="cancel-btn"
                   onClick={() => setShowRedeemModal(false)}
                   disabled={redeeming}
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   className="confirm-redeem"
                   onClick={confirmRedeem}
                   disabled={redeeming}
-                  style={{ backgroundColor: selectedReward.color || '#FF8C00' }}
+                  style={{ backgroundColor: selectedReward.color || "#FF8C00" }}
                 >
-                  {redeeming ? 'Processing...' : 'Confirm Redemption'}
+                  {redeeming ? "Processing..." : "Confirm Redemption"}
                 </button>
               </div>
             </div>

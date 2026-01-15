@@ -1,30 +1,30 @@
 // app/blog/create/page.tsx
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useAuth } from '@/app/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Eye } from 'lucide-react';
-import './blog-create.css';
+import React, { useState } from "react";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Save, Eye } from "lucide-react";
+import "./blog-create.css";
 
 const CATEGORIES = [
-  'Game Stories & Experiences',
-  'Event Highlights',
-  'Strategy & Storytelling',
-  'Community Features'
+  "Game Stories & Experiences",
+  "Event Highlights",
+  "Strategy & Storytelling",
+  "Community Features",
 ];
 
 export default function CreateBlogPage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const router = useRouter();
 
   const [formData, setFormData] = useState({
-    title: '',
-    excerpt: '',
-    content: '',
+    title: "",
+    excerpt: "",
+    content: "",
     category: CATEGORIES[0],
-    tags: '',
-    coverImage: ''
+    tags: "",
+    coverImage: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -32,31 +32,37 @@ export default function CreateBlogPage() {
     e.preventDefault();
 
     if (!user) {
-      alert('Please login to create a blog post');
-      router.push('/login');
+      alert("Please login to create a blog post");
+      router.push("/login");
       return;
     }
 
     if (!formData.title || !formData.excerpt || !formData.content) {
-      alert('Please fill in all required fields');
+      alert("Please fill in all required fields");
       return;
     }
 
     setLoading(true);
 
     try {
-      const token = await user.getIdToken();
+      const token = await getToken();
       
-      const tags = formData.tags
-        .split(',')
-        .map(tag => tag.trim())
-        .filter(tag => tag.length > 0);
+      if (!token) {
+        alert("Authentication token not available. Please login again.");
+        router.push("/login");
+        return;
+      }
 
-      const response = await fetch('/api/admin/blog', {
-        method: 'POST',
+      const tags = formData.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
+      const response = await fetch("/api/admin/blog", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           title: formData.title,
@@ -64,23 +70,27 @@ export default function CreateBlogPage() {
           content: formData.content,
           category: formData.category,
           tags,
-          coverImage: formData.coverImage || 'https://images.unsplash.com/photo-1511882150382-421056c89033?w=800',
-          status: 'draft',
-          featured: false
-        })
+          coverImage:
+            formData.coverImage ||
+            "https://images.unsplash.com/photo-1511882150382-421056c89033?w=800",
+          status: "draft",
+          featured: false,
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert('Blog post created successfully! It will be reviewed before publishing.');
-        router.push('/blog');
+        alert(
+          "Blog post created successfully! It will be reviewed before publishing.",
+        );
+        router.push("/blog");
       } else {
-        alert(`Failed to create blog: ${data.error || 'Unknown error'}`);
+        alert(`Failed to create blog: ${data.error || "Unknown error"}`);
       }
     } catch (error) {
-      console.error('Error creating blog:', error);
-      alert('Failed to create blog post');
+      console.error("Error creating blog:", error);
+      alert("Failed to create blog post");
     } finally {
       setLoading(false);
     }
@@ -92,7 +102,7 @@ export default function CreateBlogPage() {
         <div className="auth-required">
           <h2>Login Required</h2>
           <p>Please login to create a blog post</p>
-          <button onClick={() => router.push('/login')}>Login</button>
+          <button onClick={() => router.push("/login")}>Login</button>
         </div>
       </div>
     );
@@ -116,7 +126,9 @@ export default function CreateBlogPage() {
             id="title"
             type="text"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, title: e.target.value })
+            }
             placeholder="Enter an engaging title..."
             required
             maxLength={100}
@@ -128,7 +140,9 @@ export default function CreateBlogPage() {
           <textarea
             id="excerpt"
             value={formData.excerpt}
-            onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, excerpt: e.target.value })
+            }
             placeholder="Write a brief description (150-200 characters)"
             rows={3}
             required
@@ -142,7 +156,9 @@ export default function CreateBlogPage() {
           <textarea
             id="content"
             value={formData.content}
-            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, content: e.target.value })
+            }
             placeholder="Share your gaming story, strategy, or experience..."
             rows={15}
             required
@@ -155,7 +171,9 @@ export default function CreateBlogPage() {
             <select
               id="category"
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, category: e.target.value })
+              }
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
@@ -171,7 +189,9 @@ export default function CreateBlogPage() {
               id="tags"
               type="text"
               value={formData.tags}
-              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, tags: e.target.value })
+              }
               placeholder="Strategy, Tips, Events (comma-separated)"
             />
           </div>
@@ -183,14 +203,20 @@ export default function CreateBlogPage() {
             id="coverImage"
             type="url"
             value={formData.coverImage}
-            onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, coverImage: e.target.value })
+            }
             placeholder="https://example.com/image.jpg"
           />
           <small>Leave empty for default image</small>
         </div>
 
         <div className="form-actions">
-          <button type="button" className="btn-secondary" onClick={() => router.back()}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => router.back()}
+          >
             Cancel
           </button>
           <button type="submit" className="btn-primary" disabled={loading}>
@@ -207,7 +233,10 @@ export default function CreateBlogPage() {
 
         <div className="form-note">
           <Eye size={16} />
-          <p>Your blog post will be saved as a draft and reviewed before publishing.</p>
+          <p>
+            Your blog post will be saved as a draft and reviewed before
+            publishing.
+          </p>
         </div>
       </form>
     </div>

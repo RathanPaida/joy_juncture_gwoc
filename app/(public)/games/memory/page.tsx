@@ -5,6 +5,10 @@ import { Timer, RefreshCw, Trophy, Gamepad2 } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { getAuth } from "firebase/auth";
+<<<<<<< HEAD
+=======
+import "./memory-game.css";
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
 
 /* ---------------- TYPES ---------------- */
 
@@ -316,37 +320,58 @@ export default function MemoryGame() {
 
   if (authLoading) {
     return (
+<<<<<<< HEAD
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-lg">Checking authentication...</div>
+=======
+      <div className="memory-loading-screen">
+        <div className="memory-loading-message">Checking authentication...</div>
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
       </div>
     );
   }
 
   if (loading) {
     return (
+<<<<<<< HEAD
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-lg">Loading game data...</div>
+=======
+      <div className="memory-loading-screen">
+        <div className="memory-loading-message">Loading game data...</div>
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
       </div>
     );
   }
 
   if (!user) {
     return (
+<<<<<<< HEAD
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-lg">Redirecting to login...</div>
+=======
+      <div className="memory-loading-screen">
+        <div className="memory-loading-message">Redirecting to login...</div>
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
       </div>
     );
   }
 
   if (cards.length === 0) {
     return (
+<<<<<<< HEAD
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-lg">Preparing game...</div>
+=======
+      <div className="memory-loading-screen">
+        <div className="memory-loading-message">Preparing game...</div>
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
       </div>
     );
   }
 
   return (
+<<<<<<< HEAD
     <div className="p-4 max-w-5xl mx-auto">
       {/* User info */}
       <div className="mb-4 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
@@ -360,34 +385,69 @@ export default function MemoryGame() {
           <div className="text-right">
             <div className="text-xl font-bold text-purple-600">{user.userPoints}</div>
             <div className="text-xs text-gray-500">Coins</div>
+=======
+    <div className="memory-game-container">
+      {/* User info */}
+      <div className="memory-user-info">
+        <div className="memory-user-header">
+          <div>
+            <h1 className="memory-game-title">Memory Game</h1>
+            <p className="memory-welcome-message">
+              Welcome, <span className="memory-username">{user.name}</span>!
+            </p>
+          </div>
+          <div className="memory-user-coins">
+            <div className="memory-coins-value">{user.userPoints}</div>
+            <div className="memory-coins-label">Coins</div>
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
           </div>
         </div>
       </div>
 
       {/* Game stats */}
+<<<<<<< HEAD
       <div className="grid grid-cols-5 gap-2 mb-4">
         <Stat icon={<Timer className="w-4 h-4" />} value={`${time}s`} label="Time" />
         <Stat icon={<RefreshCw className="w-4 h-4" />} value={moves} label="Moves" />
         <Stat icon={<Trophy className="w-4 h-4" />} value={`${matched.length}/8`} label="Matches" />
         <Stat icon={<Gamepad2 className="w-4 h-4" />} value="16" label="Cards" />
+=======
+      <div className="memory-stats-grid">
+        <Stat icon={<Timer className="memory-stat-icon" />} value={`${time}s`} label="Time" />
+        <Stat icon={<RefreshCw className="memory-stat-icon" />} value={moves} label="Moves" />
+        <Stat icon={<Trophy className="memory-stat-icon" />} value={`${matched.length}/8`} label="Matches" />
+        <Stat icon={<Gamepad2 className="memory-stat-icon" />} value="16" label="Cards" />
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
         <Stat value={user.userPoints} label="Coins" />
       </div>
 
       {/* Game board */}
+<<<<<<< HEAD
       <div className="grid grid-cols-4 gap-3 max-w-2xl mx-auto">
+=======
+      <div className="memory-board">
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
         {cards.map((card, i) => {
           const open = flipped.includes(i) || matched.includes(card.pairId);
           return (
             <button
               key={card.id}
               onClick={() => handleCardClick(i)}
+<<<<<<< HEAD
               className="aspect-square rounded-lg overflow-hidden shadow-md hover:scale-105 transition-transform duration-200 active:scale-95"
+=======
+              className={`memory-card ${open ? 'memory-card-open' : ''} ${gameOver ? 'memory-card-game-over' : ''}`}
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
               disabled={open || gameOver}
             >
               <img
                 src={open ? card.imageUrl : CARD_BACK}
                 alt={open ? card.name : "Card back"}
+<<<<<<< HEAD
                 className="w-full h-full object-cover"
+=======
+                className="memory-card-image"
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
               />
             </button>
           );
@@ -396,6 +456,7 @@ export default function MemoryGame() {
 
       {/* Game over message */}
       {gameOver && (
+<<<<<<< HEAD
         <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 max-w-2xl mx-auto">
           <div className="text-center">
             <div className="text-2xl font-bold text-green-800 mb-2">🎉 Congratulations!</div>
@@ -407,16 +468,36 @@ export default function MemoryGame() {
             </div>
             <div className="text-sm text-gray-600">
               Total coins: <span className="font-bold">{user.userPoints}</span>
+=======
+        <div className="memory-game-over">
+          <div className="memory-completion-card">
+            <div className="memory-completion-title">🎉 Congratulations!</div>
+            <div className="memory-completion-text">
+              Completed in {time}s with {moves} moves!
+            </div>
+            <div className="memory-coins-earned">
+              +{earnedCoins} coins earned!
+            </div>
+            <div className="memory-total-coins">
+              Total coins: <span className="memory-total-coins-value">{user.userPoints}</span>
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
             </div>
           </div>
         </div>
       )}
 
       {/* Game controls */}
+<<<<<<< HEAD
       <div className="mt-6 flex justify-center">
         <button
           onClick={initializeGame}
           className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2.5 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl"
+=======
+      <div className="memory-controls">
+        <button
+          onClick={initializeGame}
+          className="memory-button"
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
         >
           {gameOver ? "Play Again" : "Restart Game"}
         </button>
@@ -425,6 +506,7 @@ export default function MemoryGame() {
   );
 }
 
+<<<<<<< HEAD
 /* ---------------- STAT ---------------- */
 
 function Stat({ icon, value, label }: any) {
@@ -433,6 +515,16 @@ function Stat({ icon, value, label }: any) {
       <div className="flex justify-center mb-1 text-gray-600">{icon}</div>
       <div className="text-lg font-bold text-gray-800">{value}</div>
       <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+=======
+/* ---------------- STAT COMPONENT ---------------- */
+
+function Stat({ icon, value, label }: any) {
+  return (
+    <div className="memory-stat-card">
+      <div className="memory-stat-icon-container">{icon}</div>
+      <div className="memory-stat-value">{value}</div>
+      <div className="memory-stat-label">{label}</div>
+>>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Trash2, Package, AlertCircle, Edit, Search, Download, X } from 'lucide-react';
 import Image from 'next/image';
+import './admin-products.css';
 
 interface Product {
   _id: string;
@@ -41,7 +42,6 @@ export default function AdminProductsPage() {
   useEffect(() => {
     let filtered = products;
 
-    // Search filter
     if (searchQuery.trim() !== '') {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -49,14 +49,12 @@ export default function AdminProductsPage() {
       );
     }
 
-    // Category filter
     if (filterCategory !== 'all') {
       filtered = filtered.filter(product =>
         product.category?.includes(filterCategory)
       );
     }
 
-    // Players filter
     if (filterPlayers !== 'all') {
       filtered = filtered.filter(product => {
         const players = product.meta?.players || '';
@@ -67,14 +65,12 @@ export default function AdminProductsPage() {
       });
     }
 
-    // Mood filter
     if (filterMood !== 'all') {
       filtered = filtered.filter(product =>
         product.meta?.moods?.includes(filterMood)
       );
     }
 
-    // Occasion filter
     if (filterOccasion !== 'all') {
       filtered = filtered.filter(product =>
         product.meta?.badges?.some(badge => badge.toLowerCase().includes(filterOccasion.toLowerCase()))
@@ -172,28 +168,24 @@ export default function AdminProductsPage() {
     if (!product.stock.available || product.stock.quantity === 0) {
       return { 
         label: 'Out of Stock', 
-        color: 'bg-red-100 text-red-700 border-red-300',
-        pulse: 'animate-pulse'
+        className: 'stock-badge stock-out'
       };
     }
     if (product.stock.quantity <= 5) {
       return { 
         label: `Critical (${product.stock.quantity})`, 
-        color: 'bg-red-500 text-white border-red-600',
-        pulse: 'animate-pulse'
+        className: 'stock-badge stock-critical'
       };
     }
     if (product.stock.quantity <= 20) {
       return { 
         label: `Low (${product.stock.quantity})`, 
-        color: 'bg-orange-100 text-orange-700 border-orange-300',
-        pulse: ''
+        className: 'stock-badge stock-low'
       };
     }
     return { 
       label: `${product.stock.quantity} units`, 
-      color: 'bg-green-100 text-green-700 border-green-300',
-      pulse: ''
+      className: 'stock-badge stock-good'
     };
   };
 
@@ -219,54 +211,49 @@ export default function AdminProductsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-semibold">Loading products...</p>
-        </div>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p className="loading-text">Loading products...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-[1600px] mx-auto">
+    <div className="admin-products-page">
+      <div className="content-container">
         {/* Breadcrumbs */}
-        <div className="text-xs text-gray-500 mb-4 flex items-center gap-2 font-medium">
-          <Link href="/admin" className="hover:text-gray-900 transition-colors">Dashboard</Link>
+        <div className="breadcrumbs">
+          <Link href="/admin" className="breadcrumb-link">Dashboard</Link>
           <span>/</span>
-          <span className="text-gray-900">Products</span>
+          <span className="breadcrumb-current">Products</span>
         </div>
 
-        {/* Compact Header with Search */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* Title & Count */}
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-black text-gray-900">Products</h1>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  {filteredProducts.length} of {products.length} total
-                </p>
-              </div>
-            </div>
+        {/* Header Card */}
+        <div className="header-card">
+          <div className="title-section">
+            <h1 className="page-title">Products</h1>
+            <p className="product-count">
+              {filteredProducts.length} of {products.length} total
+            </p>
+          </div>
 
+          <div className="search-actions-container">
             {/* Search & Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 lg:max-w-2xl">
+            <div className="filters-row">
               {/* Search Bar */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <div className="search-container">
+                <Search className="search-icon" size={18} />
                 <input
                   type="text"
                   placeholder="Search by name or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all text-sm"
+                  className="search-input"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="search-clear"
                   >
                     <X size={16} />
                   </button>
@@ -277,7 +264,7 @@ export default function AdminProductsPage() {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                className="filter-select"
               >
                 <option value="all">All Categories</option>
                 <option value="board-game">Board Games</option>
@@ -287,16 +274,16 @@ export default function AdminProductsPage() {
               {/* Export CSV */}
               <button
                 onClick={exportToCSV}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium text-sm whitespace-nowrap"
+                className="btn btn-export"
               >
                 <Download size={16} />
-                <span className="hidden sm:inline">Export</span>
+                <span className="hidden-sm">Export</span>
               </button>
 
               {/* Add Product */}
               <Link
                 href="/admin/products/new"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all font-bold text-sm shadow-lg shadow-orange-200 whitespace-nowrap"
+                className="btn btn-add"
               >
                 <Plus size={18} />
                 Add Product
@@ -304,15 +291,15 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          {/* Advanced Filter Chips */}
-          <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-2">Quick Filters:</span>
+          {/* Quick Filters */}
+          <div className="quick-filters">
+            <span className="filter-label">Quick Filters:</span>
             
             {/* Players Filter */}
             <select
               value={filterPlayers}
               onChange={(e) => setFilterPlayers(e.target.value)}
-              className="px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-xs font-semibold hover:bg-purple-100 transition-all outline-none cursor-pointer"
+              className="filter-chip filter-chip-players"
             >
               <option value="all">👥 All Players</option>
               <option value="2">2 Players</option>
@@ -320,11 +307,11 @@ export default function AdminProductsPage() {
               <option value="5+">5+ Players</option>
             </select>
 
-            {/* Mood/Vibe Filter */}
+            {/* Mood Filter */}
             <select
               value={filterMood}
               onChange={(e) => setFilterMood(e.target.value)}
-              className="px-3 py-1.5 bg-pink-50 text-pink-700 border border-pink-200 rounded-full text-xs font-semibold hover:bg-pink-100 transition-all outline-none cursor-pointer"
+              className="filter-chip filter-chip-mood"
             >
               <option value="all">😊 All Moods</option>
               <option value="party">🎉 Party</option>
@@ -338,7 +325,7 @@ export default function AdminProductsPage() {
             <select
               value={filterOccasion}
               onChange={(e) => setFilterOccasion(e.target.value)}
-              className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-semibold hover:bg-blue-100 transition-all outline-none cursor-pointer"
+              className="filter-chip filter-chip-occasion"
             >
               <option value="all">🎪 All Occasions</option>
               <option value="bestseller">🏆 Bestseller</option>
@@ -348,13 +335,12 @@ export default function AdminProductsPage() {
             </select>
 
             {/* Stock Status Chips */}
-                       {/* Stock Status Chips */}
             <button 
               onClick={() => {
                 const criticalProducts = products.filter(p => p.stock.quantity <= 5 && p.stock.quantity > 0);
                 setFilteredProducts(criticalProducts);
               }}
-              className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-semibold hover:bg-red-100 transition-all"
+              className="filter-chip filter-chip-stock"
             >
               🚨 Critical Stock ({products.filter(p => p.stock.quantity <= 5 && p.stock.quantity > 0).length})
             </button>
@@ -364,7 +350,7 @@ export default function AdminProductsPage() {
                 const lowStockProducts = products.filter(p => p.stock.quantity > 5 && p.stock.quantity <= 20);
                 setFilteredProducts(lowStockProducts);
               }}
-              className="px-3 py-1.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-full text-xs font-semibold hover:bg-orange-100 transition-all"
+              className="filter-chip filter-chip-stock"
             >
               ⚠️ Low Stock ({products.filter(p => p.stock.quantity > 5 && p.stock.quantity <= 20).length})
             </button>
@@ -380,7 +366,7 @@ export default function AdminProductsPage() {
                   setSearchQuery('');
                   setFilteredProducts(products);
                 }}
-                className="px-3 py-1.5 bg-gray-200 text-gray-700 border border-gray-300 rounded-full text-xs font-bold hover:bg-gray-300 transition-all"
+                className="filter-chip filter-chip-clear"
               >
                 ✕ Clear All
               </button>
@@ -389,85 +375,70 @@ export default function AdminProductsPage() {
         </div>
 
         {/* Products Table */}
-        <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-200 overflow-hidden">
+        <div className="table-container">
           {filteredProducts.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <div className="table-responsive">
+              <table className="table">
+                <thead className="table-header">
                   <tr>
-                    <th className="w-12 px-4 py-3">
+                    <th>
                       <input
                         type="checkbox"
                         checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
                         onChange={toggleSelectAll}
-                        className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                        className="checkbox"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                      Product
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                      Price
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                      Players
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                      Stock Status
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Players</th>
+                    <th>Stock Status</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
+                <tbody className="table-body">
                   {filteredProducts.map((product) => {
                     const primaryImageUrl = getPrimaryImage(product);
                     const imageCount = product.images?.length || 0;
                     const stockStatus = getStockStatus(product);
 
                     return (
-                      <tr
-                        key={product._id}
-                        className="hover:bg-orange-50/30 transition-colors group"
-                      >
-                        <td className="px-4 py-3">
+                      <tr key={product._id}>
+                        <td>
                           <input
                             type="checkbox"
                             checked={selectedProducts.includes(product._id)}
                             onChange={() => toggleSelectProduct(product._id)}
-                            className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                            className="checkbox"
                           />
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="relative w-14 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-gray-200">
+                        <td>
+                          <div className="product-info">
+                            <div className="product-image">
                               <Image
                                 src={primaryImageUrl}
                                 alt={product.name}
                                 fill
-                                className="object-cover"
+                                className="product-img"
                               />
                               {imageCount > 1 && (
-                                <div className="absolute bottom-0.5 right-0.5 bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded font-bold leading-none">
+                                <div className="image-badge">
                                   +{imageCount - 1}
                                 </div>
                               )}
                             </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-gray-900 text-sm truncate">{product.name}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <p className="text-[10px] text-gray-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {product._id.slice(-8)}
-                                </p>
+                            <div className="product-details">
+                              <p className="product-name">{product.name}</p>
+                              <div className="product-meta">
+                                <p className="product-id">{product._id.slice(-8)}</p>
                                 {imageCount > 0 && (
-                                  <span className="text-[10px] text-blue-600 font-semibold">
+                                  <span className="image-count">
                                     📸 {imageCount}
                                   </span>
                                 )}
                               </div>
                               {!product.slug && (
-                                <p className="text-[10px] text-yellow-600 flex items-center gap-1 mt-1">
+                                <p className="warning-badge">
                                   <AlertCircle size={10} />
                                   No slug
                                 </p>
@@ -475,49 +446,41 @@ export default function AdminProductsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="font-bold text-gray-900 text-sm">
+                        <td>
+                          <div className="price">
                             {product.price.currency === 'INR' ? '₹' : '$'}{product.price.amount.toLocaleString()}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-gray-700 text-sm">
+                        <td>
                           {product.meta?.players || 'N/A'}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold border ${stockStatus.color} ${stockStatus.pulse}`}>
+                        <td>
+                          <span className={stockStatus.className}>
                             {stockStatus.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-1">
+                        <td>
+                          <div className="actions">
                             {/* Edit Button */}
                             <Link
                               href={`/admin/products/${product._id}/edit`}
-                              className="p-2 hover:bg-blue-50 rounded-lg transition-all group/edit relative"
+                              className="action-btn action-btn-edit"
                               title="Edit product"
                             >
-                              <Edit size={18} className="text-gray-500 group-hover/edit:text-blue-600 transition-colors" />
-                              <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/edit:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                                Edit
-                              </span>
+                              <Edit size={18} className="action-icon" />
                             </Link>
 
                             {/* Delete Button */}
                             <button
-                              className="p-2 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group/delete relative"
+                              className="action-btn action-btn-delete"
                               onClick={() => handleDelete(product._id, product.name)}
                               disabled={deleting === product._id}
                               title="Delete product"
                             >
                               {deleting === product._id ? (
-                                <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                                <div className="loading-spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div>
                               ) : (
-                                <>
-                                  <Trash2 size={18} className="text-gray-500 group-hover/delete:text-red-600 transition-colors" />
-                                  <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/delete:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                                    Delete
-                                  </span>
-                                </>
+                                <Trash2 size={18} className="action-icon" />
                               )}
                             </button>
                           </div>
@@ -529,10 +492,10 @@ export default function AdminProductsPage() {
               </table>
             </div>
           ) : (
-            <div className="text-center py-20 px-4">
-              <Package size={64} className="mx-auto mb-4 text-gray-300" />
-              <p className="text-xl font-bold mb-2 text-gray-900">No products found</p>
-              <p className="text-gray-500 mb-6">
+            <div className="empty-state">
+              <Package size={64} className="empty-icon" />
+              <p className="empty-title">No products found</p>
+              <p className="empty-message">
                 {searchQuery || filterCategory !== 'all' || filterPlayers !== 'all' || filterMood !== 'all' || filterOccasion !== 'all' 
                   ? 'Try adjusting your search or filters' 
                   : 'Start by adding your first product'}
@@ -547,7 +510,7 @@ export default function AdminProductsPage() {
                     setFilterOccasion('all');
                     setFilteredProducts(products);
                   }}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all text-sm font-medium"
+                  className="btn btn-export"
                 >
                   Clear All Filters
                 </button>
@@ -558,36 +521,34 @@ export default function AdminProductsPage() {
 
         {/* Floating Bulk Action Bar */}
         {selectedProducts.length > 0 && (
-          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4">
-            <div className="bg-gray-900 text-white rounded-full shadow-2xl px-6 py-4 flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center font-bold text-sm">
-                  {selectedProducts.length}
-                </div>
-                <span className="font-semibold text-sm">
-                  {selectedProducts.length} selected
-                </span>
+          <div className="bulk-action-bar">
+            <div className="bulk-count">
+              <div className="count-badge">
+                {selectedProducts.length}
               </div>
-              
-              <div className="h-6 w-px bg-gray-700"></div>
+              <span className="count-text">
+                {selectedProducts.length} selected
+              </span>
+            </div>
+            
+            <div className="divider"></div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleBulkDelete}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 rounded-full transition-all text-sm font-bold"
-                >
-                  <Trash2 size={16} />
-                  Delete All
-                </button>
+            <div className="bulk-actions">
+              <button
+                onClick={handleBulkDelete}
+                className="btn btn-bulk-delete"
+              >
+                <Trash2 size={16} />
+                Delete All
+              </button>
 
-                <button
-                  onClick={() => setSelectedProducts([])}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-all text-sm font-medium"
-                >
-                  <X size={16} />
-                  Cancel
-                </button>
-              </div>
+              <button
+                onClick={() => setSelectedProducts([])}
+                className="btn btn-bulk-cancel"
+              >
+                <X size={16} />
+                Cancel
+              </button>
             </div>
           </div>
         )}
@@ -595,4 +556,3 @@ export default function AdminProductsPage() {
     </div>
   );
 }
-

@@ -1,69 +1,76 @@
 // app/api/admin/blog/stats/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
-import connectDb from '@/lib/mongodb';
-import { Blog } from '@/models/Blog';
-import { User } from '@/models/User';
+import { NextRequest, NextResponse } from "next/server";
+import { adminAuth } from "@/lib/firebase-admin";
+import connectDb from "@/lib/mongodb";
+import mongoose from "mongoose";
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const authHeader = request.headers.get("authorization");
+    
+    if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const token = authHeader.split('Bearer ')[1];
+    const token = authHeader.split("Bearer ")[1];
     const decodedToken = await adminAuth.verifyIdToken(token);
-    const firebaseUid = decodedToken.uid;
 
     await connectDb();
-    
-    const user = await User.findOne({ firebaseUid });
-    if (!user || (user.role !== 'admin' && user.role !== 'super_admin' && user.role !== 'editor')) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized: Admin access required' },
-        { status: 403 }
-      );
-    }
 
-    const totalBlogs = await Blog.countDocuments({});
-    const publishedBlogs = await Blog.countDocuments({ status: 'published' });
-    const draftBlogs = await Blog.countDocuments({ status: 'draft' });
-    const adminBlogs = await Blog.countDocuments({ 
-      'createdBy.userRole': { $in: ['admin', 'super_admin', 'editor'] } 
-    });
-    const userBlogs = await Blog.countDocuments({ 
-      'createdBy.userRole': 'viewer' 
-    });
+    // Get blogs collection
+    const blogsCollection = mongoose.connection.collection("blogs");
 
-    // Aggregate total views
-    const viewsAggregate = await Blog.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalViews: { $sum: '$views' }
-        }
-      }
-    ]);
-
-    const totalViews = viewsAggregate[0]?.totalViews || 0;
-
-    return NextResponse.json({
-      success: true,
+    // Calculate stats
+    const [
       totalBlogs,
       publishedBlogs,
       draftBlogs,
-      totalViews,
       adminBlogs,
-      userBlogs
-    });
+      userBlogs,
+    ] = await Promise.all([
+      blogsCollection.countDocuments(),
+      blogsCollection.countDocuments({ status: "published" }),
+      blogsCollection.countDocuments({ status: "draft" }),
+      blogsCollection.countDocuments({
+        "createdBy.userRole": { $in: ["admin", "super_admin", "editor"] }
+      }),
+      blogsCollection.countDocuments({
+        "createdBy.userRole": "user"
+      }),
+    ]);
+
+    // Calculate total views (if you have a views field)
+    const viewsAggregation = await blogsCollection
+      .aggregate([
+        {
+          $group: {
+            _id: null,
+            totalViews: { $sum: "$views" }
+          }
+        }
+      ])
+      .toArray();
+
+    const totalViews = viewsAggregation[0]?.totalViews || 0;
+
+    const stats = {
+      totalBlogs,
+      publishedBlogs,
+      draftBlogs,
+      adminBlogs,
+      userBlogs,
+      totalViews,
+    };
+
+    return NextResponse.json(stats);
+
   } catch (error: any) {
-    console.error('Error fetching admin blog stats:', error);
+    console.error("Error fetching blog stats:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { error: "Failed to fetch stats", details: error.message },
       { status: 500 }
     );
   }

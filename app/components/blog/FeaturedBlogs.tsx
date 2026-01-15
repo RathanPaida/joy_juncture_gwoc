@@ -1,6 +1,6 @@
-import Link from 'next/link';
-import { IBlog } from '../../../models/Blog';
-import { FaArrowRight, FaStar } from 'react-icons/fa';
+import Link from "next/link";
+import { IBlog } from "../../../models/Blog";
+import { FaArrowRight, FaStar } from "react-icons/fa";
 
 interface FeaturedBlogsProps {
   blogs: IBlog[];
@@ -18,7 +18,7 @@ export default function FeaturedBlogs({ blogs }: FeaturedBlogsProps) {
           </div>
           <h2 className="text-2xl font-bold text-white">Featured Guides</h2>
         </div>
-        <Link 
+        <Link
           href="/blog?featured=true"
           className="flex items-center gap-2 text-orange-500 hover:text-orange-400 font-semibold"
         >
@@ -29,8 +29,8 @@ export default function FeaturedBlogs({ blogs }: FeaturedBlogsProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {blogs.map((blog, index) => (
-          <Link 
-            key={blog._id.toString()} 
+          <Link
+            key={blog._id.toString()}
             href={`/blog/${blog.slug}`}
             className="group"
           >
@@ -42,14 +42,14 @@ export default function FeaturedBlogs({ blogs }: FeaturedBlogsProps) {
                   Featured
                 </span>
               </div>
-              
+
               {/* Number Badge */}
               <div className="absolute top-4 right-4 z-10">
                 <span className="w-8 h-8 flex items-center justify-center bg-gray-900/80 text-white text-sm font-bold rounded-full">
                   #{index + 1}
                 </span>
               </div>
-              
+
               {/* Image */}
               <div className="relative h-48 overflow-hidden">
                 <img
@@ -59,32 +59,36 @@ export default function FeaturedBlogs({ blogs }: FeaturedBlogsProps) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/50 to-transparent"></div>
               </div>
-              
+
               {/* Content */}
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="px-3 py-1 bg-gray-700/50 text-gray-300 text-xs rounded-full">
-                    {blog.category.split(' ')[0]}
+                    {blog.category.split(" ")[0]}
                   </span>
                   <span className="text-sm text-gray-500">{blog.readTime}</span>
                 </div>
-                
+
                 <h3 className="text-xl font-bold text-white mb-3 group-hover:text-orange-400 transition-colors line-clamp-2">
                   {blog.title}
                 </h3>
-                
+
                 <p className="text-gray-400 text-sm line-clamp-2 mb-4">
                   {blog.excerpt}
                 </p>
-                
+
                 <div className="flex items-center justify-between pt-4 border-t border-gray-700/50">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
                       {blog.author.name.charAt(0)}
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-white">{blog.author.name}</div>
-                      <div className="text-xs text-gray-500">{blog.author.role}</div>
+                      <div className="text-sm font-medium text-white">
+                        {blog.author.name}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {blog.author.role}
+                      </div>
                     </div>
                   </div>
                   <span className="text-orange-500 group-hover:text-orange-400 transition-colors">

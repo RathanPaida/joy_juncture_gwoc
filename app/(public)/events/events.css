@@ -1,50 +1,883 @@
-:root {
-  --card-black: 0 0% 8%;
-  --orange-1: 25 95% 53%;
-  --orange-2: 30 100% 50%;
+/* app/(public)/events/events.css */
+
+/* Global Animations */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-/* Card base */
-.event-card {
-  background: hsl(var(--card-black));
-  border-radius: 1rem;
-  transition:
-    background 0.35s ease,
-    transform 0.35s ease,
-    box-shadow 0.35s ease,
-    color 0.35s ease;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-/* Lift effect */
-.event-card:hover {
-  transform: translateY(-10px);
-  box-shadow:
-    0 25px 50px rgba(0, 0, 0, 0.6),
-    0 0 35px hsl(var(--orange-1) / 0.35);
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-/* Orange hover */
-.event-card:hover {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--orange-1)) 0%,
-    hsl(var(--orange-2)) 100%
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 107, 0, 0.3),
+                0 0 40px rgba(255, 107, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 107, 0, 0.6),
+                0 0 60px rgba(255, 107, 0, 0.3);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Page Container */
+.events-page {
+  min-height: 100vh;
+  background: #1a1a1a;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(255, 107, 0, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 140, 0, 0.05) 0%, transparent 50%);
+  animation: fadeInScale 0.6s ease-out;
+}
+
+/* Header Section */
+.events-header {
+  text-align: center;
+  padding: 4rem 2rem 3rem;
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 50%, #ffa500 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.events-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(0, 0, 0, 0.03) 10px,
+    rgba(0, 0, 0, 0.03) 20px
   );
-  color: black;
 }
 
-/* Text color on hover */
-.event-card:hover h1,
-.event-card:hover h2,
-.event-card:hover h3,
-.event-card:hover p,
-.event-card:hover span {
-  color: black;
+.events-header h1 {
+  color: #1a1a1a;
+  font-size: 4rem;
+  font-weight: 900;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  animation: slideInFromLeft 0.8s ease-out;
+  position: relative;
+  z-index: 1;
 }
 
-/* Button contrast */
-.event-card:hover button {
-  background-color: black;
-  color: white;
+.events-header p {
+  color: #2d2d2d;
+  font-size: 1.3rem;
+  font-weight: 500;
+  max-width: 800px;
+  margin: 0 auto;
+  animation: slideInFromRight 0.8s ease-out;
+  position: relative;
+  z-index: 1;
+}
+
+/* User Info Bar */
+.user-info-bar {
+  background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  margin: 0 2rem 3rem;
+  border: 2px solid rgba(255, 107, 0, 0.3);
+  box-shadow: 0 10px 40px rgba(255, 107, 0, 0.2);
+  animation: fadeInScale 0.8s ease-out 0.2s backwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.user-info-bar::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 107, 0, 0.1) 0%, transparent 70%);
+  animation: float 6s ease-in-out infinite;
+}
+
+.user-welcome {
+  position: relative;
+  z-index: 1;
+}
+
+.user-welcome h3 {
+  color: #ff6b00;
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.user-welcome p {
+  color: #e0e0e0;
+  font-size: 1.05rem;
+}
+
+.coins-display {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  padding: 1rem 2rem;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(255, 107, 0, 0.3);
+  animation: pulseGlow 2s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+}
+
+.coins-display span:first-child {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.coins-amount {
+  color: #1a1a1a;
+  font-size: 2rem;
+  font-weight: 900;
+  margin-left: 0.5rem;
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 3rem 2rem 2rem;
+  padding: 0 1rem;
+}
+
+.section-title h2 {
+  color: #ff6b00;
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin-bottom: 0.5rem;
+  position: relative;
+  display: inline-block;
+}
+
+.section-title h2::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 80px;
+  height: 5px;
+  background: linear-gradient(90deg, #ff6b00, #ff8c00);
+  border-radius: 3px;
+}
+
+.section-title p {
+  color: #999;
+  font-size: 1.05rem;
+  margin-top: 0.75rem;
+}
+
+.event-count-badge {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  color: #1a1a1a;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3);
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Events Grid */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+  padding: 0 2rem 3rem;
+  animation: fadeInScale 0.8s ease-out 0.3s backwards;
+}
+
+/* Event Card */
+.event-card {
+  background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 107, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.event-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 107, 0, 0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.event-card:hover {
+  transform: translateY(-10px) scale(1.02);
+  border-color: #ff6b00;
+  box-shadow: 0 20px 50px rgba(255, 107, 0, 0.4);
+}
+
+.event-card:hover::before {
+  opacity: 1;
+}
+
+/* Event Card Image */
+.event-card-image {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+}
+
+.event-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.event-card:hover .event-card-image img {
+  transform: scale(1.05);
+}
+
+/* Event Card Header */
+.event-card-header {
+  height: 150px;
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.event-card-header::before {
+  content: '';
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer 3s infinite;
+}
+
+.event-date {
+  text-align: center;
+  color: #1a1a1a;
+  position: relative;
+  z-index: 1;
+}
+
+.event-date-day {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.event-date-month {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Event Badges */
+.event-badge {
+  position: absolute;
+  top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.badge-collab {
+  right: 1rem;
+  background: #1a1a1a;
+  color: #ff6b00;
+  border: 2px solid #ff6b00;
+}
+
+.badge-past {
+  left: 1rem;
+  background: rgba(26, 26, 26, 0.9);
+  color: #999;
+  border: 2px solid #666;
+}
+
+/* Event Date Display (below image) */
+.event-date-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffa500;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 107, 0, 0.2);
+}
+
+.event-date-display svg {
+  color: #ff6b00;
+  flex-shrink: 0;
+}
+
+/* Event Card Body */
+.event-card-body {
+  padding: 1.5rem;
+}
+
+.event-title {
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+  transition: color 0.3s ease;
+}
+
+.event-card:hover .event-title {
+  color: #ff6b00;
+}
+
+.event-description {
+  color: #999;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+/* Event Info Items */
+.event-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 107, 0, 0.05);
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.event-info:hover {
+  background: rgba(255, 107, 0, 0.1);
+  transform: translateX(5px);
+}
+
+.event-info svg {
+  color: #ff6b00;
+  flex-shrink: 0;
+}
+
+.event-info span {
+  color: #e0e0e0;
+  font-size: 0.95rem;
+}
+
+/* Event Pricing & Coins */
+.event-pricing {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 107, 0, 0.2);
+}
+
+.event-price {
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.event-coins {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ffa500;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Seats Progress */
+.seats-progress {
+  margin-top: 1rem;
+}
+
+.seats-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.seats-label {
+  color: #999;
+}
+
+.seats-count {
+  color: #ff6b00;
+  font-weight: 700;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #2d2d2d;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b00 0%, #ff8c00 50%, #ffa500 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+  transition: width 0.5s ease;
+  border-radius: 10px;
+}
+
+/* Action Button */
+.event-action-button {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 1rem;
+}
+
+.btn-register {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  color: #1a1a1a;
+  box-shadow: 0 5px 20px rgba(255, 107, 0, 0.3);
+}
+
+.btn-register:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(255, 107, 0, 0.5);
+}
+
+.btn-ended {
+  background: #2d2d2d;
+  color: #666;
+  cursor: not-allowed;
+  border: 1px solid #444;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 5rem 2rem;
+  background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+  border-radius: 20px;
+  margin: 0 2rem 3rem;
+  border: 2px solid rgba(255, 107, 0, 0.2);
+  animation: fadeInScale 0.8s ease-out;
+}
+
+.empty-state-icon {
+  font-size: 5rem;
+  margin-bottom: 1.5rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+.empty-state h3 {
+  color: #ff6b00;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.empty-state p {
+  color: #999;
+  font-size: 1.1rem;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #1a1a1a;
+}
+
+.loading-spinner {
+  width: 70px;
+  height: 70px;
+  border: 6px solid #2d2d2d;
+  border-top-color: #ff6b00;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 2rem;
+  color: #ff6b00;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Add to your existing events.css file */
+
+.registered-events-section {
+  margin-bottom: 4rem;
+  margin-top: 2rem;
+}
+
+/* Login Prompt Card - Updated with orange theme */
+.login-prompt-card {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(255, 107, 0, 0.3);
+  animation: gradientShift 8s ease infinite;
+  background-size: 200% 200%;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-prompt-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(0, 0, 0, 0.03) 10px,
+    rgba(0, 0, 0, 0.03) 20px
+  );
+}
+
+.login-prompt-content {
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.login-prompt-icon {
+  color: #1a1a1a;
+  margin: 0 auto 1.5rem;
+  opacity: 0.9;
+}
+
+.login-prompt-card h3 {
+  color: #1a1a1a;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.login-prompt-card p {
+  color: rgba(26, 26, 26, 0.9);
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+.login-prompt-button {
+  background: #1a1a1a;
+  color: #ff6b00;
+  padding: 1rem 2.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 2px solid #1a1a1a;
+}
+
+.login-prompt-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  background: transparent;
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+.registered-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  background: rgba(255, 107, 0, 0.05);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 107, 0, 0.2);
+}
+
+.loading-spinner-small {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 107, 0, 0.2);
+  border-top-color: #ff6b00;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.registered-loading p {
+  color: #ffa500;
+  margin: 0;
+}
+
+/* Registered Badges - Updated with orange theme */
+.registered-badge-overlay {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.registered-label {
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  color: #1a1a1a;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 2px solid #1a1a1a;
+}
+
+.attended-label {
+  background: linear-gradient(135deg, #ff8c00 0%, #ffa500 100%);
+  color: #1a1a1a;
+  padding: 0.4rem 0.875rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+  border: 1px solid #1a1a1a;
+}
+
+/* No Registrations Card - Updated with orange theme */
+.no-registrations-card {
+  background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  border: 2px solid rgba(255, 107, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.no-registrations-content {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.no-registrations-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  color: #ff6b00;
+  opacity: 0.7;
+  animation: float 3s ease-in-out infinite;
+}
+
+.no-registrations-card h3 {
+  color: #ff6b00;
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.no-registrations-card p {
+  color: #999;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Event Card Overlay Badges */
+.event-card-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .events-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .events-header h1 {
+    font-size: 2.5rem;
+  }
+
+  .events-header p {
+    font-size: 1.1rem;
+  }
+
+  .user-info-bar {
+    flex-direction: column;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .section-title h2 {
+    font-size: 2rem;
+  }
+
+  .events-grid {
+    grid-template-columns: 1fr;
+    padding: 0 1rem 2rem;
+  }
+
+  .login-prompt-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .login-prompt-card h3 {
+    font-size: 1.5rem;
+  }
+
+  .login-prompt-card p {
+    font-size: 1rem;
+  }
+
+  .login-prompt-button {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+  }
+
+  .registered-badge-overlay {
+    top: 0.75rem;
+    left: 0.75rem;
+  }
+
+  .registered-label {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .attended-label {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.75rem;
+  }
+}
+
+/* Stagger Animation for Cards */
+.event-card:nth-child(1) { animation-delay: 0.1s; }
+.event-card:nth-child(2) { animation-delay: 0.2s; }
+.event-card:nth-child(3) { animation-delay: 0.3s; }
+.event-card:nth-child(4) { animation-delay: 0.4s; }
+.event-card:nth-child(5) { animation-delay: 0.5s; }
+.event-card:nth-child(6) { animation-delay: 0.6s; }
+
+/* Parallax Scrolling Effect */
+@media (prefers-reduced-motion: no-preference) {
+  .events-page {
+    background-attachment: fixed;
+  }
 }
