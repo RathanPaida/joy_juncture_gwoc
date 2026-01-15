@@ -329,122 +329,143 @@ const WalletPointsPage: React.FC = () => {
   };
 
   // UPDATED: Check daily reward status with API call
-  const checkDailyRewardStatus = async () => {
-    try {
-      const token = await getFirebaseToken();
+ const checkDailyRewardStatus = async () => {
+  try {
+    const token = await getFirebaseToken();
 
-      const response = await fetch("/api/wallet/daily-login", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const response = await fetch("/api/wallet/daily-login", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      if (!response.ok) return;
-
-      const data = await response.json();
-
-      setCanClaimDaily(data.canClaim);
-      setStreak(data.currentStreak || 0);
-
-      if (!data.canClaim && data.nextClaimAt) {
-        const nextClaim = new Date(data.nextClaimAt);
-        setNextClaimDate(nextClaim);
-        updateCountdown(nextClaim);
-      }
-    } catch (error) {
-      console.error("Daily reward status error:", error);
-    }
-  };
-
-  // NEW: Countdown timer function
-  const updateCountdown = (nextClaimAt: string | Date) => {
-    const updateTimer = () => {
-      const now = new Date().getTime();
-      const targetTime = new Date(nextClaimAt).getTime();
-      const distance = targetTime - now;
-
-      if (distance < 0) {
-        setTimeUntilNextClaim("Available now!");
-        setCanClaimDaily(true);
-        return;
-      }
-
-      const hours = Math.floor(distance / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      setTimeUntilNextClaim(`${hours}h ${minutes}m ${seconds}s`);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return interval;
-  };
-
-  // UPDATED: Claim daily reward with enhanced feedback
-  const claimDailyReward = async () => {
-    if (!canClaimDaily) {
-      alert("You have already claimed your daily reward today!");
+    if (!response.ok) {
+      console.error("Failed to check daily reward status");
       return;
     }
 
-    try {
-      setClaimingDaily(true);
-      const token = await getFirebaseToken();
+    const data = await response.json();
+    
+    console.log("Daily reward status:", data);
 
-      console.log("🔥 Claiming daily reward...");
+    // Set claim availability
+    setCanClaimDaily(data.canClaim);
+    setStreak(data.currentStreak || 0);
 
-      const response = await fetch("/api/wallet/daily-login", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+    // If can't claim, set up countdown
+    if (!data.canClaim && data.nextClaimAt) {
+      const nextClaim = new Date(data.nextClaimAt);
+      setNextClaimDate(nextClaim);
+      updateCountdown(nextClaim);
+    } else if (data.canClaim) {
+      // Reset countdown if can claim
+      setTimeUntilNextClaim("");
+      setNextClaimDate(null);
+    }
+  } catch (error) {
+    console.error("Daily reward status error:", error);
+  }
+};
 
-      console.log("Response status:", response.status);
+const updateCountdown = (nextClaimAt: string | Date) => {
+  const updateTimer = () => {
+    const now = new Date().getTime();
+    const targetTime = new Date(nextClaimAt).getTime();
+    const distance = targetTime - now;
 
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        console.error("Response is not JSON");
-        throw new Error("Server returned an invalid response");
-      }
+    if (distance < 0) {
+      // Time's up! Enable claiming
+      setTimeUntilNextClaim("Available now!");
+      setCanClaimDaily(true);
+      setNextClaimDate(null);
+      clearInterval(interval);
+      return;
+    }
 
-      const data = await response.json();
-      console.log("Response data:", data);
+    const hours = Math.floor(distance / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-      if (response.ok && data.success) {
-        setCanClaimDaily(false);
-        setStreak(data.streak);
-        setUserPoints(data.newBalance);
+    setTimeUntilNextClaim(`${hours}h ${minutes}m ${seconds}s`);
+  };
 
+  updateTimer();
+  const interval = setInterval(updateTimer, 1000);
+  return interval;
+};
+
+// UPDATED: Claim function with proper state management
+const claimDailyReward = async () => {
+  if (!canClaimDaily) {
+    alert(`You've already claimed today's reward! Next claim in: ${timeUntilNextClaim}`);
+    return;
+  }
+
+  try {
+    setClaimingDaily(true);
+    const token = await getFirebaseToken();
+
+    console.log("🔥 Claiming daily reward...");
+
+    const response = await fetch("/api/wallet/daily-login", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+    console.log("Claim response:", data);
+
+    if (response.ok && data.success) {
+      // Successfully claimed
+      setCanClaimDaily(false);
+      setStreak(data.streak);
+      setUserPoints(data.newBalance);
+
+      // Set next claim time
+      if (data.nextClaimAt) {
         const nextClaim = new Date(data.nextClaimAt);
         setNextClaimDate(nextClaim);
         updateCountdown(nextClaim);
-
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 3000);
-
-        await fetchWalletData();
-        return;
-      } else {
-        // Already claimed or error
-        setCanClaimDaily(false); // Disable button
-
-        if (data.timeRemaining) {
-          const nextClaim = new Date(data.canClaimAt);
-          setNextClaimDate(nextClaim);
-          updateCountdown(nextClaim);
-        }
-
-        alert(data.error || "Failed to claim daily reward");
       }
-    } catch (error: any) {
-      console.error("Error claiming daily reward:", error);
-      alert(`Failed to claim daily reward: ${error.message}`);
-    } finally {
-      setClaimingDaily(false);
+
+      // Show success feedback
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+
+      // Show success message
+      let message = `🎁 Daily Reward Claimed!\n\n+${data.points} points!\n`;
+      message += `Current streak: ${data.streak} days\n`;
+      message += `New balance: ${data.newBalance} points`;
+      
+      if (data.leveledUp) {
+        message += `\n\n🎉 LEVEL UP! You reached Level ${data.level}!`;
+      }
+
+      alert(message);
+
+      // Refresh wallet data
+      await fetchWalletData();
+    } else {
+      // Already claimed or error
+      setCanClaimDaily(false);
+
+      if (data.timeRemaining) {
+        const nextClaim = new Date(data.canClaimAt);
+        setNextClaimDate(nextClaim);
+        updateCountdown(nextClaim);
+      }
+
+      alert(data.error || "Failed to claim daily reward");
     }
-  };
+  } catch (error: any) {
+    console.error("Error claiming daily reward:", error);
+    alert(`Failed to claim daily reward: ${error.message}`);
+  } finally {
+    setClaimingDaily(false);
+  }
+};
 
   const updateUserData = (walletData: any) => {
     setWalletUser(walletData.user);
@@ -679,7 +700,7 @@ const WalletPointsPage: React.FC = () => {
     );
   }
 
-  return (
+ return (
     <div className="wallet-page">
       {showConfetti && (
         <div className="confetti-overlay">
@@ -799,10 +820,12 @@ const WalletPointsPage: React.FC = () => {
                   </button>
                 ) : (
                   <div className="streak-info">
-                    <p className="claimed-text">✓ Claimed today!</p>
+                    <p className="claimed-text">
+                      <FaCheck /> Already claimed today!
+                    </p>
                     {timeUntilNextClaim && (
                       <p className="countdown-text">
-                        Next in: <strong>{timeUntilNextClaim}</strong>
+                        Next reward in: <strong>{timeUntilNextClaim}</strong>
                       </p>
                     )}
                   </div>
@@ -1031,7 +1054,7 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Transaction History - ENHANCED & DYNAMIC */}
+      {/* Transaction History */}
       <section className="transactions-section">
         <div className="container">
           <div className="section-header">
@@ -1041,7 +1064,6 @@ const WalletPointsPage: React.FC = () => {
             <p className="section-subtitle">Track all your point activities</p>
           </div>
 
-          {/* Transaction Filters */}
           <div className="transaction-filters">
             <FaFilter className="filter-icon" />
             <div className="filter-buttons">
@@ -1112,7 +1134,6 @@ const WalletPointsPage: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Show metadata if available */}
                       {transaction.metadata &&
                         Object.keys(transaction.metadata).length > 0 && (
                           <div className="transaction-metadata">
@@ -1161,7 +1182,6 @@ const WalletPointsPage: React.FC = () => {
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalTransactionPages > 1 && (
                 <div className="pagination">
                   <button

@@ -1,9 +1,9 @@
-// app/api/payment/verify/route.ts
+// app/api/payment/verify/route.ts - COMPLETE WITH CART CLEARING
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import connectDb from '@/lib/mongodb';
 import { getDatabase } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { ObjectId, MongoClient } from 'mongodb';
 import { Order } from '@/models/Order';
 import { User, Transaction } from '@/models/User';
 import { verifyIdToken } from '@/lib/firebase-admin';
@@ -279,13 +279,15 @@ async function handleProductPayment(
     const updatedOrders = await Order.updateMany(
       {
         firebaseUid: firebaseUid,
-        status: 'processing',
+        orderStatus: 'processing',
         purchaseDate: { $gte: tenMinutesAgo }
       },
       {
         $set: {
-          status: 'completed',
-          trackingNumber: razorpay_payment_id
+          orderStatus: 'confirmed',
+          paymentStatus: 'completed',
+          razorpayPaymentId: razorpay_payment_id,
+          paidAt: new Date()
         }
       }
     );
@@ -295,7 +297,7 @@ async function handleProductPayment(
     // Calculate total amount from all updated orders
     const orders = await Order.find({
       firebaseUid: firebaseUid,
-      trackingNumber: razorpay_payment_id
+      razorpayPaymentId: razorpay_payment_id
     });
 
     const totalAmount = orders.reduce(
@@ -324,37 +326,98 @@ async function handleProductPayment(
     console.log('✅ User points updated:', userUpdate?.totalPoints);
 
     // Create transaction record for product purchase
+    if (joyPoints > 0) {
+      try {
+        await Transaction.create({
+          userId: userUpdate?._id || firebaseUid,
+          type: 'purchase',
+          amount: joyPoints,
+          description: `Joy Points earned from product purchase`,
+          referenceId: razorpay_payment_id,
+          metadata: {
+            paymentId: razorpay_payment_id,
+            orderId: razorpay_order_id,
+            totalAmount: totalAmount,
+            orderCount: orders.length
+          },
+          balanceAfter: userUpdate?.walletBalance || 0,
+          status: 'completed'
+        });
+        console.log('✅ Transaction record created for product purchase');
+      } catch (txError) {
+        console.error('❌ Transaction creation error:', txError);
+        // Continue even if transaction logging fails
+      }
+    }
+
+    // 🎯 CLEAR THE CART AFTER SUCCESSFUL PAYMENT
+    console.log("\n========================================");
+    console.log("🧹 ATTEMPTING TO CLEAR CART");
+    console.log("========================================");
+    console.log("FirebaseUid:", firebaseUid);
+    
     try {
-      await Transaction.create({
-        userId: firebaseUid,
-        type: 'purchase',
-        amount: joyPoints,
-        description: `Joy Points earned from product purchase`,
-        referenceId: razorpay_payment_id,
-        metadata: {
-          paymentId: razorpay_payment_id,
-          orderId: razorpay_order_id,
-          totalAmount: totalAmount,
-          orderCount: orders.length
-        },
-        balanceAfter: userUpdate?.walletBalance || 0,
-        status: 'completed'
-      });
-      console.log('✅ Transaction record created for product purchase');
-    } catch (txError) {
-      console.error('❌ Transaction creation error:', txError);
-      // Continue even if transaction logging fails
+      // Use the same MongoDB connection as the cart API
+      const cartClient = new MongoClient(process.env.MONGODB_URI!);
+      await cartClient.connect();
+      
+      try {
+        const db = cartClient.db("joyjuncture");
+        const cartCollection = db.collection("cart");
+        
+        // Find all cart items for this user
+        const existingItems = await cartCollection.find({ userId: firebaseUid }).toArray();
+        
+        console.log("📦 Cart items found:", existingItems.length);
+        
+        if (existingItems.length > 0) {
+          console.log("📦 Items to delete:");
+          existingItems.forEach((item: any, index: number) => {
+            console.log(`   ${index + 1}. ${item.productName} (${item.quantity}x)`);
+          });
+        }
+        
+        // Delete all cart items
+        const cartDeleteResult = await cartCollection.deleteMany({ userId: firebaseUid });
+        
+        console.log("🗑️ Delete result:", {
+          acknowledged: cartDeleteResult.acknowledged,
+          deletedCount: cartDeleteResult.deletedCount
+        });
+        
+        // Verify deletion
+        const verifyItems = await cartCollection.find({ userId: firebaseUid }).toArray();
+        console.log("✅ Remaining items after delete:", verifyItems.length);
+        
+        if (verifyItems.length === 0) {
+          console.log("🎉 CART SUCCESSFULLY DELETED!");
+        } else {
+          console.error("❌ CART ITEMS STILL EXIST AFTER DELETE!");
+        }
+      } finally {
+        await cartClient.close();
+      }
+      
+      console.log("========================================\n");
+    } catch (cartError: any) {
+      console.error("\n========================================");
+      console.error("❌ CART DELETION ERROR");
+      console.error("========================================");
+      console.error("Error:", cartError.message);
+      console.error("Stack:", cartError.stack);
+      console.error("========================================\n");
+      // Don't fail the payment if cart clearing fails
     }
 
     return NextResponse.json({
       success: true,
       ordersUpdated: updatedOrders.modifiedCount,
       orderIds: orders.map((o) => o._id.toString()),
-      joyPointsEarned: joyPoints
+      joyPointsEarned: joyPoints,
+      cartCleared: true
     });
   } catch (error) {
     console.error('❌ Product payment error:', error);
     throw error;
   }
 }
-

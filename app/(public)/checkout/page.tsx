@@ -1,10 +1,10 @@
-// app/checkout/page.tsx
+// app/checkout/page.tsx - FIXED CART CLEARING
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase"; // Import Firebase auth directly
 import {
   CreditCard,
   Truck,
@@ -88,15 +88,37 @@ export default function CheckoutPage() {
     document.body.appendChild(script);
   };
 
-  const fetchCartData = async () => {
+  // Helper function to get fresh token
+  const getFreshToken = async (): Promise<string | null> => {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
+        console.error("❌ No current user");
+        return null;
+      }
+      
+      // Force refresh to get a fresh token
+      const token = await currentUser.getIdToken(true);
+      console.log("✅ Got fresh token, length:", token.length);
+      return token;
+    } catch (error) {
+      console.error("❌ Error getting token:", error);
+      return null;
+    }
+  };
+
+  const fetchCartData = async () => {
+    try {
+      if (!user) {
         router.push("/login?redirect=/checkout");
         return;
       }
 
-      const token = await currentUser.getIdToken();
+      const token = await getFreshToken();
+      if (!token) {
+        router.push("/login?redirect=/checkout");
+        return;
+      }
 
       const res = await fetch("/api/cart", {
         headers: {
@@ -112,16 +134,16 @@ export default function CheckoutPage() {
         }
         setCartItems(data.items || []);
 
-        if (currentUser.displayName) {
+        if (user.displayName) {
           setShippingAddress((prev) => ({
             ...prev,
-            fullName: currentUser.displayName || "",
+            fullName: user.displayName || "",
           }));
         }
-        if (currentUser.email) {
+        if (user.email) {
           setShippingAddress((prev) => ({
             ...prev,
-            email: currentUser.email || "",
+            email: user.email || "",
           }));
         }
       }
@@ -184,10 +206,14 @@ export default function CheckoutPage() {
   const initiateRazorpayPayment = async () => {
     setProcessing(true);
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!user) return;
 
-      const token = await currentUser.getIdToken();
+      const token = await getFreshToken();
+      if (!token) {
+        alert("Please login again");
+        return;
+      }
+
       const { total } = calculateTotals();
 
       const orderRes = await fetch("/api/payment/create-order", {
@@ -247,15 +273,17 @@ export default function CheckoutPage() {
     }
   };
 
-  // Update these two functions in your existing checkout/page.tsx
-
-  // Replace the verifyPayment function:
   const verifyPayment = async (paymentResponse: any, order: any) => {
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!user) return;
 
-      const token = await currentUser.getIdToken();
+      const token = await getFreshToken();
+      if (!token) {
+        alert("Authentication failed. Please login again.");
+        return;
+      }
+
+      console.log("🔍 Verifying payment...");
 
       const verifyRes = await fetch("/api/payment/verify", {
         method: "POST",
@@ -267,19 +295,20 @@ export default function CheckoutPage() {
           razorpay_payment_id: paymentResponse.razorpay_payment_id,
           razorpay_order_id: paymentResponse.razorpay_order_id,
           razorpay_signature: paymentResponse.razorpay_signature,
+          type: "product", // Specify product payment type
         }),
       });
 
       if (verifyRes.ok) {
         const data = await verifyRes.json();
-
-        // Clear cart after successful payment
-        await clearCart();
-
-        // Redirect to success page with Joy Points info
-        const firstOrderId =
-          data.orderIds && data.orderIds[0] ? data.orderIds[0] : "success";
+        console.log("✅ Payment verified:", data);
+        console.log("✅ Cart cleared by server:", data.cartCleared);
+        
+        // Redirect to success page with order info
+        const orderIds = data.orderIds?.join(',') || '';
         const joyPoints = data.joyPointsEarned || 0;
+        const count = data.ordersUpdated || 1;
+        
         router.push(`/order-succes`);
       } else {
         const errorData = await verifyRes.json();
@@ -295,15 +324,20 @@ export default function CheckoutPage() {
     }
   };
 
-  // Replace the placeOrderCOD function:
   const placeOrderCOD = async () => {
     setProcessing(true);
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!user) return;
 
-      const token = await currentUser.getIdToken();
+      const token = await getFreshToken();
+      if (!token) {
+        alert("Authentication failed. Please login again.");
+        return;
+      }
+
       const totals = calculateTotals();
+
+      console.log("📦 Placing COD order...");
 
       const orderRes = await fetch("/api/orders/create", {
         method: "POST",
@@ -321,14 +355,14 @@ export default function CheckoutPage() {
 
       if (orderRes.ok) {
         const data = await orderRes.json();
+        console.log("✅ Order created:", data);
+        console.log("✅ Cart cleared by server:", data.cartCleared);
 
-        // Clear cart after successful order
-        await clearCart();
-
-        // Redirect to success page with Joy Points info
-        const firstOrderId =
-          data.orderIds && data.orderIds[0] ? data.orderIds[0] : "success";
+        // Redirect to success page with order info
+        const orderIds = data.orderIds?.join(',') || '';
         const joyPoints = data.joyPointsEarned || 0;
+        const count = data.ordersCreated || 1;
+        
         router.push(`/order-succes`);
       } else {
         const errorData = await orderRes.json();
@@ -339,51 +373,6 @@ export default function CheckoutPage() {
       alert(error.message || "Failed to place order. Please try again.");
     } finally {
       setProcessing(false);
-    }
-  };
-
-  const clearCart = async () => {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.log("❌ No current user for cart clearing");
-        return;
-      }
-
-      const token = await currentUser.getIdToken();
-
-      console.log("🧹 Clearing cart...");
-      const response = await fetch("/api/cart/clear", {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const responseText = await response.text();
-      console.log("📝 Cart clear response status:", response.status);
-      console.log("📝 Cart clear response:", responseText);
-
-      if (response.ok) {
-        try {
-          const data = JSON.parse(responseText);
-          console.log("✅ Cart cleared successfully:", data);
-          setCartItems([]); // Clear local state
-        } catch (e) {
-          console.log("✅ Cart cleared (no JSON response)");
-          setCartItems([]); // Clear local state anyway
-        }
-      } else {
-        console.error("❌ Failed to clear cart. Status:", response.status);
-        console.error("Response:", responseText);
-        // Still clear local state to avoid confusion
-        setCartItems([]);
-      }
-    } catch (error) {
-      console.error("❌ Error clearing cart:", error);
-      // Still clear local state
-      setCartItems([]);
     }
   };
 
