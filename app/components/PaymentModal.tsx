@@ -1,4 +1,4 @@
-"use client";
+// "use client";
 // 'use client';
 
 // import { useState } from 'react';
@@ -199,6 +199,7 @@ export default function PaymentModal({
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 orderId: orderData.orderId,
+                type:'event'
               }),
             });
             

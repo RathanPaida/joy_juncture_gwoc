@@ -508,7 +508,7 @@ export default function EventDetailPage() {
           await fetch('/api/payment/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(res)
+            body: JSON.stringify({...res,type:'event'})
           });
           router.push('/events/registered');
         },

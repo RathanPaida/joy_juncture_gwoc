@@ -185,7 +185,7 @@ async function handleEventPayment(
     await usersCollection.updateOne(
       { firebaseUid: order.userId },
       {
-        $inc: { walletBalance: coinsToAdd },
+        $inc: { walletBalance: coinsToAdd, totalPoints: coinsToAdd },
         $addToSet: { registeredEvents: new ObjectId(order.eventId) },
         $set: {
           lastActivity: new Date(),
@@ -354,7 +354,7 @@ async function handleProductPayment(
     console.log("\n========================================");
     console.log("🧹 ATTEMPTING TO CLEAR CART");
     console.log("========================================");
-    console.log("FirebaseUid:", firebaseUid);
+    // console.log("FirebaseUid:", firebaseUid);
     
     try {
       // Use the same MongoDB connection as the cart API
