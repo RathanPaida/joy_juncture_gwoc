@@ -21,10 +21,7 @@ import {
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { getAuth } from "firebase/auth";
-<<<<<<< HEAD
-=======
 import "./jigsaw-puzzle-game.css";
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
 
 /* ---------------- TYPES ---------------- */
 
@@ -538,52 +535,32 @@ export default function JigsawPuzzleGame() {
 
   if (authLoading) {
     return (
-<<<<<<< HEAD
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-lg">Checking authentication...</div>
-=======
       <div className="puzzle-loading-screen">
         <div className="puzzle-loading-message">Checking authentication...</div>
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
       </div>
     );
   }
 
   if (loading) {
     return (
-<<<<<<< HEAD
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-lg">Loading game data...</div>
-=======
       <div className="puzzle-loading-screen">
         <div className="puzzle-loading-message">Loading game data...</div>
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
       </div>
     );
   }
 
   if (!user) {
     return (
-<<<<<<< HEAD
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-lg">Redirecting to login...</div>
-=======
       <div className="puzzle-loading-screen">
         <div className="puzzle-loading-message">Redirecting to login...</div>
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
       </div>
     );
   }
 
   if (!currentGame || puzzlePieces.length === 0) {
     return (
-<<<<<<< HEAD
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-lg">Preparing puzzle...</div>
-=======
       <div className="puzzle-loading-screen">
         <div className="puzzle-loading-message">Preparing puzzle...</div>
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
       </div>
     );
   }
@@ -593,29 +570,6 @@ export default function JigsawPuzzleGame() {
   const score = calculateScore();
 
   return (
-<<<<<<< HEAD
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header with User Info */}
-        <header className="mb-6">
-          <div className="bg-white rounded-2xl shadow-xl p-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-                  <Puzzle className="w-10 h-10 text-cyan-600" />
-                  Game Jigsaw Puzzle
-                </h1>
-                <p className="text-gray-600">
-                  Welcome, <span className="font-semibold">{user.name}</span>! Reconstruct game images to earn coins.
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center justify-end gap-2 mb-1">
-                  <Coins className="w-6 h-6 text-amber-500" />
-                  <span className="text-3xl font-bold text-amber-600">{user.userPoints}</span>
-                </div>
-                <div className="text-sm text-gray-500">Total Coins</div>
-=======
     <div className="puzzle-game-container">
       <div className="puzzle-game-wrapper">
         {/* Header with User Info */}
@@ -637,55 +591,12 @@ export default function JigsawPuzzleGame() {
                   <span className="puzzle-coins-value">{user.userPoints}</span>
                 </div>
                 <div className="puzzle-coins-label">Total Coins</div>
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
               </div>
             </div>
           </div>
         </header>
 
         {/* Game Stats & Controls */}
-<<<<<<< HEAD
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-cyan-50 p-4 rounded-xl text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Timer className="w-5 h-5 text-cyan-600" />
-                <span className="text-sm text-gray-600">Time</span>
-              </div>
-              <div className="text-2xl font-bold text-gray-800">{formatTime(time)}</div>
-            </div>
-
-            <div className="bg-blue-50 p-4 rounded-xl text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Zap className="w-5 h-5 text-blue-600" />
-                <span className="text-sm text-gray-600">Moves</span>
-              </div>
-              <div className="text-2xl font-bold text-gray-800">{moves}</div>
-            </div>
-
-            <div className="bg-emerald-50 p-4 rounded-xl text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Trophy className="w-5 h-5 text-emerald-600" />
-                <span className="text-sm text-gray-600">Pieces</span>
-              </div>
-              <div className="text-2xl font-bold text-gray-800">{placedPieces}/{gridSize}</div>
-            </div>
-
-            <div className="bg-purple-50 p-4 rounded-xl text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Star className="w-5 h-5 text-purple-600" />
-                <span className="text-sm text-gray-600">Score</span>
-              </div>
-              <div className="text-2xl font-bold text-gray-800">{score}</div>
-            </div>
-
-            <div className="bg-amber-50 p-4 rounded-xl text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <HelpCircle className="w-5 h-5 text-amber-600" />
-                <span className="text-sm text-gray-600">Hints</span>
-              </div>
-              <div className="text-2xl font-bold text-gray-800">{hintCount - hintsUsed}</div>
-=======
         <div className="puzzle-stats-container">
           <div className="puzzle-stats-grid">
             <div className="puzzle-stat-card puzzle-stat-time">
@@ -726,42 +637,23 @@ export default function JigsawPuzzleGame() {
                 <span className="puzzle-stat-label">Hints</span>
               </div>
               <div className="puzzle-stat-value">{hintCount - hintsUsed}</div>
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
             </div>
           </div>
 
           {/* Feedback Message */}
           {feedbackMessage && (
-<<<<<<< HEAD
-            <div className={`mb-4 p-3 rounded-lg text-center font-medium ${
-              feedbackMessage.includes("✅") 
-                ? "bg-emerald-100 text-emerald-700" 
-                : feedbackMessage.includes("❌")
-                ? "bg-red-100 text-red-700"
-                : "bg-blue-100 text-blue-700"
-=======
             <div className={`puzzle-feedback-message ${
               feedbackMessage.includes("✅") 
                 ? "puzzle-feedback-success" 
                 : feedbackMessage.includes("❌")
                 ? "puzzle-feedback-error"
                 : "puzzle-feedback-hint"
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
             }`}>
               {feedbackMessage}
             </div>
           )}
 
           {/* Game Controls */}
-<<<<<<< HEAD
-          <div className="flex flex-wrap gap-4 justify-between items-center">
-            <div className="flex flex-wrap gap-4">
-              <button
-                onClick={initializeGame}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-=======
           <div className="puzzle-controls-container">
             <div className="puzzle-controls-group">
               <button
@@ -769,108 +661,61 @@ export default function JigsawPuzzleGame() {
                 className="puzzle-button puzzle-button-restart"
               >
                 <RefreshCw className="puzzle-button-icon" />
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                 Restart Puzzle
               </button>
 
               <button
                 onClick={nextPuzzle}
-<<<<<<< HEAD
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2"
-              >
-                <Shuffle className="w-4 h-4" />
-=======
                 className="puzzle-button puzzle-button-next"
               >
                 <Shuffle className="puzzle-button-icon" />
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                 Next Game
               </button>
 
               <button
                 onClick={useHint}
                 disabled={hintsUsed >= hintCount || gameCompleted}
-<<<<<<< HEAD
-                className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 disabled:cursor-not-allowed"
-              >
-                <HelpCircle className="w-4 h-4" />
-=======
                 className="puzzle-button puzzle-button-hint"
               >
                 <HelpCircle className="puzzle-button-icon" />
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                 Use Hint ({hintCount - hintsUsed} left)
               </button>
             </div>
 
-<<<<<<< HEAD
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition flex items-center gap-2"
-              >
-                {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-=======
             <div className="puzzle-view-controls">
               <button
                 onClick={() => setShowPreview(!showPreview)}
                 className="puzzle-button puzzle-button-secondary"
               >
                 {showPreview ? <EyeOff className="puzzle-button-icon" /> : <Eye className="puzzle-button-icon" />}
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                 {showPreview ? 'Hide' : 'Show'} Preview
               </button>
 
               <button
                 onClick={() => setShowGrid(!showGrid)}
-<<<<<<< HEAD
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition flex items-center gap-2"
-              >
-                <Grid className="w-4 h-4" />
-=======
                 className="puzzle-button puzzle-button-secondary"
               >
                 <Grid className="puzzle-button-icon" />
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                 {showGrid ? 'Hide' : 'Show'} Grid
               </button>
             </div>
           </div>
 
           {/* Difficulty Selector */}
-<<<<<<< HEAD
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Puzzle Difficulty (Higher difficulty = More coins!)
-            </label>
-            <div className="flex flex-wrap gap-2">
-=======
           <div className="puzzle-difficulty-container">
             <label className="puzzle-difficulty-label">
               Puzzle Difficulty (Higher difficulty = More coins!)
             </label>
             <div className="puzzle-difficulty-buttons">
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
               {(['easy', 'medium', 'hard', 'expert'] as Difficulty[]).map((level) => (
                 <button
                   key={level}
                   onClick={() => setDifficulty(level)}
                   disabled={gameStarted && !gameCompleted}
-<<<<<<< HEAD
-                  className={`px-4 py-2 rounded-lg font-medium transition ${
-                    difficulty === level
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  } ${gameStarted && !gameCompleted ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {level.charAt(0).toUpperCase() + level.slice(1)}
-                  <span className="text-xs ml-1 opacity-75">
-=======
                   className={`puzzle-difficulty-button ${difficulty === level ? 'puzzle-difficulty-active' : ''} ${gameStarted && !gameCompleted ? 'puzzle-difficulty-disabled' : ''}`}
                 >
                   {level.charAt(0).toUpperCase() + level.slice(1)}
                   <span className="puzzle-difficulty-details">
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                     ({difficultySettings[level].rows}×{difficultySettings[level].cols}) - {difficultySettings[level].baseCoins} coins
                   </span>
                 </button>
@@ -880,19 +725,6 @@ export default function JigsawPuzzleGame() {
         </div>
 
         {/* Main Game Area */}
-<<<<<<< HEAD
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Puzzle Board */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">
-                  {currentGame?.name || 'Game Puzzle'}
-                </h2>
-                {selectedPiece && (
-                  <div className="text-sm text-cyan-600 font-medium flex items-center gap-2">
-                    <Move className="w-4 h-4" />
-=======
         <div className="puzzle-game-area">
           {/* Puzzle Board */}
           <div className="puzzle-board-section">
@@ -904,7 +736,6 @@ export default function JigsawPuzzleGame() {
                 {selectedPiece && (
                   <div className="puzzle-selected-indicator">
                     <Move className="puzzle-selected-icon" />
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                     Piece #{selectedPiece.id + 1} selected
                   </div>
                 )}
@@ -913,17 +744,10 @@ export default function JigsawPuzzleGame() {
               {/* Puzzle Grid */}
               <div 
                 ref={gridRef}
-<<<<<<< HEAD
-                className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4"
-                style={{ minHeight: '500px' }}
-              >
-                <div className="absolute inset-4 grid gap-1" style={{ 
-=======
                 className="puzzle-grid-container"
                 style={{ minHeight: '500px' }}
               >
                 <div className="puzzle-grid" style={{ 
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                   gridTemplateRows: `repeat(${rows}, 1fr)`, 
                   gridTemplateColumns: `repeat(${cols}, 1fr)` 
                 }}>
@@ -935,25 +759,11 @@ export default function JigsawPuzzleGame() {
                         <div
                           key={`${rowIndex}-${colIndex}`}
                           onClick={() => handleGridCellClick(rowIndex, colIndex)}
-<<<<<<< HEAD
-                          className={`border-2 transition-all duration-200 cursor-pointer ${
-                            pieceInCell
-                              ? pieceInCell.isCorrect
-                                ? 'border-emerald-300 bg-emerald-50/50'
-                                : 'border-red-300 bg-red-50/50'
-                              : 'border-gray-300 hover:border-cyan-400 hover:bg-cyan-50/30'
-                          }`}
-                        >
-                          {pieceInCell && (
-                            <div
-                              className="w-full h-full bg-cover bg-center rounded relative"
-=======
                           className={`puzzle-grid-cell ${pieceInCell ? (pieceInCell.isCorrect ? 'puzzle-cell-correct' : 'puzzle-cell-wrong') : 'puzzle-cell-empty'}`}
                         >
                           {pieceInCell && (
                             <div
                               className="puzzle-piece-visual"
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                               style={{
                                 backgroundImage: `url(${pieceInCell.imageUrl})`,
                                 backgroundSize: getPieceBackgroundSize(rows, cols),
@@ -965,19 +775,11 @@ export default function JigsawPuzzleGame() {
                                 ),
                               }}
                             >
-<<<<<<< HEAD
-                              <div className="absolute top-1 right-1">
-                                {pieceInCell.isCorrect ? (
-                                  <Check className="w-4 h-4 text-emerald-500 bg-white rounded-full p-0.5" />
-                                ) : (
-                                  <X className="w-4 h-4 text-red-500 bg-white rounded-full p-0.5" />
-=======
                               <div className="puzzle-piece-status">
                                 {pieceInCell.isCorrect ? (
                                   <Check className="puzzle-status-icon puzzle-status-correct" />
                                 ) : (
                                   <X className="puzzle-status-icon puzzle-status-wrong" />
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                                 )}
                               </div>
                             </div>
@@ -990,24 +792,6 @@ export default function JigsawPuzzleGame() {
                 
                 {/* Game Completed Overlay */}
                 {gameCompleted && (
-<<<<<<< HEAD
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                    <div className="text-center bg-white/90 p-8 rounded-2xl shadow-2xl">
-                      <div className="text-6xl mb-4">🎉</div>
-                      <h3 className="text-2xl font-bold text-gray-800 mb-2">Puzzle Complete!</h3>
-                      <p className="text-gray-600 mb-4">
-                        You finished in {formatTime(time)} with {moves} moves
-                      </p>
-                      <div className="inline-flex items-center justify-center bg-amber-100 text-amber-800 text-lg font-bold px-5 py-2 rounded-full mb-3">
-                        +{earnedCoins} coins earned!
-                      </div>
-                      <div className="text-sm text-gray-600 mb-6">
-                        Total coins: <span className="font-bold">{user.userPoints}</span>
-                      </div>
-                      <button
-                        onClick={nextPuzzle}
-                        className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition"
-=======
                   <div className="puzzle-completion-overlay">
                     <div className="puzzle-completion-card">
                       <div className="puzzle-completion-emoji">🎉</div>
@@ -1024,7 +808,6 @@ export default function JigsawPuzzleGame() {
                       <button
                         onClick={nextPuzzle}
                         className="puzzle-button puzzle-button-primary"
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                       >
                         Next Puzzle
                       </button>
@@ -1035,13 +818,8 @@ export default function JigsawPuzzleGame() {
 
               {/* Instructions */}
               {!gameStarted && (
-<<<<<<< HEAD
-                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <p className="text-blue-700 text-sm">
-=======
                 <div className="puzzle-instructions">
                   <p className="puzzle-instructions-text">
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                     💡 <strong>How to play:</strong> Click a piece from the side tray, then click on an empty grid cell to place it. Correct pieces stay, wrong pieces disappear. Complete all {gridSize} pieces to win and earn coins!
                   </p>
                 </div>
@@ -1050,24 +828,6 @@ export default function JigsawPuzzleGame() {
           </div>
 
           {/* Side Panels */}
-<<<<<<< HEAD
-          <div className="space-y-8">
-            {/* Game Preview */}
-            {showPreview && currentGame && (
-              <div className="bg-white rounded-2xl shadow-xl p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-gray-600" />
-                  Original Image
-                </h3>
-                <div className="aspect-video rounded-xl overflow-hidden mb-4">
-                  <img
-                    src={currentGame.imageUrl}
-                    alt={currentGame.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <p className="text-sm text-gray-600 text-center">
-=======
           <div className="puzzle-side-panels">
             {/* Game Preview */}
             {showPreview && currentGame && (
@@ -1084,43 +844,25 @@ export default function JigsawPuzzleGame() {
                   />
                 </div>
                 <p className="puzzle-preview-caption">
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                   This is what you are trying to recreate
                 </p>
               </div>
             )}
 
             {/* Puzzle Pieces Tray */}
-<<<<<<< HEAD
-            <div className="bg-white rounded-2xl shadow-xl p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Shuffle className="w-5 h-5 text-gray-600" />
-                Puzzle Pieces ({puzzlePieces.filter(p => !p.isPlaced).length} remaining)
-              </h3>
-              <div className="grid grid-cols-6 gap-2 min-h-[200px]">
-=======
             <div className="puzzle-pieces-tray">
               <h3 className="puzzle-side-title">
                 <Shuffle className="puzzle-side-icon" />
                 Puzzle Pieces ({puzzlePieces.filter(p => !p.isPlaced).length} remaining)
               </h3>
               <div className="puzzle-pieces-grid">
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                 {puzzlePieces
                   .filter(piece => !piece.isPlaced)
                   .map(piece => (
                     <button
                       key={piece.id}
                       onClick={() => handlePieceSelect(piece)}
-<<<<<<< HEAD
-                      className={`aspect-square rounded-lg transition-all duration-200 hover:scale-110 ${
-                        selectedPiece?.id === piece.id
-                          ? 'ring-4 ring-cyan-500 ring-offset-2 scale-110 bg-cyan-50'
-                          : 'ring-1 ring-gray-200 hover:ring-cyan-300'
-                      }`}
-=======
                       className={`puzzle-piece-thumbnail ${selectedPiece?.id === piece.id ? 'puzzle-piece-selected' : ''}`}
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                       style={{
                         backgroundImage: `url(${piece.imageUrl})`,
                         backgroundSize: getPieceBackgroundSize(rows, cols),
@@ -1130,48 +872,18 @@ export default function JigsawPuzzleGame() {
                           rows,
                           cols
                         ),
-<<<<<<< HEAD
-                        cursor: 'pointer'
-=======
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                       }}
                       title={`Piece ${piece.id + 1}`}
                     />
                   ))}
               </div>
-<<<<<<< HEAD
-              <p className="text-sm text-gray-500 text-center mt-3">
-=======
               <p className="puzzle-pieces-hint">
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                 Click a piece to select it, then click on the grid to place it
               </p>
             </div>
 
             {/* Game Info */}
             {currentGame && (
-<<<<<<< HEAD
-              <div className="bg-white rounded-2xl shadow-xl p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Game Details
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-600">Players</p>
-                    <p className="font-medium">{currentGame.players}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Duration</p>
-                    <p className="font-medium">{currentGame.duration}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Categories</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {currentGame.category.slice(0, 3).map((cat, idx) => (
-                        <span
-                          key={idx}
-                          className="text-xs bg-cyan-100 text-cyan-700 px-2 py-1 rounded"
-=======
               <div className="puzzle-game-info">
                 <h3 className="puzzle-side-title">
                   Game Details
@@ -1192,7 +904,6 @@ export default function JigsawPuzzleGame() {
                         <span
                           key={idx}
                           className="puzzle-category-tag"
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
                         >
                           {cat}
                         </span>
@@ -1206,11 +917,7 @@ export default function JigsawPuzzleGame() {
         </div>
 
         {/* Footer */}
-<<<<<<< HEAD
-        <footer className="mt-8 text-center text-gray-600">
-=======
         <footer className="puzzle-game-footer">
->>>>>>> f760212efab5e20c7029cfdd8713f8935d651838
           <p>
             🧩 Game Jigsaw Puzzle • Using {games.length} games • 
             Difficulty: {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}

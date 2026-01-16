@@ -17,9 +17,10 @@
     "crypto": "^1.0.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "drizzle-zod": "^0.8.3",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.0",
-    "framer-motion": "^12.24.12",
+    "framer-motion": "^12.26.2",
     "fs": "^0.0.1-security",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.562.0",
@@ -35,7 +36,8 @@
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.11.0",
-    "wouter": "^3.9.0"
+    "wouter": "^3.9.0",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
