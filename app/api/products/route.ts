@@ -11,9 +11,36 @@ export async function GET(req: Request) {
   const limit = Math.min(50, parseInt(url.searchParams.get("limit") || "12"));
   const skip = (page - 1) * limit;
 
+  // Build filter query
+  const query: any = {};
+
+  // Category (Occasion)
+  const category = url.searchParams.get("category");
+  if (category) {
+    // Split by comma in case multiple selected
+    const categories = category.split(",");
+    query.category = { $in: categories.map(c => new RegExp(c, "i")) };
+  }
+
+  // Mood
+  const mood = url.searchParams.get("mood");
+  if (mood) {
+    const moods = mood.split(",");
+    query["meta.moods"] = { $in: moods.map(m => new RegExp(m, "i")) };
+  }
+
+  // Players
+  const players = url.searchParams.get("players");
+  if (players) {
+    // Exact match or contains for now, simplest approach
+    // If standardized like "3-5", we can search for it
+    const playerList = players.split(",");
+    query["meta.players"] = { $in: playerList.map(p => new RegExp(p, "i")) };
+  }
+
   const [items, total] = await Promise.all([
-    Product.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    Product.countDocuments(),
+    Product.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Product.countDocuments(query),
   ]);
 
   return NextResponse.json({
