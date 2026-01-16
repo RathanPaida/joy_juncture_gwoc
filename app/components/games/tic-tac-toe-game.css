@@ -1,0 +1,440 @@
+.ttt-game-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.ttt-game-header {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ttt-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.ttt-game-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.ttt-title-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.ttt-welcome-message {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 8px 0 0;
+  font-size: 16px;
+}
+
+.ttt-username {
+  font-weight: 600;
+  color: #ffd700;
+}
+
+.ttt-user-coins {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.ttt-coins-icon {
+  width: 24px;
+  height: 24px;
+  color: #ffd700;
+}
+
+.ttt-coins-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.ttt-stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ttt-stat-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ttt-stat-icon {
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  margin: 0 auto 12px;
+}
+
+.ttt-stat-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.ttt-stat-value {
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.ttt-game-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ttt-mode-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ttt-mode-selector label {
+  color: white;
+  font-weight: 500;
+}
+
+.ttt-mode-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.ttt-mode-select option {
+  background: #667eea;
+  color: white;
+}
+
+.ttt-current-player {
+  color: white;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ttt-player-indicator {
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ttt-player-x {
+  color: #ff6b6b;
+  border: 2px solid #ff6b6b;
+}
+
+.ttt-player-o {
+  color: #4dabf7;
+  border: 2px solid #4dabf7;
+}
+
+.ttt-board-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.ttt-board {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.ttt-row {
+  display: flex;
+}
+
+.ttt-cell {
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.ttt-cell:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ttt-cell:disabled {
+  cursor: not-allowed;
+}
+
+.ttt-cell:nth-child(3n+1) {
+  border-left: none;
+}
+
+.ttt-cell:nth-child(3n) {
+  border-right: none;
+}
+
+.ttt-row:first-child .ttt-cell {
+  border-top: none;
+}
+
+.ttt-row:last-child .ttt-cell {
+  border-bottom: none;
+}
+
+.ttt-x {
+  width: 60px;
+  height: 60px;
+  color: #ff6b6b;
+  stroke-width: 3;
+}
+
+.ttt-o {
+  width: 60px;
+  height: 60px;
+  color: #4dabf7;
+  stroke-width: 3;
+}
+
+.ttt-controls {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ttt-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  color: white;
+}
+
+.ttt-button-restart {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.ttt-button-primary {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+}
+
+.ttt-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.ttt-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ttt-button-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.ttt-message {
+  margin-bottom: 24px;
+}
+
+.ttt-message-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 16px 24px;
+  text-align: center;
+  border: 2px solid;
+  color: white;
+}
+
+.ttt-message-card.success {
+  border-color: #51cf66;
+  background: rgba(81, 207, 102, 0.1);
+}
+
+.ttt-message-card.info {
+  border-color: #4dabf7;
+  background: rgba(77, 171, 247, 0.1);
+}
+
+.ttt-game-over {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ttt-game-over-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.ttt-game-over-card h3 {
+  font-size: 32px;
+  color: white;
+  margin: 0 0 16px;
+}
+
+.ttt-game-over-card p {
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 24px;
+}
+
+.ttt-coins-earned {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffd700;
+  margin: 20px 0;
+}
+
+.ttt-total-coins {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 16px 0;
+}
+
+.ttt-total-coins span {
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.ttt-already-played {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  margin-top: 40px;
+}
+
+.ttt-lock-icon {
+  width: 64px;
+  height: 64px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 auto 24px;
+}
+
+.ttt-already-played h2 {
+  color: white;
+  margin-bottom: 16px;
+}
+
+.ttt-already-played p {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 24px;
+}
+
+.ttt-next-play {
+  color: white;
+  font-size: 18px;
+  margin: 24px 0;
+}
+
+.ttt-next-play-time {
+  font-weight: 700;
+  color: #ffd700;
+  font-size: 24px;
+}
+
+.ttt-loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.ttt-loading-message {
+  color: white;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .ttt-game-container {
+    padding: 16px;
+  }
+
+  .ttt-header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .ttt-game-info {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .ttt-cell {
+    width: 80px;
+    height: 80px;
+  }
+
+  .ttt-x,
+  .ttt-o {
+    width: 50px;
+    height: 50px;
+  }
+}

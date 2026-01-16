@@ -10,8 +10,8 @@ export interface IUser extends Document {
   authProvider: "local" | "firebase" | "google";
   totalPoints: number;
   level: number;
-  streak: { type: Number; default: 0 }; // ← ADD THIS
-  lastLogin?: Date; // ← ADD THIS
+  streak: { type: Number; default: 0 };
+  lastLogin?: Date;
   lastActivity?: Date;
   achievements: Array<{
     achievementId: string;
@@ -30,11 +30,11 @@ export interface IUser extends Document {
   bookmarkedBlogs: string[];
 
   // Community-related fields (NEW)
-  likedDiscussions: string[]; // Discussion IDs user has liked
-  likedReplies: string[]; // Reply IDs user has liked
-  discussionsCreated: string[]; // Discussion IDs user has created
-  repliesCreated: string[]; // Reply IDs user has created
-  communityPoints: number; // Points earned from community activities
+  likedDiscussions: string[];
+  likedReplies: string[];
+  discussionsCreated: string[];
+  repliesCreated: string[];
+  communityPoints: number;
   badges: Array<{
     badgeId: string;
     name: string;
@@ -52,6 +52,18 @@ export interface IUser extends Document {
   replyCount: number;
   totalLikesReceived: number;
   totalRepliesReceived: number;
+
+  // Game-related fields (NEW)
+  gamesPlayed: Array<{
+    gameId: string;
+    gameName: string;
+    playedAt: Date;
+    score?: number;
+    pointsEarned: number;
+    completed: boolean;
+  }>;
+  totalGamesPlayed: number;
+  totalGamePoints: number;
 
   createdAt: Date;
   updatedAt: Date;
@@ -236,10 +248,50 @@ const userSchema = new Schema<IUser>(
       default: 0,
       min: 0,
     },
+
+    // Game-related fields (NEW)
+    gamesPlayed: [
+      {
+        gameId: {
+          type: String,
+          required: true,
+        },
+        gameName: {
+          type: String,
+          required: true,
+        },
+        playedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        score: {
+          type: Number,
+          default: 0,
+        },
+        pointsEarned: {
+          type: Number,
+          default: 0,
+        },
+        completed: {
+          type: Boolean,
+          default: true,
+        },
+      },
+    ],
+    totalGamesPlayed: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalGamePoints: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 // Indexes for better query performance
@@ -247,13 +299,16 @@ userSchema.index({ email: 1 });
 userSchema.index({ firebaseUid: 1 });
 userSchema.index({ referralCode: 1 });
 userSchema.index({ role: 1 });
-userSchema.index({ communityPoints: -1 }); // For leaderboard queries
-userSchema.index({ discussionCount: -1 }); // For top contributors
-userSchema.index({ "badges.badgeId": 1 }); // For badge queries
-userSchema.index({ isBanned: 1, warnings: 1 }); // For admin moderation
+userSchema.index({ communityPoints: -1 });
+userSchema.index({ discussionCount: -1 });
+userSchema.index({ "badges.badgeId": 1 });
+userSchema.index({ isBanned: 1, warnings: 1 });
+userSchema.index({ "gamesPlayed.gameId": 1 });
+userSchema.index({ totalGamesPlayed: -1 });
+userSchema.index({ totalGamePoints: -1 });
 
 // Generate referral code before saving
-userSchema.pre("save", function (next) {
+userSchema.pre("save", function () {
   if (!this.referralCode) {
     this.referralCode = `JJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   }
@@ -263,6 +318,13 @@ userSchema.pre("save", function (next) {
     const oldTotal = this.totalPoints - this.communityPoints;
     this.totalPoints = oldTotal + this.communityPoints;
   }
+
+  // Update total points to include game points
+  if (this.isModified("totalGamePoints")) {
+    const oldCommunity = this.communityPoints || 0;
+    const basePoints = this.totalPoints - oldCommunity - (this.totalGamePoints || 0);
+    this.totalPoints = basePoints + oldCommunity + this.totalGamePoints;
+  }
 });
 
 // Virtual for total community contributions
@@ -270,16 +332,86 @@ userSchema.virtual("totalContributions").get(function () {
   return this.discussionCount + this.replyCount;
 });
 
+// Method to check if user has already played a game TODAY (using UTC)
+userSchema.methods.hasPlayedGame = function (gameId: string): boolean {
+  const now = new Date();
+  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  
+  return this.gamesPlayed.some((game: { gameId: string; playedAt: Date }) => {
+    if (game.gameId !== gameId) return false;
+    
+    const playedDate = new Date(game.playedAt);
+    const playedUTC = new Date(Date.UTC(
+      playedDate.getUTCFullYear(), 
+      playedDate.getUTCMonth(), 
+      playedDate.getUTCDate()
+    ));
+    
+    return playedUTC.getTime() === todayUTC.getTime();
+  });
+};
+
+// Method to mark a game as played
+userSchema.methods.markGameAsPlayed = async function (
+  gameId: string,
+  gameName: string,
+  score: number = 0,
+  pointsEarned: number = 0
+) {
+  if (this.hasPlayedGame(gameId)) {
+    throw new Error("Game already played. Each game can only be played once per day.");
+  }
+
+  this.gamesPlayed.push({
+    gameId,
+    gameName,
+    playedAt: new Date(),
+    score,
+    pointsEarned,
+    completed: true,
+  });
+
+  this.totalGamesPlayed += 1;
+  this.totalGamePoints += pointsEarned;
+  this.totalPoints += pointsEarned;
+
+  await Transaction.create({
+    userId: this._id,
+    type: "game",
+    amount: pointsEarned,
+    description: `Completed game: ${gameName}`,
+    metadata: {
+      gameId,
+      gameName,
+      score,
+    },
+    balanceAfter: this.totalPoints,
+    status: "completed",
+  });
+
+  await this.save();
+  return this;
+};
+
+// Method to get game history
+userSchema.methods.getGameHistory = function (gameId?: string) {
+  if (gameId) {
+    return this.gamesPlayed.filter(
+      (game: { gameId: string }) => game.gameId === gameId
+    );
+  }
+  return this.gamesPlayed;
+};
+
 // Method to award community points
 userSchema.methods.awardCommunityPoints = async function (
   points: number,
   reason: string,
-  transactionType?: "discussion" | "reply" | "like" | "achievement",
+  transactionType?: "discussion" | "reply" | "like" | "achievement"
 ) {
   this.communityPoints += points;
   this.totalPoints += points;
 
-  // Create transaction record
   const transaction = await Transaction.create({
     userId: this._id,
     type: "bonus",
@@ -302,11 +434,12 @@ userSchema.methods.addBadge = async function (
   badgeId: string,
   name: string,
   description: string,
-  icon: string,
+  icon: string
 ) {
   const existingBadge = this.badges.find(
-    (b: { badgeId: string }) => b.badgeId === badgeId,
+    (b: { badgeId: string }) => b.badgeId === badgeId
   );
+
   if (!existingBadge) {
     this.badges.push({
       badgeId,
@@ -322,7 +455,7 @@ userSchema.methods.addBadge = async function (
 
 // Method to track discussion creation
 userSchema.methods.trackDiscussionCreation = async function (
-  discussionId: string,
+  discussionId: string
 ) {
   if (!this.discussionsCreated.includes(discussionId)) {
     this.discussionsCreated.push(discussionId);
@@ -344,7 +477,7 @@ userSchema.methods.trackReplyCreation = async function (replyId: string) {
 
 // Method to check if user has liked a discussion
 userSchema.methods.hasLikedDiscussion = function (
-  discussionId: string,
+  discussionId: string
 ): boolean {
   return this.likedDiscussions.includes(discussionId);
 };
@@ -427,7 +560,7 @@ const transactionSchema = new Schema<ITransaction>(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 // Indexes
@@ -440,7 +573,7 @@ transactionSchema.index({ "metadata.communityType": 1 });
 userSchema.statics.getCommunityLeaderboard = async function (limit = 10) {
   return this.find({ isActive: true, isBanned: false })
     .select(
-      "name avatar communityPoints discussionCount replyCount badges totalLikesReceived level",
+      "name avatar communityPoints discussionCount replyCount badges totalLikesReceived level"
     )
     .sort({ communityPoints: -1 })
     .limit(limit)
@@ -451,9 +584,18 @@ userSchema.statics.getCommunityLeaderboard = async function (limit = 10) {
 userSchema.statics.getTopContributors = async function (limit = 10) {
   return this.find({ isActive: true, isBanned: false })
     .select(
-      "name avatar discussionCount replyCount totalLikesReceived communityPoints",
+      "name avatar discussionCount replyCount totalLikesReceived communityPoints"
     )
     .sort({ discussionCount: -1, replyCount: -1 })
+    .limit(limit)
+    .lean();
+};
+
+// Static method to get game leaderboard
+userSchema.statics.getGameLeaderboard = async function (limit = 10) {
+  return this.find({ isActive: true, isBanned: false })
+    .select("name avatar totalGamesPlayed totalGamePoints level")
+    .sort({ totalGamePoints: -1, totalGamesPlayed: -1 })
     .limit(limit)
     .lean();
 };

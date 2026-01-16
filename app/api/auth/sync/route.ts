@@ -8,7 +8,7 @@ import { User } from '@/models/User';
 export async function POST(request: NextRequest) {
   try {
     await connectDb();
-    
+
     const authHeader = request.headers.get('authorization');
     const body = await request.json();
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 async function handleFirebaseSync(authHeader: string, body: any) {
   try {
     const token = authHeader.split('Bearer ')[1];
-    
+
     // Verify Firebase token
     const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
@@ -58,7 +58,7 @@ async function handleFirebaseSync(authHeader: string, body: any) {
         email: email || decodedToken.email,
         name: name || decodedToken.name || email?.split('@')[0] || 'User',
         avatar: avatar || decodedToken.picture || null,
-        role: 'user',
+        role: 'viewer',
         totalPoints: 0,
         walletBalance: 0,
         createdAt: new Date(),
@@ -69,19 +69,19 @@ async function handleFirebaseSync(authHeader: string, body: any) {
     } else {
       // Update existing user
       user.lastLogin = new Date();
-      
+
       if (name && name !== user.name) {
         user.name = name;
       }
-      
+
       if (avatar && avatar !== user.avatar) {
         user.avatar = avatar;
       }
-      
+
       if (email && email !== user.email) {
         user.email = email;
       }
-      
+
       await user.save();
 
       console.log('✅ User synced in MongoDB:', userId);
@@ -102,7 +102,7 @@ async function handleFirebaseSync(authHeader: string, body: any) {
     });
   } catch (error: any) {
     console.error('❌ Firebase sync error:', error);
-    
+
     // If token is invalid or expired
     if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
       return NextResponse.json(
@@ -110,7 +110,7 @@ async function handleFirebaseSync(authHeader: string, body: any) {
         { status: 401 }
       );
     }
-    
+
     throw error;
   }
 }
@@ -146,7 +146,7 @@ async function handleGenericSync(body: any) {
         $set: updateData,
         $setOnInsert: {
           createdAt: new Date(),
-          role: body.role || 'user',
+          role: 'viewer',
           totalPoints: body.totalPoints || 0,
           walletBalance: body.walletBalance || 0,
         }
@@ -177,7 +177,7 @@ async function handleGenericSync(body: any) {
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
-    
+
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'No authorization token provided' },
