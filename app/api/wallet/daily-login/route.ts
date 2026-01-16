@@ -49,25 +49,45 @@ export async function POST(request: NextRequest) {
     const tomorrowMidnight = new Date(todayMidnight);
     tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
 
-    // Get last login date at midnight
+    // Get last daily claim date at midnight
+    // Use lastDailyClaim if available, otherwise fallback to lastLogin for backward compatibility (one-time)
+    // But since we want strict checking now, we primarily check lastDailyClaim.
+    // If lastDailyClaim is missing, it means the user hasn't claimed under the new system yet.
+    // However, to prevent double claiming if they just claimed under the old system (lastLogin == today), we check that too.
+
+    const lastClaim = user.lastDailyClaim ? new Date(user.lastDailyClaim) : null;
+    const lastClaimMidnight = lastClaim ? new Date(lastClaim) : null;
+    if (lastClaimMidnight) {
+      lastClaimMidnight.setHours(0, 0, 0, 0);
+    }
+
+    // Check legacy claim (lastLogin) strictly for abuse prevention
     const lastLogin = user.lastLogin ? new Date(user.lastLogin) : null;
     const lastLoginMidnight = lastLogin ? new Date(lastLogin) : null;
-    if (lastLoginMidnight) {
-      lastLoginMidnight.setHours(0, 0, 0, 0);
-    }
+    if (lastLoginMidnight) lastLoginMidnight.setHours(0, 0, 0, 0);
 
     console.log("Current time:", now);
     console.log("Today midnight:", todayMidnight);
-    console.log("Last login:", lastLogin);
-    console.log("Last login midnight:", lastLoginMidnight);
+    console.log("Last claim:", lastClaim);
+    console.log("Last claim midnight:", lastClaimMidnight);
 
     // Check if user already claimed today's reward
-    // User can only claim once per calendar day (from 12:00 AM to 11:59 PM)
-    if (
-      lastLoginMidnight &&
-      lastLoginMidnight.getTime() === todayMidnight.getTime()
-    ) {
-      console.log("❌ Already claimed today");
+    // Condition 1: lastDailyClaim exists and is today
+    const claimedWithNewSystem = lastClaimMidnight && lastClaimMidnight.getTime() === todayMidnight.getTime();
+
+    // Condition 2: lastDailyClaim doesn't exist, but lastLogin was today (Legacy protection)
+    // We only care about this if we want to block them from claiming again if they just logged in.
+    // But wait, the syncing logic updates lastLogin on every page load!
+    // So `lastLogin === today` is almost ALWAYS true if they utilize the app.
+    // This was the original bug.
+    // FIX: We ONLY check `lastDailyClaim`. If it's undefined, they can claim.
+    // The only edge case is: user claimed "today" before this code deploy.
+    // If they claimed "today" before deploy, their `lastLogin` was set to today.
+    // But `lastDailyClaim` is undefined. So they could claim again ONE more time today.
+    // This is acceptable to fix the bug permanently.
+
+    if (claimedWithNewSystem) {
+      console.log("❌ Already claimed today (New System)");
 
       // Calculate time until next claim (tomorrow at midnight)
       const timeUntilNextClaim = tomorrowMidnight.getTime() - now.getTime();
@@ -100,19 +120,26 @@ export async function POST(request: NextRequest) {
     let newStreak = 1;
     let streakMessage = "";
 
-    if (lastLoginMidnight) {
-      // Check if last login was yesterday (consecutive day)
-      if (lastLoginMidnight.getTime() === yesterdayMidnight.getTime()) {
+    // For streak calculation, we look at the PREVIOUS successful claim or login.
+    // We prefer lastDailyClaim, but fall back to lastLogin if lastDailyClaim is missing (migration).
+    const effectiveLastDate = user.lastDailyClaim || user.lastLogin;
+    const effectiveLastDateMidnight = effectiveLastDate ? new Date(effectiveLastDate) : null;
+    if (effectiveLastDateMidnight) effectiveLastDateMidnight.setHours(0, 0, 0, 0);
+
+    if (effectiveLastDateMidnight) {
+      // Check if last effective claim was yesterday (consecutive day)
+      if (effectiveLastDateMidnight.getTime() === yesterdayMidnight.getTime()) {
         newStreak = (user.streak || 0) + 1;
         streakMessage = ` 🔥 ${newStreak} day streak!`;
         console.log("✅ Consecutive login! New streak:", newStreak);
       } else {
         // Streak broken - reset to 1
+        // Note: If effectiveLastDate is today (shouldn't happen due to check above) or older than yesterday
         streakMessage = " ⚠️ Streak reset!";
         console.log("🔄 Streak reset to 1");
       }
     } else {
-      // First time claiming
+      // First time claiming ever
       streakMessage = " 🎉 First daily login!";
       console.log("🎊 First daily login for user");
     }
@@ -137,7 +164,9 @@ export async function POST(request: NextRequest) {
     user.totalPoints = newTotalPoints;
     user.level = newLevel; // Auto-update level
     user.streak = newStreak;
-    user.lastLogin = now; // Save actual login time
+    user.lastDailyClaim = now; // Save NEW daily claim time
+    // We do NOT update lastLogin here, as that's for auth sync.
+    // user.lastLogin = now; // Optional: keep keeping it in sync if desired, but separate field is key.
     user.lastActivity = now;
 
     await user.save();
@@ -230,15 +259,15 @@ export async function GET(request: NextRequest) {
     const tomorrowMidnight = new Date(todayMidnight);
     tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
 
-    const lastLogin = user.lastLogin ? new Date(user.lastLogin) : null;
-    const lastLoginMidnight = lastLogin ? new Date(lastLogin) : null;
-    if (lastLoginMidnight) {
-      lastLoginMidnight.setHours(0, 0, 0, 0);
+    const lastClaim = user.lastDailyClaim ? new Date(user.lastDailyClaim) : null;
+    const lastClaimMidnight = lastClaim ? new Date(lastClaim) : null;
+    if (lastClaimMidnight) {
+      lastClaimMidnight.setHours(0, 0, 0, 0);
     }
 
     const canClaim =
-      !lastLoginMidnight ||
-      lastLoginMidnight.getTime() !== todayMidnight.getTime();
+      !lastClaimMidnight ||
+      lastClaimMidnight.getTime() !== todayMidnight.getTime();
 
     let timeRemaining = null;
     if (!canClaim) {
@@ -260,7 +289,7 @@ export async function GET(request: NextRequest) {
       success: true,
       canClaim: canClaim,
       currentStreak: user.streak || 0,
-      lastClaim: lastLogin,
+      lastClaim: lastClaim,
       nextClaimAt: canClaim ? null : tomorrowMidnight,
       timeRemaining: timeRemaining,
       userStats: {

@@ -420,6 +420,7 @@ export default function AdminProductsPage() {
                                 alt={product.name}
                                 fill
                                 className="product-img"
+                                unoptimized
                               />
                               {imageCount > 1 && (
                                 <div className="image-badge">

@@ -1,315 +1,390 @@
-'use client';
+// app/components/admin/AddEventForm.tsx
+"use client";
 
-import { useState } from 'react';
-import './adminForms.css';
+import { useState, useRef, useEffect } from "react";
+import { FaUpload, FaTimes } from "react-icons/fa";
+
+interface Event {
+  _id?: string;
+  name: string;
+  description: string;
+  detailedDescription?: string;
+  date: string;
+  price: number;
+  coins: number;
+  Venue?: string;
+  address?: string;
+  time?: string;
+  collabWith?: string;
+  isActive: boolean;
+  totalSeats?: number;
+  availableSeats?: number;
+  imageUrl?: string;
+}
 
 interface AddEventFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  editEvent?: Event | null;
 }
 
-export default function AddEventForm({ onSuccess, onCancel }: AddEventFormProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    detailedDescription: '',
-    date: '',
+export default function AddEventForm({ onSuccess, onCancel, editEvent }: AddEventFormProps) {
+  const [formData, setFormData] = useState<Event>({
+    name: "",
+    description: "",
+    detailedDescription: "",
+    date: "",
     price: 0,
     coins: 0,
-    Venue: '',
-    collabWith: '',
-    imageUrl: '',
+    Venue: "",
+    address: "",
+    time: "",
+    collabWith: "",
     isActive: true,
     totalSeats: 0,
-    availableSeats: 0
+    availableSeats: 0,
+    imageUrl: "",
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Populate form if editing
+  useEffect(() => {
+    if (editEvent) {
+      setFormData({
+        name: editEvent.name || "",
+        description: editEvent.description || "",
+        detailedDescription: editEvent.detailedDescription || "",
+        date: editEvent.date || "",
+        price: editEvent.price || 0,
+        coins: editEvent.coins || 0,
+        Venue: editEvent.Venue || "",
+        address: editEvent.address || "",
+        time: editEvent.time || "",
+        collabWith: editEvent.collabWith || "",
+        isActive: editEvent.isActive ?? true,
+        totalSeats: editEvent.totalSeats || 0,
+        availableSeats: editEvent.availableSeats || 0,
+        imageUrl: editEvent.imageUrl || "",
+      });
+      if (editEvent.imageUrl) {
+        setImagePreview(editEvent.imageUrl);
+      }
+    }
+  }, [editEvent]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    setFormData({ ...formData, imageUrl: "" });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target;
+    setFormData({
+      ...formData,
+      [name]:
+        type === "number"
+          ? Number(value)
+          : type === "checkbox"
+          ? (e.target as HTMLInputElement).checked
+          : value,
+    });
+  };
+
+  const uploadImage = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "ml_default"); // Replace with your Cloudinary preset
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? parseFloat(value) || 0 : 
-              type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
-              value
-    }));
+    try {
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/dwvb2cgmq/image/upload`, // Replace with your cloud name
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      
+      const data = await response.json();
+      return data.secure_url;
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      throw new Error("Failed to upload image");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
-      if (!formData.name || !formData.description || !formData.date) {
-        throw new Error('Please fill in all required fields');
+      let imageUrl = formData.imageUrl;
+
+      // Upload image if new file selected
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
       }
 
-      const submissionData = {
-        ...formData,
-        availableSeats: formData.totalSeats
-      };
+      const eventData = { ...formData, imageUrl };
+      const url = editEvent ? `/api/events/${editEvent._id}` : "/api/events";
+      const method = editEvent ? "PUT" : "POST";
 
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submissionData),
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create event');
+      if (response.ok) {
+        alert(editEvent ? "Event updated successfully!" : "Event created successfully!");
+        onSuccess();
+      } else {
+        let errorMessage = "Unknown error";
+        try {
+          const error = await response.json();
+          errorMessage = error.message || error.error || "Unknown error";
+        } catch {
+          // If response body is empty or not JSON
+          errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        }
+        alert(`Failed: ${errorMessage}`);
       }
-
-      alert('Event created successfully!');
-      onSuccess();
-    } catch (err) {
-      console.error('Error creating event:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create event');
+    } catch (error: any) {
+      console.error("Error:", error);
+      alert(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="event-form-container">
-      <div className="form-header">
-        <h2>Add New Event</h2>
-        <button
-          onClick={onCancel}
-          className="close-button"
-          type="button"
+    <form onSubmit={handleSubmit}>
+      <h2 style={{ color: "#ff6b00", marginBottom: "2rem", fontSize: "2rem" }}>
+        {editEvent ? "Edit Event" : "Add New Event"}
+      </h2>
+
+      {/* Image Upload */}
+      <div className="form-group">
+        <label>Event Image</label>
+        <div
+          className={`image-upload-container ${imagePreview ? "has-image" : ""}`}
+          onClick={() => !imagePreview && fileInputRef.current?.click()}
         >
-          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          {imagePreview ? (
+            <>
+              <img src={imagePreview} alt="Preview" className="image-preview" />
+              <button
+                type="button"
+                className="remove-image-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeImage();
+                }}
+              >
+                <FaTimes /> Remove
+              </button>
+            </>
+          ) : (
+            <div className="upload-placeholder">
+              <FaUpload className="upload-icon" />
+              <p>Click to upload event image</p>
+              <span style={{ fontSize: "0.875rem", color: "#888" }}>
+                PNG, JPG up to 5MB
+              </span>
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            style={{ display: "none" }}
+          />
+        </div>
       </div>
 
-      {error && (
-        <div className="error-message">
-          <p>{error}</p>
-        </div>
-      )}
+      <div className="form-group">
+        <label>Event Name *</label>
+        <input
+          type="text"
+          name="name"
+          value={formData.name || ""}
+          onChange={handleInputChange}
+          required
+          placeholder="e.g., Annual Tech Summit 2024"
+        />
+      </div>
 
-      <form onSubmit={handleSubmit} className="event-form">
-        <div className="form-grid">
-          {/* Event Name */}
-          <div className="form-field full-width">
-            <label htmlFor="name" className="form-label">
-              Event Name <span className="required">*</span>
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="form-input"
-              placeholder="e.g., DMD Pune Tournament Day 1"
-            />
-          </div>
+      <div className="form-group">
+        <label>Short Description *</label>
+        <textarea
+          name="description"
+          value={formData.description || ""}
+          onChange={handleInputChange}
+          required
+          placeholder="Brief description of the event"
+        />
+      </div>
 
-          {/* Description */}
-          <div className="form-field full-width">
-            <label htmlFor="description" className="form-label">
-              Description <span className="required">*</span>
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-              rows={4}
-              className="form-textarea"
-              placeholder="Describe your event..."
-            />
-          </div>
+      <div className="form-group">
+        <label>Detailed Description</label>
+        <textarea
+          name="detailedDescription"
+          value={formData.detailedDescription || ""}
+          onChange={handleInputChange}
+          placeholder="Full event details, schedule, etc."
+          style={{ minHeight: "150px" }}
+        />
+      </div>
 
-          {/* Detailed Description */}
-          <div className="form-field full-width">
-            <label htmlFor="detailedDescription" className="form-label">
-              Detailed Description <span className="required">*</span>
-            </label>
-            <textarea
-              id="detailedDescription"
-              name="detailedDescription"
-              value={formData.detailedDescription}
-              onChange={handleChange}
-              required
-              rows={4}
-              className="form-textarea"
-              placeholder="Provide detailed information about the event..."
-            />
-          </div>
-
-          {/* Image URL */}
-          <div className="form-field full-width">
-            <label htmlFor="imageUrl" className="form-label">
-              Event Image URL
-            </label>
-            <input
-              type="url"
-              id="imageUrl"
-              name="imageUrl"
-              value={formData.imageUrl}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="https://example.com/event-image.jpg"
-            />
-            <p className="form-helper-text">
-              Enter a direct URL to the event image (JPG, PNG, or WEBP)
-            </p>
-            {formData.imageUrl && (
-              <div className="image-preview">
-                <img src={formData.imageUrl} alt="Preview" onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }} />
-              </div>
-            )}
-          </div>
-
-          {/* Date */}
-          <div className="form-field">
-            <label htmlFor="date" className="form-label">
-              Event Date <span className="required">*</span>
-            </label>
-            <input
-              type="date"
-              id="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              required
-              className="form-input"
-            />
-          </div>
-
-          {/* Price */}
-          <div className="form-field">
-            <label htmlFor="price" className="form-label">
-              Price (₹)
-            </label>
-            <input
-              type="number"
-              id="price"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              min="0"
-              step="0.01"
-              className="form-input"
-              placeholder="0"
-            />
-          </div>
-
-          {/* Total Seats */}
-          <div className="form-field">
-            <label htmlFor="totalSeats" className="form-label">
-              Total Seats Available
-            </label>
-            <input
-              type="number"
-              id="totalSeats"
-              name="totalSeats"
-              value={formData.totalSeats}
-              onChange={handleChange}
-              min="0"
-              step="1"
-              className="form-input"
-              placeholder="0"
-            />
-          </div>
-
-          {/* Coins */}
-          <div className="form-field">
-            <label htmlFor="coins" className="form-label">
-              Reward Coins
-            </label>
-            <input
-              type="number"
-              id="coins"
-              name="coins"
-              value={formData.coins}
-              onChange={handleChange}
-              min="0"
-              className="form-input"
-              placeholder="0"
-            />
-          </div>
-
-          {/* Registration Link */}
-          <div className="form-field">
-            <label htmlFor="Venue" className="form-label">
-              Venue
-            </label>
-            <input
-              id="Venue"
-              name="Venue"
-              value={formData.Venue}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="Location"
-            />
-          </div>
-
-          {/* Collaboration */}
-          <div className="form-field full-width">
-            <label htmlFor="collabWith" className="form-label">
-              Collaboration With
-            </label>
-            <input
-              type="text"
-              id="collabWith"
-              name="collabWith"
-              value={formData.collabWith}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="e.g., Partner Organization Name"
-            />
-          </div>
-
-          {/* Active Status */}
-          <div className="form-field full-width">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                name="isActive"
-                checked={formData.isActive}
-                onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                className="form-checkbox"
-              />
-              <span>Set event as active (visible to users)</span>
-            </label>
-          </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+        <div className="form-group">
+          <label>Date *</label>
+          <input
+            type="date"
+            name="date"
+            value={formData.date || ""}
+            onChange={handleInputChange}
+            required
+          />
         </div>
 
-        {/* Action Buttons */}
-        <div className="form-actions">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={loading}
-            className="btn-secondary"
+        <div className="form-group">
+          <label>Time</label>
+          <input
+            type="time"
+            name="time"
+            value={formData.time || ""}
+            onChange={handleInputChange}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+        <div className="form-group">
+          <label>Price (₹) *</label>
+          <input
+            type="number"
+            name="price"
+            value={formData.price || 0}
+            onChange={handleInputChange}
+            required
+            min="0"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Coins Reward *</label>
+          <input
+            type="number"
+            name="coins"
+            value={formData.coins || 0}
+            onChange={handleInputChange}
+            required
+            min="0"
+          />
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label>Venue</label>
+        <input
+          type="text"
+          name="Venue"
+          value={formData.Venue || ""}
+          onChange={handleInputChange}
+          placeholder="Event venue name"
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Address</label>
+        <textarea
+          name="address"
+          value={formData.address || ""}
+          onChange={handleInputChange}
+          placeholder="Full address"
+        />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+        <div className="form-group">
+          <label>Total Seats</label>
+          <input
+            type="number"
+            name="totalSeats"
+            value={formData.totalSeats || 0}
+            onChange={handleInputChange}
+            min="0"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Available Seats</label>
+          <input
+            type="number"
+            name="availableSeats"
+            value={formData.availableSeats || 0}
+            onChange={handleInputChange}
+            min="0"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Status</label>
+          <select
+            name="isActive"
+            value={formData.isActive.toString()}
+            onChange={(e) =>
+              setFormData({ ...formData, isActive: e.target.value === "true" })
+            }
           >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary"
-          >
-            {loading ? 'Creating...' : 'Create Event'}
-          </button>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
         </div>
-      </form>
-    </div>
+      </div>
+
+      <div className="form-group">
+        <label>Collaboration With</label>
+        <input
+          type="text"
+          name="collabWith"
+          value={formData.collabWith || ""}
+          onChange={handleInputChange}
+          placeholder="Partner organizations"
+        />
+      </div>
+
+      <div className="form-actions">
+        <button type="submit" className="btn-submit" disabled={loading}>
+          {loading ? "Saving..." : editEvent ? "Update Event" : "Create Event"}
+        </button>
+        <button type="button" className="btn-cancel" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
