@@ -5,7 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronUp, X, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const FILTERS = {
+export const FILTERS = {
+    gametype: {
+        title: "Gametype",
+        key: "gametype",
+        options: ["Board Games", "Card Games"],
+    },
     occasion: {
         title: "Occasion",
         key: "category",
@@ -90,59 +95,60 @@ export default function StoreFilters() {
         setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const FilterContent = () => (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Filter size={20} className="text-orange-500" /> Filters
+
+    const renderFilters = () => (
+        <div className="space-y-8">
+            <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold text-orange-500 flex items-center gap-2">
+                    <Filter size={18} /> Filters
                 </h3>
-                {(activeFilters.category.length > 0 || activeFilters.mood.length > 0 || activeFilters.players.length > 0) && (
+                {(activeFilters.category.length > 0 || activeFilters.mood.length > 0 || activeFilters.players.length > 0 || activeFilters.gametype?.length > 0) && (
                     <button
                         onClick={clearAll}
-                        className="text-xs text-orange-500 hover:text-white underline"
+                        className="text-xs text-stone-400 hover:text-white transition-colors"
                     >
-                        Clear all
+                        Reset All Filters
                     </button>
                 )}
             </div>
 
             {Object.entries(FILTERS).map(([key, data]) => (
-                <div key={key} className="border-b border-white/10 pb-4 last:border-0">
-                    <button
-                        onClick={() => toggleSection(key)}
-                        className="flex items-center justify-between w-full text-left mb-3 group"
-                    >
-                        <span className="font-semibold text-white group-hover:text-orange-400 transition-colors">
+                <div key={key} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-stone-500 uppercase tracking-widest">
                             {data.title}
                         </span>
-                        {expanded[key] ? (
-                            <ChevronUp size={16} className="text-white/50" />
-                        ) : (
-                            <ChevronDown size={16} className="text-white/50" />
-                        )}
-                    </button>
+                    </div>
 
-                    {expanded[key] && (
-                        <div className="flex flex-wrap gap-2">
-                            {data.options.map((option) => {
-                                const isActive = activeFilters[data.key]?.includes(option);
-                                return (
-                                    <button
-                                        key={option}
-                                        onClick={() => toggleFilter(data.key, option)}
-                                        className={cn(
-                                            "px-3 py-1.5 text-xs rounded-full border transition-all duration-200",
-                                            isActive
-                                                ? "bg-orange-500 border-orange-500 text-black font-bold shadow-[0_0_10px_rgba(255,140,0,0.4)]"
-                                                : "bg-white/5 border-white/10 text-white/70 hover:border-orange-500/50 hover:text-white"
-                                        )}
-                                    >
-                                        {option}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
+                    <div className="flex flex-col gap-2">
+                        {data.options.map((option) => {
+                            const isActive = activeFilters[data.key]?.includes(option);
+                            // Gametype uses radio-like behavior visually in screenshot (checkbox logic still applies for simplicity unless requested otherwise)
+                            // Actually, screenshot shows "Board Games" checked. Let's keep it consistent.
+
+                            return (
+                                <button
+                                    key={option}
+                                    onClick={() => toggleFilter(data.key, option)}
+                                    className={cn(
+                                        "flex items-center gap-3 text-sm transition-all duration-200 group w-full text-left p-2 rounded-lg",
+                                        isActive
+                                            ? "bg-orange-500 text-black font-bold"
+                                            : "text-stone-400 hover:text-white hover:bg-white/5"
+                                    )}
+                                >
+                                    {/* Custom Checkbox/Radio UI */}
+                                    <div className={cn(
+                                        "w-5 h-5 rounded-full border flex items-center justify-center transition-colors",
+                                        isActive ? "border-black bg-black/20" : "border-stone-600 group-hover:border-stone-400"
+                                    )}>
+                                        {isActive && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                                    </div>
+                                    {option}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             ))}
         </div>
@@ -161,7 +167,7 @@ export default function StoreFilters() {
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-72 flex-shrink-0">
                 <div className="sticky top-24 bg-neutral-900/50 backdrop-blur-md border border-white/10 rounded-2xl p-6">
-                    <FilterContent />
+                    {renderFilters()}
                 </div>
             </aside>
 
@@ -180,7 +186,7 @@ export default function StoreFilters() {
                             <X size={24} />
                         </button>
                         <div className="mt-8">
-                            <FilterContent />
+                            {renderFilters()}
                         </div>
                         <button
                             onClick={() => setMobileOpen(false)}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Save, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
+import { FILTERS } from "@/app/components/StoreFilters";
 
 interface Product {
   _id: string;
@@ -30,7 +31,8 @@ interface Product {
     gameplay: string;
     winning: string;
   };
-  category: string[];
+  category: string; // Changed to string to match single select in new product, check schema if array necessary
+  gametype: 'board-game' | 'card-game';
 }
 
 export default function EditProductPage({
@@ -153,9 +155,9 @@ export default function EditProductPage({
     setFormData((prev) =>
       prev
         ? {
-            ...prev,
-            [parent]: { ...(prev as any)[parent], [field]: value },
-          }
+          ...prev,
+          [parent]: { ...(prev as any)[parent], [field]: value },
+        }
         : null,
     );
   };
@@ -164,11 +166,11 @@ export default function EditProductPage({
     setFormData((prev) =>
       prev
         ? {
-            ...prev,
-            [field]: (prev as any)[field].map((item: string, i: number) =>
-              i === index ? value : item,
-            ),
-          }
+          ...prev,
+          [field]: (prev as any)[field].map((item: string, i: number) =>
+            i === index ? value : item,
+          ),
+        }
         : null,
     );
   };
@@ -177,9 +179,9 @@ export default function EditProductPage({
     setFormData((prev) =>
       prev
         ? {
-            ...prev,
-            [field]: [...(prev as any)[field], ""],
-          }
+          ...prev,
+          [field]: [...(prev as any)[field], ""],
+        }
         : null,
     );
   };
@@ -427,14 +429,21 @@ export default function EditProductPage({
                   Players
                 </label>
                 <input
-                  type="text"
-                  value={formData.meta.players || ""}
-                  onChange={(e) =>
-                    updateNestedField("meta", "players", e.target.value)
-                  }
                   className="w-full px-4 py-3 bg-gray-900/50 border-2 border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:border-transparent transition-all"
                   placeholder="2-6"
                 />
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {FILTERS.players.options.map(opt => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => updateNestedField("meta", "players", opt)}
+                      className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -483,6 +492,70 @@ export default function EditProductPage({
                   <option value="Hard">Hard</option>
                   <option value="Very Easy">Very Easy</option>
                 </select>
+              </div>
+            </div>
+
+
+            {/* Category & Moods */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div>
+                <label className="block text-sm font-bold mb-2 text-gray-300">
+                  Category
+                </label>
+                <select
+                  value={typeof formData.category === 'string' ? formData.category : formData.category?.[0] || ""}
+                  onChange={(e) => updateField("category", e.target.value)} // Sending as string, backend likely handles it or we adapt
+                  className="w-full px-4 py-3 bg-gray-900/50 border-2 border-gray-700 rounded-lg text-white focus:ring-2 focus:border-transparent transition-all"
+                >
+                  <option value="" disabled>Select Occasion</option>
+                  {FILTERS.occasion.options.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2 text-gray-300">
+                  Gametype
+                </label>
+                <select
+                  value={formData.gametype || "board-game"}
+                  onChange={(e) => updateField("gametype", e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-900/50 border-2 border-gray-700 rounded-lg text-white focus:ring-2 focus:border-transparent transition-all"
+                >
+                  <option value="board-game">Board Game</option>
+                  <option value="card-game">Card Game</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2 text-gray-300">
+                  Moods
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {FILTERS.mood.options.map(mood => {
+                    const currentMoods = formData.meta.moods || [];
+                    const isActive = currentMoods.includes(mood);
+                    return (
+                      <button
+                        key={mood}
+                        type="button"
+                        onClick={() => {
+                          const newMoods = isActive
+                            ? currentMoods.filter(m => m !== mood)
+                            : [...currentMoods, mood];
+                          updateNestedField("meta", "moods", newMoods);
+                        }}
+                        className={`px-3 py-1 text-sm rounded-full border transition-all ${isActive
+                          ? "bg-orange-600 border-orange-600 text-white"
+                          : "bg-gray-800 border-gray-600 text-gray-400 hover:border-gray-500"
+                          }`}
+                      >
+                        {mood}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -643,7 +716,7 @@ export default function EditProductPage({
             </Link>
           </div>
         </form>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

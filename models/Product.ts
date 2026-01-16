@@ -108,6 +108,12 @@ const productSchema = new Schema(
     whatYouGet: [{ type: String }],
 
     category: [{ type: String }],
+    gametype: {
+      type: String,
+      enum: ["board-game", "card-game"],
+      default: "board-game",
+      index: true,
+    },
     relatedSlugs: [{ type: String }],
   },
   { timestamps: true },

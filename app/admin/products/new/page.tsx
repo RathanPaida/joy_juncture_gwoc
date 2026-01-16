@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Upload, X, Image as ImageIcon, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
 import './new-product.css';
+import { FILTERS } from '@/app/components/StoreFilters';
 
 interface ImageFile {
   id: string;
@@ -29,7 +30,8 @@ export default function NewProductPage() {
     price: '',
     currency: 'INR',
     stock: '',
-    category: 'board-game',
+    category: 'party', // Default to first occasion or generic
+    gametype: 'board-game',
     players: '',
     duration: '',
     moods: [] as string[],
@@ -43,20 +45,20 @@ export default function NewProductPage() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
-    
+
     setFormData(prev => ({ ...prev, name, slug }));
     setNameError('');
 
     // Check if product with this name already exists (debounced)
     if (name.trim().length > 2) {
       setCheckingName(true);
-      
+
       // Debounce the API call
       const timeoutId = setTimeout(async () => {
         try {
           const res = await fetch(`/api/admin/products/check-name?name=${encodeURIComponent(name)}`);
           const data = await res.json();
-          
+
           if (data.exists) {
             setNameError(`⚠️ A product with the name "${name}" already exists!`);
           } else {
@@ -77,7 +79,7 @@ export default function NewProductPage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    
+
     addFiles(Array.from(files));
   };
 
@@ -96,7 +98,7 @@ export default function NewProductPage() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       addFiles(Array.from(files));
@@ -106,7 +108,7 @@ export default function NewProductPage() {
   // Add files to state
   const addFiles = (files: File[]) => {
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    
+
     if (imageFiles.length === 0) {
       alert('Please select only image files');
       return;
@@ -166,12 +168,12 @@ export default function NewProductPage() {
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (nameError) {
       alert('❌ Cannot create product: A product with this name already exists!');
       return;
     }
-    
+
     if (images.length === 0) {
       alert('Please add at least one product image');
       return;
@@ -181,7 +183,7 @@ export default function NewProductPage() {
 
     try {
       const submitData = new FormData();
-      
+
       submitData.append('name', formData.name);
       submitData.append('slug', formData.slug);
       submitData.append('description', formData.description);
@@ -189,11 +191,12 @@ export default function NewProductPage() {
       submitData.append('currency', formData.currency);
       submitData.append('stock', formData.stock);
       submitData.append('category', formData.category);
+      submitData.append('gametype', formData.gametype);
       submitData.append('players', formData.players);
       submitData.append('duration', formData.duration);
       submitData.append('moods', JSON.stringify(formData.moods));
       submitData.append('badges', JSON.stringify(formData.badges));
-      
+
       images.forEach((img, index) => {
         submitData.append('images', img.file);
         if (img.isPrimary) {
@@ -293,7 +296,7 @@ export default function NewProductPage() {
                           unoptimized
                         />
                       </div>
-                      
+
                       {img.isPrimary && (
                         <div className="primary-badge">
                           <CheckCircle size={12} />
@@ -430,6 +433,20 @@ export default function NewProductPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                   className="form-select"
                 >
+                  <option value="" disabled>Select Occasion</option>
+                  {FILTERS.occasion.options.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Gametype *</label>
+                <select
+                  value={formData.gametype}
+                  onChange={(e) => setFormData(prev => ({ ...prev, gametype: e.target.value }))}
+                  className="form-select"
+                >
                   <option value="board-game">Board Game</option>
                   <option value="card-game">Card Game</option>
                 </select>
@@ -437,13 +454,27 @@ export default function NewProductPage() {
 
               <div className="form-group">
                 <label className="form-label">Players</label>
-                <input
-                  type="text"
-                  value={formData.players}
-                  onChange={(e) => setFormData(prev => ({ ...prev, players: e.target.value }))}
-                  className="form-input"
-                  placeholder="e.g., 2-4"
-                />
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={formData.players}
+                    onChange={(e) => setFormData(prev => ({ ...prev, players: e.target.value }))}
+                    className="form-input"
+                    placeholder="e.g., 2-4"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {FILTERS.players.options.map(opt => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, players: opt }))}
+                        className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="form-group">
@@ -462,7 +493,7 @@ export default function NewProductPage() {
             <div className="form-group full-width">
               <label className="form-label">Moods</label>
               <div className="tag-group">
-                {['party', 'strategic', 'family-friendly', 'competitive', 'chill'].map(mood => (
+                {FILTERS.mood.options.map(mood => (
                   <button
                     key={mood}
                     type="button"

@@ -25,6 +25,7 @@ import {
   Pin,
 } from "lucide-react";
 import "./community.css";
+import CommunityScroll from "@/app/components/CommunityScroll";
 
 interface Reply {
   _id: string;
@@ -320,23 +321,10 @@ export default function CommunityPage() {
   }, [activeFilter, sortBy, authUser]);
 
   return (
-    <main className="community-page">
-      {/* Hero Section */}
-      <section className="community-hero">
-        <div className="container">
-          <div className="hero-label">
-            <span>Community Hub</span>
-          </div>
-          <h1 className="hero-title">
-            PLAY, GATHER &<br />
-            <span className="gradient-text">BELONG</span>
-          </h1>
-          <p className="hero-subtitle">
-            The heart of Joy Juncture. Join our digital tribe, share your
-            stories, and earn rewards for simply having fun.
-          </p>
-        </div>
-      </section>
+    <main className="community-page bg-[#050505]">
+      {/* Scrollytelling Hero */}
+      <CommunityScroll />
+
 
       {/* Stats Section */}
       <section className="community-stats">
@@ -383,7 +371,7 @@ export default function CommunityPage() {
       </section>
 
       {/* Content Grid Section */}
-      <section className="content-grid-section">
+      <section id="discussions" className="content-grid-section relative z-10 bg-[#050505] -mt-20 pt-32">
         <div className="container">
           <div className="content-grid">
             {/* Discussions Column */}

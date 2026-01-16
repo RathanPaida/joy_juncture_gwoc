@@ -22,6 +22,13 @@ export async function GET(req: Request) {
     query.category = { $in: categories.map(c => new RegExp(c, "i")) };
   }
 
+  // Gametype
+  const gametype = url.searchParams.get("gametype");
+  if (gametype) {
+    // Assuming gametype is a single value for exact match
+    query.gametype = new RegExp(gametype, "i");
+  }
+
   // Mood
   const mood = url.searchParams.get("mood");
   if (mood) {

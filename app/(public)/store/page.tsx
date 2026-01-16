@@ -96,21 +96,23 @@ export default async function StorePage(props: {
     <main className="min-h-screen bg-black text-white selection:bg-orange-500/30">
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-orange-600 via-amber-500 to-orange-500 text-white py-20 relative overflow-hidden">
-        {/* Decorative Elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full blur-2xl -translate-x-1/3 translate-y-1/3" />
+      <section className="px-6 py-6">
+        <div className="max-w-7xl mx-auto bg-gradient-to-r from-orange-600 to-amber-600 rounded-[2.5rem] p-12 md:p-20 relative overflow-hidden shadow-2xl">
+          {/* Background Effects */}
+          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-white/10 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/2 pointer-events-none" />
 
-        {/* Pattern */}
-        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '30px 30px' }}></div>
+          <div className="relative z-10 max-w-3xl">
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight leading-tight">
+              The Digital Playground
+            </h1>
+            <p className="text-lg md:text-xl text-white/90 mb-10 leading-relaxed max-w-2xl font-medium">
+              Discover games that spark connection and belonging. From icebreakers for weddings to intense strategy for game nights.
+            </p>
 
-        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
-          <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter mb-4 drop-shadow-xl text-white">
-            JJ <span className="text-black inline-block transform -skew-x-12 bg-white px-2">Store</span>
-          </h1>
-          <p className="text-xl font-medium max-w-2xl mx-auto text-white/90 leading-relaxed">
-            Curated board games & card experiences for every occasion.
-          </p>
+            <button className="bg-white text-black font-bold px-8 py-4 rounded-full hover:bg-zinc-100 transition-colors inline-flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-200">
+              Explore Collections
+            </button>
+          </div>
         </div>
       </section>
 

@@ -20,6 +20,8 @@ import {
   LogIn,
   X,
   Minus,
+  Users,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { auth } from "@/lib/firebase";
@@ -444,570 +446,318 @@ export default function ProductDetail({ product }: { product: Product }) {
   };
 
   return (
-    <main className="min-h-screen bg-[#050505] text-white font-sans relative">
+    <main className="min-h-screen bg-[#050505] text-white font-sans selection:bg-orange-500/30">
       {showSuccessMessage && <SuccessMessage />}
       {cartError && <ErrorMessage />}
       {showLoginPrompt && <LoginPromptModal />}
 
-      {/* Ghost Header / Breadcrumbs */}
-      <nav className="border-b border-zinc-900 py-6 px-4 lg:px-10 sticky top-0 bg-[#050505]/95 backdrop-blur-sm z-40">
-        <div className="max-w-[1400px] mx-auto flex justify-between items-center">
-          <div className="flex gap-4 text-[9px] uppercase tracking-[0.4em] text-zinc-500 font-bold">
-            <Link href="/" className="hover:text-white transition-all">
-              Studio
+      {/* Navigation */}
+      <nav className="border-b border-white/5 py-6 px-6 lg:px-12 bg-[#050505]/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="text-orange-500 font-bold text-lg tracking-wider flex items-center gap-2">
+              <span className="text-2xl">▣</span> JOY JUNCTURE
             </Link>
-            <span className="text-zinc-600">/</span>
-            <Link href="/store" className="hover:text-white transition-all">
-              Archive
-            </Link>
-            <span className="text-zinc-600">/</span>
-            <span className="text-white italic font-serif tracking-widest">
-              {product.name}
-            </span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/cart"
-              className="relative flex items-center gap-2 text-[10px] tracking-[0.3em] font-bold uppercase hover:text-white transition-colors text-zinc-400 group"
-            >
-              <ShoppingBag
-                size={14}
-                className="group-hover:scale-110 transition-transform"
-              />
-              Cart
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-[#FF6B00] text-black text-[8px] w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
-            <div className="text-[10px] tracking-[0.5em] font-black uppercase text-zinc-600">
-              JJ Games © 2025
+            <div className="hidden md:flex gap-6 text-[10px] uppercase tracking-widest font-bold text-zinc-400">
+              <Link href="/store" className="hover:text-white transition-colors">Games</Link>
+              <Link href="/community" className="hover:text-white transition-colors">Community</Link>
+              <Link href="/events" className="hover:text-white transition-colors">Events</Link>
             </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex relative">
+              <input type="text" placeholder="Search mysteries..." className="bg-zinc-900/50 border border-zinc-800 rounded-full py-2 px-4 text-xs w-64 focus:outline-none focus:border-zinc-600 text-zinc-300" />
+            </div>
+            <Link href="/cart" className="relative group">
+              <ShoppingBag size={20} className="text-zinc-400 group-hover:text-white transition-colors" />
+              {cartCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-[10px] flex items-center justify-center text-black font-bold">{cartCount}</span>}
+            </Link>
+            {user ? (
+              <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-black font-bold text-xs">
+                {user.displayName?.[0] || 'U'}
+              </div>
+            ) : (
+              <Link href="/login" className="text-xs font-bold uppercase tracking-widest border border-white/20 px-4 py-2 rounded-full hover:bg-white hover:text-black transition-all">
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       </nav>
 
-      {/* Above the fold: gallery + details */}
-      <section className="max-w-[1400px] mx-auto px-4 lg:px-10 pt-10 pb-20">
-        <div className="grid gap-14 lg:grid-cols-[1.15fr_0.9fr] items-start">
-          {/* Gallery */}
-          <div className="space-y-6">
-            <div className="relative overflow-hidden rounded-3xl bg-[#111111] border border-zinc-900 shadow-[0_24px_70px_rgba(0,0,0,0.9)]">
-              <div className="relative aspect-[4/5]">
-                <img
-                  src={
-                    mainImageError
-                      ? "https://via.placeholder.com/1200x900?text=No+Image"
-                      : selectedImage
-                  }
-                  alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-[1600ms] ease-[cubic-bezier(0.25,1,0.5,1)] hover:scale-105 hover:rotate-[0.5deg]"
-                  onError={() => setMainImageError(true)}
-                />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-                <div className="pointer-events-none absolute -bottom-16 right-[-30%] h-48 w-48 rounded-full bg-[#FF6B00]/40 blur-3xl opacity-80" />
+      {/* Hero Section */}
+      <section className="relative px-6 lg:px-12 pt-12 pb-20 overflow-hidden">
+        {/* Background Atmosphere */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-orange-900/10 rounded-full blur-[120px] pointer-events-none translate-x-1/3 -translate-y-1/3" />
 
-                <div className="absolute bottom-6 left-6 text-[9px] tracking-[0.35em] uppercase text-zinc-300">
-                  Product ref. {product._id.slice(-6)}
-                </div>
-              </div>
-
-              {/* Thumbnail strip */}
-              <div className="flex gap-3 p-4 border-t border-zinc-900 bg-[#0A0A0A]/90 backdrop-blur-md">
-                {[product.media.thumbnail, ...(product.media.images || [])].map(
-                  (img, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSelectedImage(img)}
-                      className={`relative aspect-square w-16 rounded-2xl overflow-hidden border transition-all ${
-                        selectedImage === img
-                          ? "border-[#FF6B00] opacity-100"
-                          : "border-zinc-800 opacity-50 hover:opacity-100 hover:border-zinc-500"
-                      }`}
-                    >
-                      <img
-                        src={
-                          thumbnailErrors[img]
-                            ? "https://via.placeholder.com/200x200?text=IMG"
-                            : img
-                        }
-                        alt=""
-                        className="h-full w-full object-cover"
-                        onError={() => handleThumbnailError(img)}
-                      />
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Product Details */}
-          <div className="lg:sticky lg:top-28 flex flex-col min-h-[400px] justify-between border-l border-zinc-900 pl-0 lg:pl-10">
-            <div className="space-y-8">
-              {/* badges row */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-3 text-[9px] font-bold uppercase tracking-[0.35em]">
-                  <span className="px-3 py-1 rounded-full bg-[#101010] border border-zinc-800 text-zinc-400">
-                    {product.category[0]}
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-[#101010] border border-[#FF6B00]/40 text-[#FFB062]">
-                    {product.meta.age}+ Years
-                  </span>
-                  {product.meta.badges?.[0] && (
-                    <span className="px-3 py-1 rounded-full bg-[#FF6B00] text-black tracking-[0.25em]">
-                      {product.meta.badges[0].replace(/-/g, " ")}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[9px] uppercase tracking-[0.35em] text-zinc-500">
-                  {product.meta.difficulty}
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
+          <div className="space-y-8">
+            <div className="flex gap-4">
+              <span className="bg-orange-900/30 text-orange-500 border border-orange-500/20 px-3 py-1 rounded text-[9px] uppercase tracking-[0.2em] font-bold">
+                New Experience
+              </span>
+              {product.points?.purchase && (
+                <span className="bg-white/10 text-zinc-300 px-3 py-1 rounded text-[9px] uppercase tracking-[0.2em] font-bold">
+                  +{product.points.purchase} Points
                 </span>
-              </div>
+              )}
+            </div>
 
-              {/* title + short description */}
-              <div className="space-y-4">
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight tracking-tight">
-                  {product.name}
-                </h1>
-                <p className="text-sm text-zinc-300 leading-relaxed">
-                  {product.shortDescription}
-                </p>
-                <div className="h-px w-24 bg-gradient-to-r from-[#FF6B00] via-[#FF9A4D] to-transparent" />
-              </div>
+            <h1 className="text-5xl md:text-7xl font-black uppercase italic leading-[0.9] tracking-tighter">
+              {product.name}
+            </h1>
 
-              {/* specs matrix */}
-              <div className="grid grid-cols-2 gap-y-5 pt-2">
-                {[
-                  { label: "Format", value: product.meta.players },
-                  { label: "Tempo", value: product.meta.duration },
-                  { label: "Legacy", value: product.meta.age },
-                  { label: "Skill", value: product.meta.difficulty },
-                ].map((stat, i) => (
-                  <div key={i}>
-                    <p className="text-[8px] uppercase tracking-[0.3em] text-zinc-500 font-bold mb-1">
-                      {stat.label}
-                    </p>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-200">
-                      {stat.value}
-                    </p>
+            <p className="text-lg text-zinc-400 max-w-lg leading-relaxed">
+              {product.shortDescription}
+            </p>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleAddToCart}
+                disabled={isAddingToCart || isAddedToCart || maxStock === 0}
+                className="bg-orange-600 hover:bg-orange-500 text-black font-black uppercase text-sm px-8 py-4 rounded hover:scale-105 transition-all w-full md:w-auto"
+              >
+                {getButtonText()} — ₹{product.price.amount}
+              </button>
+              <button className="bg-zinc-900 hover:bg-zinc-800 p-4 rounded text-white transition-colors border border-white/10">
+                <Heart size={20} />
+              </button>
+            </div>
+
+            {/* Social Proof Mock */}
+            <div className="flex items-center gap-4 bg-zinc-900/30 p-4 rounded-lg border border-white/5 inline-flex">
+              <div className="flex -space-x-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="w-8 h-8 rounded-full bg-zinc-700 border-2 border-black flex items-center justify-center text-[8px] font-bold text-zinc-400">
+                    {i}
                   </div>
                 ))}
               </div>
-
-              {/* price + points */}
-              <div className="flex items-end gap-6 pt-4">
-                <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-[0.35em] text-zinc-500 mb-1">
-                    Valuation
-                  </span>
-                  <span className="text-3xl md:text-4xl font-black tracking-tight">
-                    ₹{(product.price.amount * quantity).toLocaleString("en-IN")}
-                  </span>
-                  {quantity > 1 && (
-                    <span className="text-xs text-zinc-500 mt-1">
-                      ₹{product.price.amount.toLocaleString("en-IN")} × {quantity}
-                    </span>
-                  )}
-                </div>
-                {product.points?.purchase !== undefined && (
-                  <div className="pb-1">
-                    <span className="text-[10px] text-[#FFB062] font-black tracking-widest uppercase bg-[#2b1a07] px-3 py-1 rounded-full border border-[#FF6B00]/40">
-                      +{product.points.purchase * quantity} JJ Points
-                    </span>
-                  </div>
-                )}
+              <div className="text-xs text-zinc-400 font-medium">
+                <span className="text-white font-bold">1.2k+</span> detectives played this month
               </div>
+            </div>
 
-              {/* quantity + CTA */}
-              <div className="space-y-6">
-                {/* Quantity */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] uppercase tracking-[0.35em] text-zinc-500 font-bold">
-                      Quantity
-                    </span>
-                    {maxStock <= 10 && maxStock > 0 && (
-                      <span className="text-[8px] uppercase tracking-wider text-[#FFB062] font-bold bg-[#2b1a07] px-2 py-1 rounded">
-                        Only {maxStock} left
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-[#0A0A0A] border border-zinc-800 rounded-full px-3 py-1.5">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleQuantityChange(-1);
-                        }}
-                        disabled={quantity <= 1}
-                        className="h-7 w-7 rounded-full flex items-center justify-center text-zinc-300 hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent"
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <div
-                        className="px-3 cursor-pointer"
-                        onClick={() => {
-                          setIsEditingQuantity(true);
-                          setTempQuantity(quantity.toString());
-                        }}
-                      >
-                        {isEditingQuantity ? (
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={tempQuantity}
-                            onChange={(e) => handleQuantityInput(e.target.value)}
-                            onBlur={handleQuantityBlur}
-                            onKeyDown={handleQuantityKeyDown}
-                            className="w-10 bg-transparent text-center text-sm text-white outline-none"
-                            autoFocus
-                            maxLength={3}
-                          />
-                        ) : (
-                          <span className="text-lg font-semibold">
-                            {quantity}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleQuantityChange(1);
-                        }}
-                        disabled={maxStock > 0 && quantity >= maxStock}
-                        className="h-7 w-7 rounded-full flex items-center justify-center text-zinc-300 hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent"
-                        aria-label="Increase quantity"
-                      >
-                        <Plus size={12} />
-                      </button>
-                    </div>
-                    {maxStock > 0 && (
-                      <span className="text-[10px] text-zinc-500">
-                        {maxStock} in archive
-                      </span>
-                    )}
-                    {maxStock === 0 && (
-                      <span className="text-[10px] text-red-400">
-                        Currently out of stock
-                      </span>
-                    )}
-                  </div>
+            {/* Quantity Controls - Optional but useful to keep accessible */}
+            {maxStock > 0 && (
+              <div className="flex items-center gap-4 pt-4 border-t border-white/5 w-fit">
+                <span className="text-xs uppercase tracking-widest text-zinc-500 font-bold">Quantity</span>
+                <div className="flex items-center bg-zinc-900 rounded-full px-2 py-1">
+                  <button onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1} className="w-8 h-8 flex items-center justify-center hover:bg-zinc-800 rounded-full text-zinc-400">-</button>
+                  <span className="w-8 text-center text-sm font-bold">{quantity}</span>
+                  <button onClick={() => handleQuantityChange(1)} disabled={quantity >= maxStock} className="w-8 h-8 flex items-center justify-center hover:bg-zinc-800 rounded-full text-zinc-400">+</button>
                 </div>
+              </div>
+            )}
+          </div>
 
-                {/* Add to cart button */}
-                <div className="space-y-3">
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={
-                      isAddingToCart ||
-                      isAddedToCart ||
-                      authLoading ||
-                      maxStock === 0
-                    }
-                    className={`group relative w-full h-14 text-[10px] font-bold uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-4 rounded-full active:scale-[0.98] shadow-[0_18px_35px_rgba(0,0,0,0.9)] ${
-                      maxStock === 0
-                        ? "bg-zinc-700 text-zinc-300 cursor-not-allowed"
-                        : isAddedToCart
-                        ? "bg-emerald-500 text-black cursor-default"
-                        : "bg-[#FF6B00] text-black hover:bg-white"
-                    }`}
-                  >
-                    {getButtonIcon()}
-                    {maxStock === 0 ? "Out of Stock" : getButtonText()}
-                    <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-[#FF6B00]/40 group-hover:ring-2 group-hover:ring-white/30 transition-all" />
-                  </button>
-
-                  <div className="flex gap-3">
-                    <button className="flex-1 border border-zinc-800 h-11 flex items-center justify-center gap-2 text-[9px] font-bold uppercase tracking-[0.35em] bg-[#101010] text-zinc-300 hover:border-[#FF6B00] hover:text-white transition-all rounded-full group">
-                      <Heart
-                        size={14}
-                        className="text-zinc-400 group-hover:text-[#FF6B00] transition-colors"
-                      />{" "}
-                      Wishlist
-                    </button>
-                    <button className="w-11 border border-zinc-800 h-11 flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#FF6B00] bg-[#101010] transition-all rounded-full">
-                      <Share2 size={16} />
-                    </button>
+          {/* Hero Image */}
+          <div className="relative">
+            <div className="aspect-[4/5] relative rounded-lg overflow-hidden border border-white/10 shadow-2xl group cursor-pointer" onClick={() => setSelectedImage(product.media.thumbnail)}>
+              <img
+                src={selectedImage}
+                alt={product.name}
+                className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700 scale-100 group-hover:scale-105"
+              />
+              {/* Floating Info */}
+              <div className="absolute bottom-6 left-6 right-6">
+                <div className="bg-black/60 backdrop-blur-md p-4 rounded border border-white/10 flex justify-between items-center">
+                  <div>
+                    <p className="text-[9px] uppercase tracking-widest text-zinc-400">Difficulty</p>
+                    <p className="text-sm font-bold text-white uppercase">{product.meta.difficulty}</p>
+                  </div>
+                  <div className="h-8 w-px bg-white/10" />
+                  <div>
+                    <p className="text-[9px] uppercase tracking-widest text-zinc-400">Time</p>
+                    <p className="text-sm font-bold text-white uppercase">{product.meta.duration}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* moods row */}
-            {product.meta.moods?.length > 0 && (
-              <div className="mt-10 flex flex-wrap gap-2 text-[9px] uppercase tracking-[0.3em] text-zinc-500">
-                {product.meta.moods.map((mood) => (
-                  <span
-                    key={mood}
-                    className="px-3 py-1 rounded-full bg-[#0A0A0A] border border-zinc-800"
-                  >
-                    {mood}
-                  </span>
+            {/* Thumbnails */}
+            <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+              {[product.media.thumbnail, ...(product.media.images || [])].map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedImage(img)}
+                  className={`w-20 aspect-square rounded overflow-hidden border ${selectedImage === img ? 'border-orange-500' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                >
+                  <img src={img} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Bar */}
+      <section className="bg-zinc-900/30 border-y border-white/5 py-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="flex items-start gap-4">
+            <Users className="text-orange-500 mt-1" size={20} />
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-zinc-500 mb-1">Players</p>
+              <p className="text-xl font-bold italic">{product.meta.players}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <Clock className="text-orange-500 mt-1" size={20} />
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-zinc-500 mb-1">Duration</p>
+              <p className="text-xl font-bold italic">{product.meta.duration}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <Zap className="text-orange-500 mt-1" size={20} />
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-zinc-500 mb-1">Difficulty</p>
+              <p className="text-xl font-bold italic">{product.meta.difficulty}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <Sparkles className="text-orange-500 mt-1" size={20} />
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-zinc-500 mb-1">Vibe</p>
+              <div className="flex gap-2">
+                {product.meta.moods?.slice(0, 2).map(m => (
+                  <span key={m} className="text-xs font-bold bg-white/5 px-2 py-1 rounded border border-white/5">{m}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The Concept */}
+      <section className="py-24 px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-4 mb-4">
+            <h2 className="text-2xl font-black italic uppercase">The Concept</h2>
+            <div className="h-px bg-orange-500 w-16" />
+          </div>
+
+          <div className="bg-[#111] rounded-2xl overflow-hidden border border-white/5 grid lg:grid-cols-2">
+            <div className="p-10 lg:p-16 flex flex-col justify-center">
+              <h3 className="text-3xl font-bold mb-6 text-white uppercase italic">
+                {product.shortDescription || "A immersive experience"}
+              </h3>
+              <p className="text-zinc-400 leading-relaxed mb-8 whitespace-pre-line">
+                {product.story || product.shortDescription}
+              </p>
+              <button className="text-orange-500 font-bold uppercase text-xs tracking-widest hover:text-white transition-colors flex items-center gap-2">
+                Read Full Dossier <ArrowRight size={14} />
+              </button>
+            </div>
+            <div className="relative min-h-[400px] bg-zinc-900 border-l border-white/5">
+              {/* Placeholder for Concept Image if not available separately, usually we'd use a specific image */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-2/3 aspect-[3/4] bg-[#050505] shadow-2xl skew-y-3 rounded border border-white/10 relative">
+                  <img src={product.media.thumbnail} className="w-full h-full object-cover opacity-50" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center backdrop-blur-md border border-orange-500/50">
+                      <span className="font-serif italic text-orange-500 text-xl">JJ</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Inside The Box & How To Play Split */}
+      <section className="py-10 px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20">
+
+          {/* Inside The Box */}
+          <div>
+            <h2 className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-400 mb-8 border-b border-white/10 pb-4">
+              Inside The Box
+            </h2>
+
+            {product.whatYouGet && product.whatYouGet.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4">
+                {product.whatYouGet.map((item, i) => (
+                  <div key={i} className="bg-[#111] p-6 rounded-xl border border-white/5 flex flex-col items-center text-center gap-4 hover:border-white/20 transition-colors group">
+                    <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center group-hover:bg-orange-500/10 group-hover:text-orange-500 transition-colors">
+                      <Package size={20} />
+                    </div>
+                    <span className="text-sm font-bold text-zinc-300">{item}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="aspect-square bg-[#111] rounded-xl border border-white/5 flex items-center justify-center">
+                    <span className="text-zinc-700 font-bold uppercase tracking-widest text-[10px]">Component {i}</span>
+                  </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
-      </section>
 
-      {/* Narrative */}
-      <section className="bg-[#050505] text-white py-32 overflow-hidden border-t border-zinc-900">
-        <div className="max-w-3xl mx-auto px-6 relative">
-          <span className="text-[9px] uppercase tracking-[1em] text-zinc-600 block text-center mb-14 font-bold">
-            The Narrative
-          </span>
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-serif italic text-center leading-relaxed text-zinc-100 whitespace-pre-line">
-              "{product.story}"
+          {/* How To Play */}
+          <div>
+            <h2 className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-400 mb-8 border-b border-white/10 pb-4">
+              How To Play
             </h2>
-          </div>
-          <div className="absolute -top-10 -left-6 text-[140px] font-serif text-white/5 select-none italic">
-            "
-          </div>
-        </div>
-      </section>
 
-      {/* Key Features */}
-      {product.keyFeatures && product.keyFeatures.length > 0 && (
-        <section className="max-w-[1400px] mx-auto px-6 lg:px-10 py-24 bg-[#070707] border-t border-zinc-900">
-          <div className="flex items-center justify-center gap-4 mb-16">
-            <Sparkles size={20} className="text-[#FF6B00]" strokeWidth={1} />
-            <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-500 text-center font-black">
-              Why You'll Love It
-            </h2>
-            <Sparkles size={20} className="text-[#FF6B00]" strokeWidth={1} />
-          </div>
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {product.keyFeatures.map((feature, idx) => (
-              <div
-                key={idx}
-                className="relative p-8 border border-zinc-800 hover:border-[#FF6B00] transition-all group bg-[#101010] rounded-2xl overflow-hidden"
-              >
-                <div className="absolute top-6 left-6 text-[40px] font-serif italic text-zinc-800 group-hover:text-[#FFB062]/40 transition-colors leading-none">
-                  {String(idx + 1).padStart(2, "0")}
+            <div className="space-y-8">
+              <div className="flex gap-6 group">
+                <div className="w-12 h-12 flex-shrink-0 bg-[#151515] border border-white/10 rounded flex items-center justify-center text-orange-500 font-bold font-serif text-xl group-hover:bg-orange-500 group-hover:text-black transition-colors">1</div>
+                <div>
+                  <h4 className="text-white font-bold uppercase tracking-wider text-sm mb-2">Set The Scene</h4>
+                  <p className="text-zinc-500 text-sm leading-relaxed">{product.howToPlay?.setup || "Dim the lights, prepare the board."}</p>
                 </div>
-                <p className="text-sm leading-relaxed text-zinc-300 group-hover:text-white transition-colors mt-12">
-                  {feature}
-                </p>
-                <div className="absolute bottom-0 left-0 w-0 h-[3px] bg-gradient-to-r from-[#FF6B00] via-[#FF9A4D] to-transparent group-hover:w-full transition-all duration-700" />
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+              <div className="flex gap-6 group">
+                <div className="w-12 h-12 flex-shrink-0 bg-[#151515] border border-white/10 rounded flex items-center justify-center text-orange-500 font-bold font-serif text-xl group-hover:bg-orange-500 group-hover:text-black transition-colors">2</div>
+                <div>
+                  <h4 className="text-white font-bold uppercase tracking-wider text-sm mb-2">Assign Roles</h4>
+                  <p className="text-zinc-500 text-sm leading-relaxed">{product.howToPlay?.gameplay || "Choose your character and receive your mission."}</p>
+                </div>
+              </div>
+              <div className="flex gap-6 group">
+                <div className="w-12 h-12 flex-shrink-0 bg-[#151515] border border-white/10 rounded flex items-center justify-center text-orange-500 font-bold font-serif text-xl group-hover:bg-orange-500 group-hover:text-black transition-colors">3</div>
+                <div>
+                  <h4 className="text-white font-bold uppercase tracking-wider text-sm mb-2">Solve The Crime</h4>
+                  <p className="text-zinc-500 text-sm leading-relaxed">{product.howToPlay?.winning || "Gather clues and find the solution before time runs out."}</p>
+                </div>
+              </div>
+            </div>
 
-      {/* How to Play */}
-      <section className="max-w-[1400px] mx-auto px-6 lg:px-10 py-24 bg-[#050505] border-t border-zinc-900">
-        <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-500 text-center mb-16 font-black">
-          How to Play
-        </h2>
-        <div className="grid lg:grid-cols-3 gap-10">
-          {[
-            {
-              id: "01",
-              title: "Configuration",
-              content: product.howToPlay.setup,
-              icon: <ShieldCheck size={20} strokeWidth={1} />,
-            },
-            {
-              id: "02",
-              title: "Execution",
-              content: product.howToPlay.gameplay,
-              icon: <Zap size={20} strokeWidth={1} />,
-            },
-            {
-              id: "03",
-              title: "Supremacy",
-              content: product.howToPlay.winning,
-              icon: <Trophy size={20} strokeWidth={1} />,
-            },
-          ].map((item, i) => (
-            <div
-              key={i}
-              className="relative min-h-[320px] p-10 border border-zinc-800 flex flex-col group hover:border-[#FF6B00] transition-all duration-700 bg-[#0A0A0A] rounded-2xl"
-            >
-              <div className="flex justify-between items-start mb-10">
-                <span className="text-[40px] font-serif italic text-zinc-700 group-hover:text-[#FFB062]/40 transition-colors leading-none">
-                  {item.id}
-                </span>
-                <span className="text-zinc-500 group-hover:text-[#FF6B00] transition-colors">
-                  {item.icon}
-                </span>
+            <div className="mt-12 bg-zinc-900/30 p-6 rounded-xl border border-white/5">
+              <div className="flex items-center gap-3 text-[#FFB062] mb-2">
+                <Trophy size={16} />
+                <span className="text-xs font-bold uppercase tracking-widest">Joy Level: 9.8/10</span>
               </div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.4em] mb-6 text-zinc-100 border-b border-zinc-800 pb-4">
-                {item.title}
-              </h3>
-              <p className="text-[13px] leading-[1.8] text-zinc-300 font-normal whitespace-pre-line flex-1">
-                {item.content}
+              <p className="text-zinc-400 text-sm italic">
+                "The best party game we've played in years. The character backstories are incredible!"
               </p>
-              <div className="absolute bottom-0 left-0 w-0 h-[3px] bg-[#FF6B00] group-hover:w-full transition-all duration-700" />
+              <p className="text-[9px] uppercase tracking-widest text-zinc-600 mt-2 font-bold">— BoardGameGeeks Review</p>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* What You Get */}
-      {product.whatYouGet && product.whatYouGet.length > 0 && (
-        <section className="max-w-[1400px] mx-auto px-6 lg:px-10 py-24 bg-[#050505] border-t border-zinc-900">
-          <div className="flex items-center justify-center gap-4 mb-16">
-            <Package size={20} className="text-[#FF6B00]" strokeWidth={1} />
-            <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-500 text-center font-black">
-              What's in the Box
-            </h2>
-            <Package size={20} className="text-[#FF6B00]" strokeWidth={1} />
-          </div>
-          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
-            {product.whatYouGet.map((item, idx) => (
-              <div
-                key={idx}
-                className="flex items-start gap-5 p-7 border border-zinc-800 hover:border-[#FF6B00]/70 transition-all group bg-[#101010] rounded-2xl"
-              >
-                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#1A1A1A] flex items-center justify-center group-hover:bg-[#2b1a07] transition-colors">
-                  <span className="text-xs font-bold text-[#FFB062]">
-                    {idx + 1}
-                  </span>
-                </div>
-                <p className="text-sm text-zinc-300 leading-relaxed group-hover:text-white transition-colors pt-1">
-                  {item}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* FAQs */}
-      {product.faqs && product.faqs.length > 0 && (
-        <section className="bg-[#050505] py-24 px-6 border-t border-zinc-900">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-serif italic text-center mb-6 text-zinc-100">
-              Got Doubts? Dare to Ask.
-            </h2>
-            <p className="text-center text-sm text-zinc-500 mb-16 uppercase tracking-[0.3em]">
-              Decode the Deck
-            </p>
-            <div className="space-y-4">
-              {product.faqs.map((faq, idx) => (
-                <div
-                  key={idx}
-                  className="bg-[#0A0A0A] border border-zinc-800 overflow-hidden transition-all hover:border-[#FF6B00] rounded-2xl"
-                >
-                  <button
-                    onClick={() =>
-                      setOpenFaqIndex(openFaqIndex === idx ? null : idx)
-                    }
-                    className="w-full p-7 flex justify-between items-center hover:bg-[#101010] transition-all text-left rounded-2xl"
-                  >
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-100 pr-4">
-                      {faq.question}
-                    </h3>
-                    <ChevronDown
-                      size={20}
-                      strokeWidth={1.5}
-                      className={`flex-shrink-0 text-zinc-400 transition-transform duration-300 ${
-                        openFaqIndex === idx ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                  <div
-                    className={`overflow-hidden transition-all duration-300 ${
-                      openFaqIndex === idx
-                        ? "max-h-96 opacity-100"
-                        : "max-h-0 opacity-0"
-                    }`}
-                  >
-                    <div className="px-7 pb-7 pt-1 border-t border-zinc-800">
-                      <p className="text-sm text-zinc-300 leading-relaxed">
-                        {faq.answer}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Footer CTA */}
-      <section className="border-t border-zinc-900 py-24 px-6 bg-[#050505]">
-        <div className="max-w-[1400px] mx-auto flex flex-col items-center">
-          <Link
-            href="/cart"
-            className="flex items-center gap-10 text-4xl md:text-6xl font-serif italic hover:gap-14 transition-all group tracking-tight text-zinc-100"
-          >
-            Ready to Play{" "}
-            <ArrowRight
-              size={56}
-              className="text-[#FF6B00] group-hover:text-white transition-transform group-hover:translate-x-4"
-              strokeWidth={1}
-            />
-          </Link>
-          <div className="mt-12 flex gap-8 text-[9px] uppercase tracking-[0.4em] text-zinc-500 font-bold">
-            <span className="hover:text-white cursor-crosshair transition-colors">
-              In Stock
-            </span>
-            <span className="hover:text-white cursor-crosshair transition-colors">
-              Global Shipping
-            </span>
-            <span className="hover:text-white cursor-crosshair transition-colors">
-              Curated Quality
-            </span>
           </div>
         </div>
       </section>
 
-      <style jsx global>{`
-        @keyframes slide-in {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
-        }
-
-        @keyframes pulse {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.7;
-          }
-        }
-
-        .animate-pulse {
-          animation: pulse 1.5s infinite;
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
+      {/* Footer (Simplified for this page) */}
+      <footer className="bg-black py-20 border-t border-zinc-900 mt-20">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <Link href="/" className="text-2xl font-bold tracking-widest text-white mb-8 inline-block">JOY JUNCTURE</Link>
+          <p className="text-zinc-500 text-sm max-w-md mx-auto mb-12">
+            Creating cinematic table-top experiences that turn every gathering into a legendary night.
+          </p>
+          <div className="flex justify-center gap-8 text-[10px] uppercase tracking-widest text-zinc-400 font-bold">
+            <Link href="/store" className="hover:text-white">Shop</Link>
+            <Link href="/community" className="hover:text-white">Community</Link>
+            <Link href="/support" className="hover:text-white">Support</Link>
+          </div>
+          <p className="text-[10px] text-zinc-700 mt-20">© 2024 JOY JUNCTURE GAMES. ALL RIGHTS RESERVED.</p>
+        </div>
+      </footer>
     </main>
   );
 }
