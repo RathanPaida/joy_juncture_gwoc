@@ -315,6 +315,7 @@
 
 import EventsDeck from '@/app/components/EventsDeck';
 import { useEventData } from '@/hooks/useEventData';
+import HeroScroll from '@/components/HeroScroll';
 import './events.css'; // Keep your original CSS for variables
 
 export default function EventsLandingPage() {
@@ -334,6 +335,7 @@ export default function EventsLandingPage() {
          <h1 className="text-white font-black text-2xl tracking-tighter uppercase">Joy Juncture</h1>
       </header>
       
+      <HeroScroll />
       <EventsDeck 
         registeredCount={registeredEvents.length}
         upcomingCount={upcomingEvents.length}

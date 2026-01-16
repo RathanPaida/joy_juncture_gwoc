@@ -8,10 +8,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        midnight: "#050505",
+        magma: "#FF5500",
         orange: {
-          500: "#ff8c00", // JoyJuncture orange
-          600: "#e67e00",
-          700: "#cc7000",
+          500: "#FF5500", // JoyJuncture orange
+          600: "#e64d00",
+          700: "#cc4400",
         },
         gray: {
           900: "#0f0f0f",
@@ -20,8 +22,8 @@ module.exports = {
         },
       },
       backgroundImage: {
-        "gradient-dark": "linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)",
-        "gradient-orange": "linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%)",
+        "gradient-dark": "linear-gradient(135deg, #050505 0%, #1a1a1a 100%)",
+        "gradient-orange": "linear-gradient(135deg, #FF5500 0%, #ff6b00 100%)",
       },
       animation: {
         float: "float 3s ease-in-out infinite",
@@ -34,8 +36,8 @@ module.exports = {
           "50%": { transform: "translateY(-10px)" },
         },
         glow: {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(255, 140, 0, 0.3)" },
-          "50%": { boxShadow: "0 0 40px rgba(255, 140, 0, 0.6)" },
+          "0%, 100%": { boxShadow: "0 0 20px rgba(255, 85, 0, 0.3)" },
+          "50%": { boxShadow: "0 0 40px rgba(255, 85, 0, 0.6)" },
         },
       },
     },
