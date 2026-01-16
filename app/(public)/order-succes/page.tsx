@@ -1,4 +1,4 @@
-// app/order-success/page.tsx - WITH AUTO CART CLEAR
+// app/order-success/page.tsx - UPDATED (Cart cleared by backend)
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
@@ -11,7 +11,6 @@ import {
   Sparkles,
   Gift,
 } from "lucide-react";
-import { auth } from "@/lib/firebase";
 import "./success.css";
 import confetti from "canvas-confetti";
 
@@ -23,44 +22,13 @@ function OrderSuccessContent() {
   const joyPoints = searchParams.get("points") || "0";
 
   const [celebrating, setCelebrating] = useState(true);
-  const [cartCleared, setCartCleared] = useState(false);
 
-  // Clear cart when page loads
   useEffect(() => {
-    const clearCart = async () => {
-      try {
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-          console.log("⚠️ No user found, skipping cart clear");
-          return;
-        }
-
-        const token = await currentUser.getIdToken();
-
-        console.log("🧹 Auto-clearing cart on success page...");
-        const response = await fetch("/api/cart/clear", {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.ok) {
-          console.log("✅ Cart cleared successfully");
-          setCartCleared(true);
-        } else {
-          const error = await response.json();
-          console.error("❌ Failed to clear cart:", error);
-        }
-      } catch (error) {
-        console.error("❌ Error clearing cart:", error);
-      }
-    };
-
-    // Clear cart immediately when page loads
-    clearCart();
-  }, []); // Run only once on mount
+    // Cart is already cleared by the backend after payment verification
+    // No need to clear it again here
+    console.log("✅ Order success page loaded");
+    console.log("✅ Cart already cleared by backend during payment verification");
+  }, []);
 
   useEffect(() => {
     // Trigger confetti celebration
@@ -171,13 +139,6 @@ function OrderSuccessContent() {
             address.
           </p>
         </div>
-
-        {/* Show cart clear status for debugging */}
-        {process.env.NODE_ENV === "development" && (
-          <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "1rem" }}>
-            {cartCleared ? "✅ Cart cleared" : "⏳ Clearing cart..."}
-          </div>
-        )}
 
         <div className="success-actions">
           <button

@@ -1,4 +1,6 @@
-// models/Order.ts - FLEXIBLE VERSION COMPATIBLE WITH YOUR SCHEMA
+// ================================================================
+// FILE 1: models/Order.ts
+// ================================================================
 import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema({
@@ -63,14 +65,21 @@ const shippingAddressSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema(
   {
-    // Firebase User ID (REQUIRED by your schema)
+    // MongoDB User ID (required)
+    userId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    // Firebase User ID (REQUIRED)
     firebaseUid: {
       type: String,
       required: true,
       index: true,
     },
 
-    // Primary product info (REQUIRED by your schema - using first item)
+    // Primary product info (REQUIRED)
     productId: {
       type: String,
       required: true,
@@ -79,18 +88,28 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    productImage: {
+      type: String,
+      required: false,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 1,
+    },
     price: {
       type: Number,
       required: true,
     },
 
-    // Total amount (REQUIRED by your schema)
+    // Total amount (REQUIRED)
     totalAmount: {
       type: Number,
       required: true,
     },
 
-    // All items in the order (optional array for multi-product orders)
+    // All items in the order
     items: [orderItemSchema],
 
     // Shipping information
@@ -151,6 +170,10 @@ const orderSchema = new mongoose.Schema(
     },
 
     // Dates
+    purchaseDate: {
+      type: Date,
+      default: Date.now,
+    },
     paidAt: {
       type: Date,
       default: null,
@@ -171,7 +194,8 @@ const orderSchema = new mongoose.Schema(
   },
 );
 
-// Indexes for faster queries
+// Indexes
+orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ firebaseUid: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ razorpayOrderId: 1 });

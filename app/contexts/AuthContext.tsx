@@ -79,53 +79,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return sessionToken || null;
   };
 
-  // Check and claim daily login bonus
-  const checkDailyLogin = async (token: string) => {
-    try {
-      const response = await fetch("/api/wallet/daily-login", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Show notification if new login bonus was claimed
-        if (data.newLogin && data.pointsEarned) {
-          console.log(
-            `🎉 Daily login bonus: +${data.pointsEarned} points! (${data.currentStreak} day streak)`,
-          );
-
-          // Optional: Show browser notification
-          if (typeof window !== "undefined" && "Notification" in window) {
-            if (Notification.permission === "granted") {
-              new Notification("Daily Login Bonus! 🎉", {
-                body: `You earned ${data.pointsEarned} points! Current streak: ${data.currentStreak} days`,
-                icon: "/logo.png",
-              });
-            }
-          }
-
-          // Optional: Show alert
-          setTimeout(() => {
-            if (typeof window !== "undefined") {
-              alert(
-                `🎉 Daily Login Bonus!\n\nYou earned ${data.pointsEarned} points!\nCurrent streak: ${data.currentStreak} days\nTotal points: ${data.currentPoints}`,
-              );
-            }
-          }, 1000);
-        }
-
-        return data;
-      }
-    } catch (error) {
-      console.error("Error checking daily login:", error);
-    }
-    return null;
-  };
+  // REMOVED: Automatic daily login check
+  // Daily rewards should only be claimed manually by the user
+  // This prevents automatic claiming on every page refresh
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
@@ -159,8 +115,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               ...userData,
             });
 
-            // Check and claim daily login bonus
-            await checkDailyLogin(token);
+            // REMOVED: Automatic daily login check
+            // Users must manually claim their daily reward
           } else {
             setUser({
               uid: fbUser.uid,
@@ -220,7 +176,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   ) => {
     if (isFirebase) {
       await firebaseSignIn(auth, email, password);
-      // Daily login will be checked automatically in onAuthStateChanged
+      // User can manually claim daily reward from wallet page
     } else {
       // Local login
       const response = await fetch("/api/auth/login", {
@@ -259,7 +215,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (isFirebase) {
       const userCredential = await firebaseRegister(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
-      // Daily login will be checked automatically in onAuthStateChanged
+      // User can manually claim daily reward from wallet page
     } else {
       // Local registration
       const response = await fetch("/api/auth/register", {
@@ -280,7 +236,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithGoogle = async (): Promise<FirebaseUser | null> => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      // Daily login will be checked automatically in onAuthStateChanged
+      // User can manually claim daily reward from wallet page
       return result.user;
     } catch (error) {
       console.error("Google login failed:", error);

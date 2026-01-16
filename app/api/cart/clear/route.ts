@@ -1,103 +1,143 @@
-// app/api/cart/clear/route.ts
+// app/api/cart/clear/route.ts - MATCHES YOUR CART API STRUCTURE
 import { NextRequest, NextResponse } from "next/server";
-import connectDb from "@/lib/mongodb";
-import mongoose from "mongoose";
+import { MongoClient } from "mongodb";
 import { verifyIdToken } from "@/lib/firebase-admin";
 
-export async function DELETE(request: NextRequest) {
+const uri = process.env.MONGODB_URI!;
+
+async function getDbClient() {
+  const client = new MongoClient(uri);
+  await client.connect();
+  return client;
+}
+
+// Helper function to verify auth token
+async function verifyAuth(request: NextRequest) {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authHeader.split("Bearer ")[1];
+
   try {
-    await connectDb();
-    console.log("🧹 Cart clear request received");
+    const decodedToken = await verifyIdToken(token);
+    return decodedToken.uid;
+  } catch (error) {
+    console.error("Auth error:", error);
+    return null;
+  }
+}
 
-    // ✅ Ensure DB is available (FIX for TS error)
-    const db = mongoose.connection.db;
-    if (!db) {
-      throw new Error("Database not initialized");
-    }
+export async function DELETE(request: NextRequest) {
+  console.log("\n========================================");
+  console.log("🧹 CART CLEAR API - DELETE METHOD");
+  console.log("========================================");
+  
+  try {
+    const userId = await verifyAuth(request);
+    console.log("👤 User ID:", userId);
 
-    // Verify Firebase token
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!userId) {
+      console.log("❌ Unauthorized - no valid user ID");
       return NextResponse.json(
-        { error: "Unauthorized - No token provided" },
-        { status: 401 },
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    const token = authHeader.split("Bearer ")[1];
-    let decodedToken;
+    const client = await getDbClient();
+    console.log("✅ Database client connected");
 
     try {
-      decodedToken = await verifyIdToken(token);
-    } catch (error: any) {
-      return NextResponse.json(
-        { error: error.message || "Invalid token" },
-        { status: 401 },
-      );
-    }
-
-    const firebaseUid = decodedToken.uid;
-    console.log("✅ Clearing cart for user:", firebaseUid);
-
-    // Get all cart-related collections
-    const collections = await db.listCollections().toArray();
-    const cartCollections = collections.filter((col) =>
-      col.name.toLowerCase().includes("cart"),
-    );
-
-    console.log(
-      "📦 Found cart collections:",
-      cartCollections.map((c) => c.name),
-    );
-
-    let clearedCount = 0;
-
-    // Field name variations
-    const fieldVariations = [
-      "userId",
-      "firebaseUid",
-      "uid",
-      "user_id",
-      "firebase_uid",
-    ];
-
-    for (const collection of cartCollections) {
-      const CartCollection = db.collection(collection.name);
-
-      for (const field of fieldVariations) {
-        try {
-          // Clear items array
-          const updateResult = await CartCollection.updateMany(
-            { [field]: firebaseUid },
-            { $set: { items: [] } },
-          );
-
-          clearedCount += updateResult.modifiedCount || 0;
-
-          // Delete carts completely
-          const deleteResult = await CartCollection.deleteMany({
-            [field]: firebaseUid,
-          });
-
-          clearedCount += deleteResult.deletedCount || 0;
-        } catch {
-          // Ignore mismatched schemas / fields
-        }
+      const db = client.db("joyjuncture");
+      const cartCollection = db.collection("cart");
+      
+      console.log("🔍 Checking for cart items...");
+      
+      // Check if cart items exist
+      const existingItems = await cartCollection.find({ userId }).toArray();
+      console.log("📦 Cart items found:", existingItems.length);
+      
+      if (existingItems.length === 0) {
+        console.log("⚠️ No cart items to delete");
+        return NextResponse.json({
+          success: true,
+          message: "Cart is already empty",
+          cleared: false,
+          cartFound: false,
+        });
       }
+      
+      // Log items to be deleted
+      console.log("📦 Items to delete:");
+      existingItems.forEach((item: any, index: number) => {
+        console.log(`   ${index + 1}. ${item.productName} (${item.quantity}x) - ₹${item.price}`);
+      });
+
+      // Delete all cart items for this user
+      console.log("🗑️ Deleting cart items...");
+      const deleteResult = await cartCollection.deleteMany({ userId });
+      
+      console.log("🗑️ Delete result:");
+      console.log("   - Acknowledged:", deleteResult.acknowledged);
+      console.log("   - Deleted count:", deleteResult.deletedCount);
+      
+      // Verify deletion
+      console.log("🔍 Verifying deletion...");
+      const verifyItems = await cartCollection.find({ userId }).toArray();
+      console.log("✅ Remaining items:", verifyItems.length);
+      
+      if (verifyItems.length > 0) {
+        console.error("❌ CART ITEMS STILL EXIST!");
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Cart deletion failed - items still exist",
+            deletedCount: deleteResult.deletedCount
+          },
+          { status: 500 }
+        );
+      }
+      
+      console.log("🎉 CART CLEARED SUCCESSFULLY!");
+      console.log("========================================\n");
+
+      return NextResponse.json({
+        success: true,
+        message: "Cart cleared successfully",
+        cleared: true,
+        cartFound: true,
+        itemsCleared: existingItems.length,
+        deletedCount: deleteResult.deletedCount,
+      });
+      
+    } finally {
+      await client.close();
+      console.log("✅ Database connection closed");
     }
-
-    console.log(`✅ Total carts cleared: ${clearedCount}`);
-
-    return NextResponse.json({
-      success: true,
-      message: "Cart cleared successfully",
-      clearedCount,
-    });
   } catch (error: any) {
-    console.error("❌ Error clearing cart:", error);
+    console.error("\n========================================");
+    console.error("❌ CRITICAL ERROR IN CART CLEAR");
+    console.error("========================================");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("========================================\n");
+    
     return NextResponse.json(
-      { error: error.message || "Failed to clear cart" },
-      { status: 500 },
+      {
+        success: false,
+        error: `Server error: ${error.message}`,
+        errorType: error.name
+      },
+      { status: 500 }
     );
   }
+}
+
+// Also support POST method
+export async function POST(request: NextRequest) {
+  console.log("⚠️ POST method called, redirecting to DELETE logic");
+  return DELETE(request);
 }
