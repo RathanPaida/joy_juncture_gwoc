@@ -236,3 +236,101 @@
     justify-content: center;
   }
 }
+/* Add these styles to your existing blog-create.css */
+
+/* Image Upload Section */
+.image-upload-section {
+  margin-bottom: 2rem;
+}
+
+.image-upload-area {
+  border: 2px dashed #e0e0e0;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fafafa;
+}
+
+.image-upload-area:hover {
+  border-color: #ff6b35;
+  background: #fff5f0;
+}
+
+.upload-icon {
+  color: #999;
+  margin-bottom: 1rem;
+}
+
+.upload-text {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.upload-hint {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.image-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.image-preview-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.preview-image {
+  object-fit: cover;
+}
+
+.btn-remove-image {
+  align-self: flex-start;
+  padding: 0.75rem 1.5rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-remove-image:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .image-preview-container {
+    height: 200px;
+  }
+
+  .image-upload-area {
+    padding: 2rem 1rem;
+  }
+
+  .upload-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .btn-remove-image {
+    width: 100%;
+    justify-content: center;
+  }
+}

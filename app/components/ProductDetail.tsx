@@ -60,11 +60,12 @@ interface Product {
 export default function ProductDetail({ product }: { product: Product }) {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+
   const [selectedImage, setSelectedImage] = useState(product.media.thumbnail);
   const [mainImageError, setMainImageError] = useState(false);
-  const [thumbnailErrors, setThumbnailErrors] = useState<
-    Record<string, boolean>
-  >({});
+  const [thumbnailErrors, setThumbnailErrors] = useState<Record<string, boolean>>(
+    {}
+  );
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isAddedToCart, setIsAddedToCart] = useState(false);
@@ -79,6 +80,7 @@ export default function ProductDetail({ product }: { product: Product }) {
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [tempQuantity, setTempQuantity] = useState("1");
   const maxStock = product.stock || 0;
+
   const handleThumbnailError = (img: string) => {
     setThumbnailErrors((prev) => ({ ...prev, [img]: true }));
   };
@@ -96,24 +98,13 @@ export default function ProductDetail({ product }: { product: Product }) {
 
   // Handle quantity change
   const handleQuantityChange = (delta: number) => {
-    console.log("handleQuantityChange called with delta:", delta);
-    console.log("Current quantity:", quantity);
-    console.log("Max stock:", maxStock);
-
     const newQuantity = quantity + delta;
-    console.log("New quantity would be:", newQuantity);
-
-    if (newQuantity) {
-      setQuantity(newQuantity);
-      console.log("Quantity updated to:", newQuantity);
-    } else {
-      console.log("Quantity change blocked - out of range");
-    }
+    if (!newQuantity) return;
+    setQuantity(newQuantity);
   };
 
   // Handle direct quantity input
   const handleQuantityInput = (value: string) => {
-    // Allow empty string or numbers only
     if (value === "" || /^\d+$/.test(value)) {
       setTempQuantity(value);
     }
@@ -151,7 +142,6 @@ export default function ProductDetail({ product }: { product: Product }) {
       return;
     }
 
-    // Validate stock availability BEFORE making API call
     if (quantity > maxStock) {
       setCartError(`Only ${maxStock} items available in stock`);
       setTimeout(() => setCartError(null), 5000);
@@ -196,9 +186,7 @@ export default function ProductDetail({ product }: { product: Product }) {
 
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(
-          `Server error: ${response.status} ${response.statusText}`,
-        );
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -228,9 +216,7 @@ export default function ProductDetail({ product }: { product: Product }) {
           }
         }
 
-        setCartError(
-          data.error || `Failed to add to cart (${response.status})`,
-        );
+        setCartError(data.error || `Failed to add to cart (${response.status})`);
         setTimeout(() => setCartError(null), 5000);
       }
     } catch (error: any) {
@@ -271,9 +257,7 @@ export default function ProductDetail({ product }: { product: Product }) {
   };
 
   useEffect(() => {
-    if (user) {
-      updateCartCount();
-    }
+    if (user) updateCartCount();
   }, [user]);
 
   const handleLoginRedirect = () => {
@@ -285,31 +269,31 @@ export default function ProductDetail({ product }: { product: Product }) {
     setShowLoginPrompt(false);
   };
 
-  // Success Message Component
+  // Success Message Component (dark theme)
   const SuccessMessage = () => (
     <div className="fixed top-24 right-8 z-50 animate-slide-in">
-      <div className="bg-green-50 border border-green-200 rounded-xl p-4 shadow-lg max-w-sm">
+      <div className="bg-[#060606] border border-emerald-500/40 rounded-xl p-4 shadow-[0_18px_45px_rgba(0,0,0,0.85)] max-w-sm">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-            <Check size={16} className="text-green-600" />
+          <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+            <Check size={16} className="text-emerald-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-green-800">
+            <p className="text-sm font-medium text-emerald-100">
               Added to cart successfully!
             </p>
-            <p className="text-xs text-green-600 mt-1">
+            <p className="text-xs text-emerald-300 mt-1">
               {quantity} × "{product.name}" added to your collection
             </p>
             <div className="flex gap-3 mt-3">
               <Link
                 href="/cart"
-                className="text-xs font-bold text-green-700 hover:text-green-900 underline"
+                className="text-xs font-bold text-emerald-300 hover:text-emerald-100 underline"
               >
                 View Cart
               </Link>
               <button
                 onClick={() => setShowSuccessMessage(false)}
-                className="text-xs text-green-600 hover:text-green-800"
+                className="text-xs text-emerald-300 hover:text-emerald-100"
               >
                 Continue Shopping
               </button>
@@ -317,7 +301,7 @@ export default function ProductDetail({ product }: { product: Product }) {
           </div>
           <button
             onClick={() => setShowSuccessMessage(false)}
-            className="text-green-400 hover:text-green-600 transition-colors"
+            className="text-emerald-400 hover:text-emerald-200 transition-colors"
           >
             <X size={16} />
           </button>
@@ -326,23 +310,23 @@ export default function ProductDetail({ product }: { product: Product }) {
     </div>
   );
 
-  // Error Message Component
+  // Error Message Component (dark theme)
   const ErrorMessage = () => (
     <div className="fixed top-24 right-8 z-50 animate-slide-in">
-      <div className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-lg max-w-sm">
+      <div className="bg-[#060606] border border-red-500/40 rounded-xl p-4 shadow-[0_18px_45px_rgba(0,0,0,0.85)] max-w-sm">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-            <X size={16} className="text-red-600" />
+          <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+            <X size={16} className="text-red-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-red-800">
+            <p className="text-sm font-medium text-red-100">
               Unable to add to cart
             </p>
-            <p className="text-xs text-red-600 mt-1">{cartError}</p>
+            <p className="text-xs text-red-300 mt-1">{cartError}</p>
             {cartError?.includes("login") && (
               <button
                 onClick={handleLoginRedirect}
-                className="mt-2 text-xs font-bold text-red-700 hover:text-red-900 underline"
+                className="mt-2 text-xs font-bold text-red-300 hover:text-red-100 underline"
               >
                 Login & Retry
               </button>
@@ -350,7 +334,7 @@ export default function ProductDetail({ product }: { product: Product }) {
             <div className="mt-3">
               <button
                 onClick={() => setCartError(null)}
-                className="text-xs font-bold text-red-700 hover:text-red-900 underline"
+                className="text-xs font-bold text-red-300 hover:text-red-100 underline"
               >
                 Dismiss
               </button>
@@ -358,7 +342,7 @@ export default function ProductDetail({ product }: { product: Product }) {
           </div>
           <button
             onClick={() => setCartError(null)}
-            className="text-red-400 hover:text-red-600 transition-colors"
+            className="text-red-400 hover:text-red-200 transition-colors"
           >
             <X size={16} />
           </button>
@@ -367,34 +351,36 @@ export default function ProductDetail({ product }: { product: Product }) {
     </div>
   );
 
-  // Login Prompt Modal Component
+  // Login Prompt Modal Component (dark shell)
   const LoginPromptModal = () => (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full border border-zinc-100 shadow-2xl">
+      <div className="bg-[#070707] rounded-2xl p-8 max-w-md w-full border border-zinc-800 shadow-[0_24px_70px_rgba(0,0,0,0.95)]">
         <div className="flex justify-between items-start mb-6">
-          <h3 className="text-2xl font-serif italic">Sign in to continue</h3>
+          <h3 className="text-2xl font-serif italic text-white">
+            Sign in to continue
+          </h3>
           <button
             onClick={() => setShowLoginPrompt(false)}
-            className="text-zinc-400 hover:text-black transition-colors p-1"
+            className="text-zinc-500 hover:text-white transition-colors p-1"
           >
             <X size={20} />
           </button>
         </div>
 
         <div className="space-y-6">
-          <p className="text-zinc-600 text-sm leading-relaxed">
+          <p className="text-zinc-300 text-sm leading-relaxed">
             You need to be signed in to add items to your collection. Sign in or
             create an account to continue shopping and earn JJ Points.
           </p>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="bg-[#1b1207] border border-[#FF6B00]/30 rounded-xl p-4">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-amber-600 text-xs font-bold">i</span>
+              <div className="w-6 h-6 rounded-full bg-[#FF6B00]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-[#FF6B00] text-xs font-bold">i</span>
               </div>
-              <p className="text-xs text-amber-800">
+              <p className="text-xs text-[#FFD7A8]">
                 Earn{" "}
-                <span className="font-bold">
+                <span className="font-bold text-[#FFB062]">
                   +{(product.points?.purchase || 0) * quantity} JJ Points
                 </span>{" "}
                 with this purchase!
@@ -406,7 +392,7 @@ export default function ProductDetail({ product }: { product: Product }) {
         <div className="flex flex-col gap-3 mt-8">
           <button
             onClick={handleLoginRedirect}
-            className="w-full bg-black text-white h-14 text-sm font-bold uppercase tracking-wider hover:bg-zinc-900 transition-all flex items-center justify-center gap-3 rounded-xl active:scale-[0.99]"
+            className="w-full bg-[#FF6B00] text-black h-14 text-sm font-bold uppercase tracking-wider hover:bg-white transition-all flex items-center justify-center gap-3 rounded-xl active:scale-[0.99]"
           >
             <LogIn size={16} /> Sign In to Continue
           </button>
@@ -414,26 +400,26 @@ export default function ProductDetail({ product }: { product: Product }) {
           <div className="flex gap-3">
             <button
               onClick={handleContinueShopping}
-              className="flex-1 border border-zinc-200 h-12 text-xs font-bold uppercase tracking-wider hover:bg-zinc-50 transition-all rounded-xl"
+              className="flex-1 border border-zinc-700 h-12 text-xs font-bold uppercase tracking-wider hover:bg-[#101010] text-zinc-300 hover:text-white transition-all rounded-xl"
             >
               Continue Browsing
             </button>
             <Link
               href="/signup"
-              className="flex-1 border border-zinc-800 h-12 text-xs font-bold uppercase tracking-wider hover:bg-zinc-800 hover:text-white transition-all rounded-xl flex items-center justify-center"
+              className="flex-1 border border-[#FF6B00] h-12 text-xs font-bold uppercase tracking-wider hover:bg-[#FF6B00] hover:text-black transition-all rounded-xl flex items-center justify-center text-[#FFB062]"
             >
               Create Account
             </Link>
           </div>
         </div>
 
-        <p className="text-xs text-zinc-400 mt-8 text-center pt-6 border-t border-zinc-100">
+        <p className="text-xs text-zinc-500 mt-8 text-center pt-6 border-t border-zinc-800">
           By signing in, you agree to our{" "}
-          <Link href="/terms" className="text-black underline">
+          <Link href="/terms" className="text-zinc-300 underline">
             Terms
           </Link>{" "}
           and{" "}
-          <Link href="/privacy" className="text-black underline">
+          <Link href="/privacy" className="text-zinc-300 underline">
             Privacy Policy
           </Link>
         </p>
@@ -449,44 +435,40 @@ export default function ProductDetail({ product }: { product: Product }) {
   };
 
   const getButtonIcon = () => {
-    if (authLoading)
+    if (authLoading || isAddingToCart)
       return (
-        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-      );
-    if (isAddingToCart)
-      return (
-        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin bg-transparent" />
       );
     if (isAddedToCart) return <Check size={14} />;
     return <ShoppingCart size={14} />;
   };
 
   return (
-    <main className="min-h-screen bg-white text-[#1a1a1a] selection:bg-purple-100 font-sans relative">
+    <main className="min-h-screen bg-[#050505] text-white font-sans relative">
       {showSuccessMessage && <SuccessMessage />}
       {cartError && <ErrorMessage />}
       {showLoginPrompt && <LoginPromptModal />}
 
-      {/* The Ghost Header */}
-      <nav className="border-b border-zinc-100 py-6 px-8 lg:px-16 sticky top-0 bg-white/90 backdrop-blur-sm z-40">
-        <div className="max-w-screen-2xl mx-auto flex justify-between items-center">
-          <div className="flex gap-4 text-[9px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
-            <Link href="/" className="hover:text-black transition-all">
+      {/* Ghost Header / Breadcrumbs */}
+      <nav className="border-b border-zinc-900 py-6 px-4 lg:px-10 sticky top-0 bg-[#050505]/95 backdrop-blur-sm z-40">
+        <div className="max-w-[1400px] mx-auto flex justify-between items-center">
+          <div className="flex gap-4 text-[9px] uppercase tracking-[0.4em] text-zinc-500 font-bold">
+            <Link href="/" className="hover:text-white transition-all">
               Studio
             </Link>
-            <span className="text-zinc-200">/</span>
-            <Link href="/store" className="hover:text-black transition-all">
+            <span className="text-zinc-600">/</span>
+            <Link href="/store" className="hover:text-white transition-all">
               Archive
             </Link>
-            <span className="text-zinc-200">/</span>
-            <span className="text-black italic font-serif tracking-widest">
+            <span className="text-zinc-600">/</span>
+            <span className="text-white italic font-serif tracking-widest">
               {product.name}
             </span>
           </div>
           <div className="flex items-center gap-6">
             <Link
               href="/cart"
-              className="relative flex items-center gap-2 text-[10px] tracking-[0.3em] font-bold uppercase hover:text-black transition-colors text-zinc-500 group"
+              className="relative flex items-center gap-2 text-[10px] tracking-[0.3em] font-bold uppercase hover:text-white transition-colors text-zinc-400 group"
             >
               <ShoppingBag
                 size={14}
@@ -494,86 +476,110 @@ export default function ProductDetail({ product }: { product: Product }) {
               />
               Cart
               {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-black text-white text-[8px] w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
+                <span className="absolute -top-2 -right-2 bg-[#FF6B00] text-black text-[8px] w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
                   {cartCount}
                 </span>
               )}
             </Link>
-            <div className="text-[10px] tracking-[0.5em] font-black uppercase text-zinc-300">
+            <div className="text-[10px] tracking-[0.5em] font-black uppercase text-zinc-600">
               JJ Games © 2025
             </div>
           </div>
         </div>
       </nav>
 
-      <section className="max-w-screen-2xl mx-auto px-8 lg:px-16 py-12 lg:py-20">
-        <div className="grid gap-16 lg:grid-cols-12 items-start">
-          {/* Editorial Gallery */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="relative aspect-[4/3] overflow-hidden bg-[#F6F6F6] group border border-zinc-50 rounded-xl">
-              <img
-                src={
-                  mainImageError
-                    ? "https://via.placeholder.com/1200x900?text=No+Image"
-                    : selectedImage
-                }
-                alt={product.name}
-                className="w-full h-full object-cover transition-transform duration-[3000ms] ease-out group-hover:scale-105"
-                onError={() => setMainImageError(true)}
-              />
-              <div className="absolute bottom-8 left-8 mix-blend-difference text-white/50 text-[10px] tracking-[0.3em] uppercase">
-                Product Image ref. {product._id.slice(-6)}
-              </div>
-            </div>
+      {/* Above the fold: gallery + details */}
+      <section className="max-w-[1400px] mx-auto px-4 lg:px-10 pt-10 pb-20">
+        <div className="grid gap-14 lg:grid-cols-[1.15fr_0.9fr] items-start">
+          {/* Gallery */}
+          <div className="space-y-6">
+            <div className="relative overflow-hidden rounded-3xl bg-[#111111] border border-zinc-900 shadow-[0_24px_70px_rgba(0,0,0,0.9)]">
+              <div className="relative aspect-[4/5]">
+                <img
+                  src={
+                    mainImageError
+                      ? "https://via.placeholder.com/1200x900?text=No+Image"
+                      : selectedImage
+                  }
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-transform duration-[1600ms] ease-[cubic-bezier(0.25,1,0.5,1)] hover:scale-105 hover:rotate-[0.5deg]"
+                  onError={() => setMainImageError(true)}
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                <div className="pointer-events-none absolute -bottom-16 right-[-30%] h-48 w-48 rounded-full bg-[#FF6B00]/40 blur-3xl opacity-80" />
 
-            <div className="grid grid-cols-4 gap-4">
-              {[product.media.thumbnail, ...product.media.images].map(
-                (img, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => setSelectedImage(img)}
-                    className={`aspect-[4/3] cursor-pointer overflow-hidden transition-all duration-500 border rounded-lg ${selectedImage === img ? "border-black border-2" : "border-transparent opacity-40 hover:opacity-100 hover:border-zinc-300"}`}
-                  >
-                    <img
-                      src={
-                        thumbnailErrors[img]
-                          ? "https://via.placeholder.com/200x150"
-                          : img
-                      }
-                      className="w-full h-full object-cover"
-                      alt=""
-                      onError={() => handleThumbnailError(img)}
-                    />
-                  </div>
-                ),
-              )}
+                <div className="absolute bottom-6 left-6 text-[9px] tracking-[0.35em] uppercase text-zinc-300">
+                  Product ref. {product._id.slice(-6)}
+                </div>
+              </div>
+
+              {/* Thumbnail strip */}
+              <div className="flex gap-3 p-4 border-t border-zinc-900 bg-[#0A0A0A]/90 backdrop-blur-md">
+                {[product.media.thumbnail, ...(product.media.images || [])].map(
+                  (img, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedImage(img)}
+                      className={`relative aspect-square w-16 rounded-2xl overflow-hidden border transition-all ${
+                        selectedImage === img
+                          ? "border-[#FF6B00] opacity-100"
+                          : "border-zinc-800 opacity-50 hover:opacity-100 hover:border-zinc-500"
+                      }`}
+                    >
+                      <img
+                        src={
+                          thumbnailErrors[img]
+                            ? "https://via.placeholder.com/200x200?text=IMG"
+                            : img
+                        }
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={() => handleThumbnailError(img)}
+                      />
+                    </button>
+                  )
+                )}
+              </div>
             </div>
           </div>
 
           {/* Product Details */}
-          <div className="lg:col-span-5 lg:sticky lg:top-32 flex flex-col border-l border-zinc-100 pl-12 min-h-[400px] justify-between">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] uppercase tracking-[0.6em] text-zinc-400 font-black">
-                  {product.category[0]}
-                </span>
-                {product.meta.badges?.[0] && (
-                  <span className="text-[8px] px-3 py-1 bg-black text-white font-bold tracking-[0.2em] uppercase rounded-full">
-                    {product.meta.badges[0].replace(/-/g, " ")}
+          <div className="lg:sticky lg:top-28 flex flex-col min-h-[400px] justify-between border-l border-zinc-900 pl-0 lg:pl-10">
+            <div className="space-y-8">
+              {/* badges row */}
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3 text-[9px] font-bold uppercase tracking-[0.35em]">
+                  <span className="px-3 py-1 rounded-full bg-[#101010] border border-zinc-800 text-zinc-400">
+                    {product.category[0]}
                   </span>
-                )}
+                  <span className="px-3 py-1 rounded-full bg-[#101010] border border-[#FF6B00]/40 text-[#FFB062]">
+                    {product.meta.age}+ Years
+                  </span>
+                  {product.meta.badges?.[0] && (
+                    <span className="px-3 py-1 rounded-full bg-[#FF6B00] text-black tracking-[0.25em]">
+                      {product.meta.badges[0].replace(/-/g, " ")}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[9px] uppercase tracking-[0.35em] text-zinc-500">
+                  {product.meta.difficulty}
+                </span>
               </div>
 
-              <h1 className="text-5xl font-serif italic leading-[1.1] tracking-tighter text-black">
-                {product.name}
-              </h1>
+              {/* title + short description */}
+              <div className="space-y-4">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight tracking-tight">
+                  {product.name}
+                </h1>
+                <p className="text-sm text-zinc-300 leading-relaxed">
+                  {product.shortDescription}
+                </p>
+                <div className="h-px w-24 bg-gradient-to-r from-[#FF6B00] via-[#FF9A4D] to-transparent" />
+              </div>
 
-              <p className="text-sm text-zinc-500 font-normal leading-relaxed border-l-2 border-purple-100 pl-6">
-                {product.shortDescription}
-              </p>
-
-              {/* Specs Matrix */}
-              <div className="grid grid-cols-2 gap-y-6 pt-4">
+              {/* specs matrix */}
+              <div className="grid grid-cols-2 gap-y-5 pt-2">
                 {[
                   { label: "Format", value: product.meta.players },
                   { label: "Tempo", value: product.meta.duration },
@@ -581,201 +587,229 @@ export default function ProductDetail({ product }: { product: Product }) {
                   { label: "Skill", value: product.meta.difficulty },
                 ].map((stat, i) => (
                   <div key={i}>
-                    <p className="text-[8px] uppercase tracking-[0.3em] text-zinc-300 font-bold mb-1">
+                    <p className="text-[8px] uppercase tracking-[0.3em] text-zinc-500 font-bold mb-1">
                       {stat.label}
                     </p>
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-800">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-200">
                       {stat.value}
                     </p>
                   </div>
                 ))}
               </div>
-            </div>
 
-            <div className="space-y-8 pt-10">
-              <div className="flex items-end gap-6">
+              {/* price + points */}
+              <div className="flex items-end gap-6 pt-4">
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-[0.4em] text-zinc-400 mb-1">
+                  <span className="text-[9px] uppercase tracking-[0.35em] text-zinc-500 mb-1">
                     Valuation
                   </span>
-                  <span className="text-4xl font-light tracking-tighter text-black">
+                  <span className="text-3xl md:text-4xl font-black tracking-tight">
                     ₹{(product.price.amount * quantity).toLocaleString("en-IN")}
                   </span>
                   {quantity > 1 && (
-                    <span className="text-xs text-zinc-400 mt-1">
-                      ₹{product.price.amount.toLocaleString("en-IN")} ×{" "}
-                      {quantity}
+                    <span className="text-xs text-zinc-500 mt-1">
+                      ₹{product.price.amount.toLocaleString("en-IN")} × {quantity}
                     </span>
                   )}
                 </div>
                 {product.points?.purchase !== undefined && (
                   <div className="pb-1">
-                    <span className="text-[10px] text-purple-600 font-black tracking-widest uppercase bg-purple-50 px-3 py-1 rounded-full">
+                    <span className="text-[10px] text-[#FFB062] font-black tracking-widest uppercase bg-[#2b1a07] px-3 py-1 rounded-full border border-[#FF6B00]/40">
                       +{product.points.purchase * quantity} JJ Points
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* Quantity Selector */}
-              <div className="quantity-selector-container">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[9px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
-                    Quantity
-                  </span>
-                  {maxStock <= 10 && (
-                    <span className="text-[8px] uppercase tracking-wider text-orange-600 font-bold bg-orange-50 px-2 py-1 rounded">
-                      Only {maxStock} left
+              {/* quantity + CTA */}
+              <div className="space-y-6">
+                {/* Quantity */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] uppercase tracking-[0.35em] text-zinc-500 font-bold">
+                      Quantity
                     </span>
-                  )}
-                </div>
-                <div className="quantity-selector">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleQuantityChange(-1);
-                    }}
-                    disabled={quantity <= 1}
-                    className="quantity-btn minus"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <div
-                    className="quantity-display"
-                    onClick={() => {
-                      setIsEditingQuantity(true);
-                      setTempQuantity(quantity.toString());
-                    }}
-                  >
-                    {isEditingQuantity ? (
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={tempQuantity}
-                        onChange={(e) => handleQuantityInput(e.target.value)}
-                        onBlur={handleQuantityBlur}
-                        onKeyDown={handleQuantityKeyDown}
-                        className="quantity-input"
-                        autoFocus
-                        maxLength={3}
-                      />
-                    ) : (
-                      <span className="quantity-number">{quantity}</span>
+                    {maxStock <= 10 && maxStock > 0 && (
+                      <span className="text-[8px] uppercase tracking-wider text-[#FFB062] font-bold bg-[#2b1a07] px-2 py-1 rounded">
+                        Only {maxStock} left
+                      </span>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleQuantityChange(1);
-                    }}
-                    disabled={quantity >= maxStock}
-                    className="quantity-btn plus"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus size={16} />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 bg-[#0A0A0A] border border-zinc-800 rounded-full px-3 py-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleQuantityChange(-1);
+                        }}
+                        disabled={quantity <= 1}
+                        className="h-7 w-7 rounded-full flex items-center justify-center text-zinc-300 hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <div
+                        className="px-3 cursor-pointer"
+                        onClick={() => {
+                          setIsEditingQuantity(true);
+                          setTempQuantity(quantity.toString());
+                        }}
+                      >
+                        {isEditingQuantity ? (
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={tempQuantity}
+                            onChange={(e) => handleQuantityInput(e.target.value)}
+                            onBlur={handleQuantityBlur}
+                            onKeyDown={handleQuantityKeyDown}
+                            className="w-10 bg-transparent text-center text-sm text-white outline-none"
+                            autoFocus
+                            maxLength={3}
+                          />
+                        ) : (
+                          <span className="text-lg font-semibold">
+                            {quantity}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleQuantityChange(1);
+                        }}
+                        disabled={maxStock > 0 && quantity >= maxStock}
+                        className="h-7 w-7 rounded-full flex items-center justify-center text-zinc-300 hover:bg-zinc-900 disabled:opacity-40 disabled:hover:bg-transparent"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                    {maxStock > 0 && (
+                      <span className="text-[10px] text-zinc-500">
+                        {maxStock} in archive
+                      </span>
+                    )}
+                    {maxStock === 0 && (
+                      <span className="text-[10px] text-red-400">
+                        Currently out of stock
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-3">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={
-                    isAddingToCart ||
-                    isAddedToCart ||
-                    authLoading ||
-                    maxStock === 0
-                  }
-                  className={`group relative w-full h-16 text-[10px] font-bold uppercase tracking-[0.5em] transition-all flex items-center justify-center gap-4 rounded-xl active:scale-[0.98] ${
-                    maxStock === 0
-                      ? "bg-gray-400 text-white cursor-not-allowed hover:bg-gray-400"
-                      : isAddedToCart
-                        ? "bg-green-600 text-white cursor-default hover:bg-green-600"
-                        : isAddingToCart || authLoading
-                          ? "bg-zinc-400 text-white cursor-wait hover:bg-zinc-400"
-                          : "bg-black text-white hover:bg-zinc-900 hover:scale-[1.02]"
-                  }`}
-                >
-                  {getButtonIcon()}
-                  {maxStock === 0 ? "Out of Stock" : getButtonText()}
-                  <div className="absolute top-0 right-0 w-1 h-1 bg-purple-500 group-hover:w-3 transition-all" />
-                </button>
+                {/* Add to cart button */}
+                <div className="space-y-3">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={
+                      isAddingToCart ||
+                      isAddedToCart ||
+                      authLoading ||
+                      maxStock === 0
+                    }
+                    className={`group relative w-full h-14 text-[10px] font-bold uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-4 rounded-full active:scale-[0.98] shadow-[0_18px_35px_rgba(0,0,0,0.9)] ${
+                      maxStock === 0
+                        ? "bg-zinc-700 text-zinc-300 cursor-not-allowed"
+                        : isAddedToCart
+                        ? "bg-emerald-500 text-black cursor-default"
+                        : "bg-[#FF6B00] text-black hover:bg-white"
+                    }`}
+                  >
+                    {getButtonIcon()}
+                    {maxStock === 0 ? "Out of Stock" : getButtonText()}
+                    <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-[#FF6B00]/40 group-hover:ring-2 group-hover:ring-white/30 transition-all" />
+                  </button>
 
-                <div className="flex gap-3">
-                  <button className="flex-1 border border-zinc-200 h-14 flex items-center justify-center gap-3 text-[9px] font-bold uppercase tracking-widest hover:bg-zinc-50 transition-all rounded-xl group">
-                    <Heart
-                      size={14}
-                      className="group-hover:text-red-500 transition-colors"
-                    />{" "}
-                    Wishlist
-                  </button>
-                  <button className="w-14 border border-zinc-200 h-14 flex items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-50 transition-all rounded-xl">
-                    <Share2 size={16} />
-                  </button>
+                  <div className="flex gap-3">
+                    <button className="flex-1 border border-zinc-800 h-11 flex items-center justify-center gap-2 text-[9px] font-bold uppercase tracking-[0.35em] bg-[#101010] text-zinc-300 hover:border-[#FF6B00] hover:text-white transition-all rounded-full group">
+                      <Heart
+                        size={14}
+                        className="text-zinc-400 group-hover:text-[#FF6B00] transition-colors"
+                      />{" "}
+                      Wishlist
+                    </button>
+                    <button className="w-11 border border-zinc-800 h-11 flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#FF6B00] bg-[#101010] transition-all rounded-full">
+                      <Share2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* moods row */}
+            {product.meta.moods?.length > 0 && (
+              <div className="mt-10 flex flex-wrap gap-2 text-[9px] uppercase tracking-[0.3em] text-zinc-500">
+                {product.meta.moods.map((mood) => (
+                  <span
+                    key={mood}
+                    className="px-3 py-1 rounded-full bg-[#0A0A0A] border border-zinc-800"
+                  >
+                    {mood}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* The Narrative Reveal */}
-      <section className="bg-[#0a0a0a] text-white py-32 overflow-hidden">
-        <div className="max-w-3xl mx-auto px-8 relative">
-          <span className="text-[9px] uppercase tracking-[1em] text-zinc-600 block text-center mb-16 font-bold">
+      {/* Narrative */}
+      <section className="bg-[#050505] text-white py-32 overflow-hidden border-t border-zinc-900">
+        <div className="max-w-3xl mx-auto px-6 relative">
+          <span className="text-[9px] uppercase tracking-[1em] text-zinc-600 block text-center mb-14 font-bold">
             The Narrative
           </span>
           <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-serif italic text-center leading-relaxed text-zinc-200 whitespace-pre-line">
+            <h2 className="text-3xl md:text-4xl font-serif italic text-center leading-relaxed text-zinc-100 whitespace-pre-line">
               "{product.story}"
             </h2>
           </div>
-          <div className="absolute -top-10 -left-10 text-[120px] font-serif text-white/5 select-none italic">
+          <div className="absolute -top-10 -left-6 text-[140px] font-serif text-white/5 select-none italic">
             "
           </div>
         </div>
       </section>
 
-      {/* Key Features Section */}
+      {/* Key Features */}
       {product.keyFeatures && product.keyFeatures.length > 0 && (
-        <section className="max-w-screen-2xl mx-auto px-8 lg:px-16 py-32 bg-zinc-50/50">
-          <div className="flex items-center justify-center gap-4 mb-20">
-            <Sparkles size={20} className="text-purple-600" strokeWidth={1} />
-            <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-400 text-center font-black">
+        <section className="max-w-[1400px] mx-auto px-6 lg:px-10 py-24 bg-[#070707] border-t border-zinc-900">
+          <div className="flex items-center justify-center gap-4 mb-16">
+            <Sparkles size={20} className="text-[#FF6B00]" strokeWidth={1} />
+            <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-500 text-center font-black">
               Why You'll Love It
             </h2>
-            <Sparkles size={20} className="text-purple-600" strokeWidth={1} />
+            <Sparkles size={20} className="text-[#FF6B00]" strokeWidth={1} />
           </div>
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {product.keyFeatures.map((feature, idx) => (
               <div
                 key={idx}
-                className="p-10 border border-zinc-200 hover:border-black transition-all group relative bg-white rounded-xl"
+                className="relative p-8 border border-zinc-800 hover:border-[#FF6B00] transition-all group bg-[#101010] rounded-2xl overflow-hidden"
               >
-                <div className="absolute top-6 left-6 text-[40px] font-serif italic text-zinc-100 group-hover:text-purple-50 transition-colors leading-none">
+                <div className="absolute top-6 left-6 text-[40px] font-serif italic text-zinc-800 group-hover:text-[#FFB062]/40 transition-colors leading-none">
                   {String(idx + 1).padStart(2, "0")}
                 </div>
-                <p className="text-sm leading-relaxed text-zinc-600 group-hover:text-black transition-colors mt-16">
+                <p className="text-sm leading-relaxed text-zinc-300 group-hover:text-white transition-colors mt-12">
                   {feature}
                 </p>
-                <div className="absolute bottom-0 left-0 w-0 h-1 bg-purple-600 group-hover:w-full transition-all duration-700" />
+                <div className="absolute bottom-0 left-0 w-0 h-[3px] bg-gradient-to-r from-[#FF6B00] via-[#FF9A4D] to-transparent group-hover:w-full transition-all duration-700" />
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* The Methodology */}
-      <section className="max-w-screen-2xl mx-auto px-8 lg:px-16 py-32">
-        <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-400 text-center mb-20 font-black italic underline underline-offset-[12px] decoration-zinc-100">
+      {/* How to Play */}
+      <section className="max-w-[1400px] mx-auto px-6 lg:px-10 py-24 bg-[#050505] border-t border-zinc-900">
+        <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-500 text-center mb-16 font-black">
           How to Play
         </h2>
-        <div className="grid lg:grid-cols-3 gap-12">
+        <div className="grid lg:grid-cols-3 gap-10">
           {[
             {
               id: "01",
@@ -798,50 +832,50 @@ export default function ProductDetail({ product }: { product: Product }) {
           ].map((item, i) => (
             <div
               key={i}
-              className="relative min-h-[320px] p-10 border border-zinc-100 flex flex-col group hover:border-black transition-all duration-700 bg-zinc-50/30 rounded-xl"
+              className="relative min-h-[320px] p-10 border border-zinc-800 flex flex-col group hover:border-[#FF6B00] transition-all duration-700 bg-[#0A0A0A] rounded-2xl"
             >
               <div className="flex justify-between items-start mb-10">
-                <span className="text-[40px] font-serif italic text-zinc-200 group-hover:text-purple-100 transition-colors leading-none">
+                <span className="text-[40px] font-serif italic text-zinc-700 group-hover:text-[#FFB062]/40 transition-colors leading-none">
                   {item.id}
                 </span>
-                <span className="text-zinc-300 group-hover:text-black transition-colors">
+                <span className="text-zinc-500 group-hover:text-[#FF6B00] transition-colors">
                   {item.icon}
                 </span>
               </div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.4em] mb-6 text-black border-b border-zinc-100 pb-4">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.4em] mb-6 text-zinc-100 border-b border-zinc-800 pb-4">
                 {item.title}
               </h3>
-              <p className="text-[13px] leading-[1.8] text-zinc-600 font-normal whitespace-pre-line flex-1">
+              <p className="text-[13px] leading-[1.8] text-zinc-300 font-normal whitespace-pre-line flex-1">
                 {item.content}
               </p>
-              <div className="absolute bottom-0 left-0 w-0 h-1 bg-black group-hover:w-full transition-all duration-700" />
+              <div className="absolute bottom-0 left-0 w-0 h-[3px] bg-[#FF6B00] group-hover:w-full transition-all duration-700" />
             </div>
           ))}
         </div>
       </section>
 
-      {/* What You Get Section */}
+      {/* What You Get */}
       {product.whatYouGet && product.whatYouGet.length > 0 && (
-        <section className="max-w-screen-2xl mx-auto px-8 lg:px-16 py-32 border-t border-zinc-100">
-          <div className="flex items-center justify-center gap-4 mb-20">
-            <Package size={20} className="text-purple-600" strokeWidth={1} />
-            <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-400 text-center font-black">
+        <section className="max-w-[1400px] mx-auto px-6 lg:px-10 py-24 bg-[#050505] border-t border-zinc-900">
+          <div className="flex items-center justify-center gap-4 mb-16">
+            <Package size={20} className="text-[#FF6B00]" strokeWidth={1} />
+            <h2 className="text-[11px] uppercase tracking-[0.6em] text-zinc-500 text-center font-black">
               What's in the Box
             </h2>
-            <Package size={20} className="text-purple-600" strokeWidth={1} />
+            <Package size={20} className="text-[#FF6B00]" strokeWidth={1} />
           </div>
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
             {product.whatYouGet.map((item, idx) => (
               <div
                 key={idx}
-                className="flex items-start gap-5 p-8 border border-zinc-100 hover:border-zinc-300 transition-all group bg-white rounded-xl"
+                className="flex items-start gap-5 p-7 border border-zinc-800 hover:border-[#FF6B00]/70 transition-all group bg-[#101010] rounded-2xl"
               >
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-                  <span className="text-xs font-bold text-purple-600">
+                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#1A1A1A] flex items-center justify-center group-hover:bg-[#2b1a07] transition-colors">
+                  <span className="text-xs font-bold text-[#FFB062]">
                     {idx + 1}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-600 leading-relaxed group-hover:text-black transition-colors pt-2">
+                <p className="text-sm text-zinc-300 leading-relaxed group-hover:text-white transition-colors pt-1">
                   {item}
                 </p>
               </div>
@@ -850,12 +884,12 @@ export default function ProductDetail({ product }: { product: Product }) {
         </section>
       )}
 
-      {/* FAQs Section */}
+      {/* FAQs */}
       {product.faqs && product.faqs.length > 0 && (
-        <section className="bg-zinc-50 py-32 px-8 border-y border-zinc-100">
+        <section className="bg-[#050505] py-24 px-6 border-t border-zinc-900">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-serif italic text-center mb-6">
-              Got Doubts? Let's Dare You to Ask!
+            <h2 className="text-3xl md:text-4xl font-serif italic text-center mb-6 text-zinc-100">
+              Got Doubts? Dare to Ask.
             </h2>
             <p className="text-center text-sm text-zinc-500 mb-16 uppercase tracking-[0.3em]">
               Decode the Deck
@@ -864,21 +898,23 @@ export default function ProductDetail({ product }: { product: Product }) {
               {product.faqs.map((faq, idx) => (
                 <div
                   key={idx}
-                  className="bg-white border border-zinc-200 overflow-hidden transition-all hover:border-black rounded-xl"
+                  className="bg-[#0A0A0A] border border-zinc-800 overflow-hidden transition-all hover:border-[#FF6B00] rounded-2xl"
                 >
                   <button
                     onClick={() =>
                       setOpenFaqIndex(openFaqIndex === idx ? null : idx)
                     }
-                    className="w-full p-8 flex justify-between items-center hover:bg-zinc-50 transition-all text-left rounded-xl"
+                    className="w-full p-7 flex justify-between items-center hover:bg-[#101010] transition-all text-left rounded-2xl"
                   >
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-black pr-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-100 pr-4">
                       {faq.question}
                     </h3>
                     <ChevronDown
                       size={20}
                       strokeWidth={1.5}
-                      className={`flex-shrink-0 transition-transform duration-300 ${openFaqIndex === idx ? "rotate-180" : ""}`}
+                      className={`flex-shrink-0 text-zinc-400 transition-transform duration-300 ${
+                        openFaqIndex === idx ? "rotate-180" : ""
+                      }`}
                     />
                   </button>
                   <div
@@ -888,8 +924,8 @@ export default function ProductDetail({ product }: { product: Product }) {
                         : "max-h-0 opacity-0"
                     }`}
                   >
-                    <div className="px-8 pb-8 pt-2 border-t border-zinc-100">
-                      <p className="text-sm text-zinc-600 leading-relaxed">
+                    <div className="px-7 pb-7 pt-1 border-t border-zinc-800">
+                      <p className="text-sm text-zinc-300 leading-relaxed">
                         {faq.answer}
                       </p>
                     </div>
@@ -901,156 +937,35 @@ export default function ProductDetail({ product }: { product: Product }) {
         </section>
       )}
 
-      {/* Footer Call to Action */}
-      <section className="border-t border-zinc-100 py-32 px-8 bg-white">
-        <div className="max-w-screen-2xl mx-auto flex flex-col items-center">
+      {/* Footer CTA */}
+      <section className="border-t border-zinc-900 py-24 px-6 bg-[#050505]">
+        <div className="max-w-[1400px] mx-auto flex flex-col items-center">
           <Link
             href="/cart"
-            className="flex items-center gap-10 text-5xl md:text-7xl font-serif italic hover:gap-16 transition-all group tracking-tighter"
+            className="flex items-center gap-10 text-4xl md:text-6xl font-serif italic hover:gap-14 transition-all group tracking-tight text-zinc-100"
           >
             Ready to Play{" "}
             <ArrowRight
-              size={64}
-              className="text-purple-600 group-hover:text-black transition-transform group-hover:translate-x-4"
+              size={56}
+              className="text-[#FF6B00] group-hover:text-white transition-transform group-hover:translate-x-4"
               strokeWidth={1}
             />
           </Link>
-          <div className="mt-16 flex gap-12 text-[9px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
-            <span className="hover:text-black cursor-crosshair transition-colors">
+          <div className="mt-12 flex gap-8 text-[9px] uppercase tracking-[0.4em] text-zinc-500 font-bold">
+            <span className="hover:text-white cursor-crosshair transition-colors">
               In Stock
             </span>
-            <span className="hover:text-black cursor-crosshair transition-colors">
+            <span className="hover:text-white cursor-crosshair transition-colors">
               Global Shipping
             </span>
-            <span className="hover:text-black cursor-crosshair transition-colors">
+            <span className="hover:text-white cursor-crosshair transition-colors">
               Curated Quality
             </span>
           </div>
         </div>
       </section>
 
-      {/* CSS Styles */}
       <style jsx global>{`
-        .quantity-selector-container {
-          padding: 1rem;
-          background: linear-gradient(
-            135deg,
-            rgba(249, 115, 22, 0.05) 0%,
-            rgba(0, 0, 0, 0.02) 100%
-          );
-          border: 1px solid rgba(249, 115, 22, 0.1);
-          border-radius: 12px;
-        }
-
-        .quantity-selector {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          background: white;
-          border: 2px solid #e5e5e5;
-          border-radius: 12px;
-          padding: 0.75rem 1rem;
-          transition: all 0.3s ease;
-        }
-
-        .quantity-selector:hover {
-          border-color: #f97316;
-          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
-        }
-
-        .quantity-btn {
-          width: 40px;
-          height: 40px;
-          border-radius: 8px;
-          background: #000;
-          border: none;
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-          font-weight: bold;
-        }
-
-        .quantity-btn:hover:not(:disabled) {
-          background: #f97316;
-          transform: scale(1.1);
-          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-        }
-
-        .quantity-btn:active:not(:disabled) {
-          transform: scale(0.95);
-        }
-
-        .quantity-btn:disabled {
-          background: #e5e5e5;
-          color: #a1a1aa;
-          cursor: not-allowed;
-          opacity: 0.5;
-        }
-
-        .quantity-btn.minus {
-          background: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
-        }
-
-        .quantity-btn.plus {
-          background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
-          color: #000;
-        }
-
-        .quantity-btn.plus:hover:not(:disabled) {
-          background: linear-gradient(135deg, #fb923c 0%, #fdba74 100%);
-        }
-
-        .quantity-display {
-          flex: 1;
-          text-align: center;
-          padding: 0 1rem;
-          position: relative;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .quantity-display:hover {
-          background: rgba(249, 115, 22, 0.05);
-          border-radius: 8px;
-        }
-
-        .quantity-input {
-          width: 100%;
-          text-align: center;
-          font-size: 1.75rem;
-          font-weight: 700;
-          font-family: "Space Grotesk", monospace;
-          background: linear-gradient(135deg, #000 0%, #f97316 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          letter-spacing: -0.02em;
-          border: none;
-          outline: none;
-          padding: 0.25rem;
-        }
-
-        .quantity-input:focus {
-          background: #f97316;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .quantity-number {
-          font-size: 1.75rem;
-          font-weight: 700;
-          font-family: "Space Grotesk", monospace;
-          background: linear-gradient(135deg, #000 0%, #f97316 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          letter-spacing: -0.02em;
-        }
-
         @keyframes slide-in {
           from {
             transform: translateX(100%);

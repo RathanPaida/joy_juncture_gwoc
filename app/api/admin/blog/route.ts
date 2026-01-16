@@ -4,6 +4,12 @@ import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
 import { Blog } from "@/models/Blog";
 import { User } from "@/models/User";
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
+
+function generateUniqueId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
 async function verifyAdmin(token: string) {
   const decodedToken = await adminAuth.verifyIdToken(token);
@@ -68,7 +74,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new blog
+// POST - Create new blog with image upload
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -93,7 +99,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const blogData = await request.json();
+    // Parse FormData for image upload
+    const formData = await request.formData();
+    const blogDataStr = formData.get('blogData') as string;
+    const imageFile = formData.get('coverImage') as File | null;
+
+    if (!blogDataStr) {
+      return NextResponse.json(
+        { success: false, error: 'Blog data is required' },
+        { status: 400 }
+      );
+    }
+
+    const blogData = JSON.parse(blogDataStr);
+    let coverImageUrl = blogData.coverImage || '';
+
+    // Handle image upload if provided
+    if (imageFile) {
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blogs');
+
+      try {
+        await mkdir(uploadsDir, { recursive: true });
+      } catch (error) {
+        // Directory already exists
+      }
+
+      const bytes = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const ext = imageFile.name.split('.').pop();
+      const filename = `${generateUniqueId()}.${ext}`;
+      const filepath = path.join(uploadsDir, filename);
+
+      await writeFile(filepath, buffer);
+      coverImageUrl = `/uploads/blogs/${filename}`;
+    }
 
     // Generate slug from title
     const slug = blogData.title
@@ -107,6 +146,7 @@ export async function POST(request: NextRequest) {
 
     const blog = await Blog.create({
       ...blogData,
+      coverImage: coverImageUrl,
       slug,
       readTime,
       createdBy: {

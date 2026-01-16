@@ -1,8 +1,9 @@
-// app/admin/wallet/page.tsx - FIXED getIdToken Error
+// app/admin/wallet/page.tsx - COMPLETE FIXED VERSION
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import {
   FaCoins,
@@ -79,46 +80,39 @@ const AdminWalletPage: React.FC = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
 
   // Edit states
-  const [editingCriteria, setEditingCriteria] = useState<PointsCriteria | null>(
-    null,
-  );
+  const [editingCriteria, setEditingCriteria] = useState<PointsCriteria | null>(null);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
-  const [editingAchievement, setEditingAchievement] =
-    useState<Achievement | null>(null);
+  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null);
 
   // Modal states
   const [showCriteriaModal, setShowCriteriaModal] = useState(false);
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [showAchievementModal, setShowAchievementModal] = useState(false);
 
-  // Helper function to get auth token
+  // FIXED: Get auth token directly from Firebase
   const getAuthToken = async () => {
-    if (!user) return null;
-
     try {
-      // Try Firebase getIdToken method
-      if (typeof user.getIdToken === "function") {
-        return await user.getIdToken(true);
+      // Get current user from Firebase directly
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        console.error("❌ No authenticated user");
+        return null;
       }
 
-      // Try accessing token directly (for some auth implementations)
-      if (user.token) {
-        return user.token;
+      console.log("✅ Getting token for user:", currentUser.email);
+
+      // Force refresh token
+      const token = await currentUser.getIdToken(true);
+      
+      if (!token) {
+        console.error("❌ Token is empty");
+        return null;
       }
 
-      // Try accessing accessToken
-      if (user.accessToken) {
-        return user.accessToken;
-      }
-
-      // If user has stsTokenManager (Firebase)
-      if (user.stsTokenManager?.accessToken) {
-        return user.stsTokenManager.accessToken;
-      }
-
-      console.warn("⚠️ Could not get auth token from user object");
-      return null;
-    } catch (error) {
+      console.log("✅ Token obtained, length:", token.length);
+      return token;
+    } catch (error: any) {
       console.error("❌ Error getting auth token:", error);
       return null;
     }
@@ -146,9 +140,7 @@ const AdminWalletPage: React.FC = () => {
 
       if (!token) {
         console.error("❌ No auth token available");
-        alert(
-          "⚠️ Authentication token not available. Please try logging in again.",
-        );
+        alert("⚠️ Authentication token not available. Please try logging in again.");
         router.push("/login?redirect=/admin/wallet");
         return;
       }
@@ -160,9 +152,7 @@ const AdminWalletPage: React.FC = () => {
 
       // Fetch rewards
       try {
-        const rewardsRes = await fetch("/api/admin/wallet/rewards", {
-          headers,
-        });
+        const rewardsRes = await fetch("/api/admin/wallet/rewards", { headers });
         if (rewardsRes.ok) {
           const data = await rewardsRes.json();
           setRewards(data.rewards || []);
@@ -177,9 +167,7 @@ const AdminWalletPage: React.FC = () => {
 
       // Fetch achievements
       try {
-        const achievementsRes = await fetch("/api/admin/wallet/achievements", {
-          headers,
-        });
+        const achievementsRes = await fetch("/api/admin/wallet/achievements", { headers });
         if (achievementsRes.ok) {
           const data = await achievementsRes.json();
           setAchievements(data.achievements || []);
@@ -191,9 +179,7 @@ const AdminWalletPage: React.FC = () => {
 
       // Fetch criteria
       try {
-        const criteriaRes = await fetch("/api/admin/wallet/criteria", {
-          headers,
-        });
+        const criteriaRes = await fetch("/api/admin/wallet/criteria", { headers });
         if (criteriaRes.ok) {
           const data = await criteriaRes.json();
           setPointsCriteria(data.criteria || []);
@@ -258,9 +244,7 @@ const AdminWalletPage: React.FC = () => {
         setEditingReward(null);
         await fetchAllData();
       } else {
-        alert(
-          `❌ Failed to save: ${data.error || data.message || "Unknown error"}`,
-        );
+        alert(`❌ Failed to save: ${data.error || data.message || "Unknown error"}`);
       }
     } catch (error: any) {
       console.error("❌ Error saving reward:", error);
@@ -398,9 +382,7 @@ const AdminWalletPage: React.FC = () => {
         setEditingCriteria(null);
         await fetchAllData();
       } else {
-        alert(
-          `❌ Failed to save: ${data.error || data.message || "Unknown error"}`,
-        );
+        alert(`❌ Failed to save: ${data.error || data.message || "Unknown error"}`);
       }
     } catch (error: any) {
       console.error("❌ Error saving criteria:", error);
@@ -438,10 +420,7 @@ const AdminWalletPage: React.FC = () => {
     return (
       <div className="admin-wallet-page">
         <div className="loading-container">
-          <FaSpinner
-            className="loading-spinner"
-            style={{ animation: "spin 1s linear infinite" }}
-          />
+          <FaSpinner className="loading-spinner" style={{ animation: "spin 1s linear infinite" }} />
           <p>Loading admin panel...</p>
         </div>
       </div>

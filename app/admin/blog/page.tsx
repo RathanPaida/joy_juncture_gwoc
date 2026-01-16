@@ -1,10 +1,11 @@
 // app/admin/blog/page.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
-import { auth } from "@/lib/firebase"; // Import auth from firebase
+import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   FaBlog,
   FaPlus,
@@ -20,6 +21,7 @@ import {
   FaUser,
   FaStar,
   FaTag,
+  FaUpload,
 } from "react-icons/fa";
 import "./admin-blog.css";
 
@@ -72,33 +74,24 @@ const AdminBlogPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [accessError, setAccessError] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"all" | "my-blogs" | "stats">(
-    "all",
-  );
+  const [activeTab, setActiveTab] = useState<"all" | "my-blogs" | "stats">("all");
 
-  // Data states
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [stats, setStats] = useState<BlogStats | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Edit states
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   const [showBlogModal, setShowBlogModal] = useState(false);
 
-  // Filter states
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "published" | "draft"
-  >("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        console.log("User authenticated, checking admin access...");
         checkAdminAccess();
       } else {
-        console.log("No user, redirecting to login...");
         router.push("/login?redirect=/admin/blog");
       }
     }
@@ -112,8 +105,6 @@ const AdminBlogPage: React.FC = () => {
     }
 
     try {
-      console.log("Getting Firebase token...");
-      // Use auth.currentUser instead of user.getIdToken()
       const token = await auth.currentUser?.getIdToken();
 
       if (!token) {
@@ -123,7 +114,6 @@ const AdminBlogPage: React.FC = () => {
         return;
       }
 
-      console.log("Checking admin access...");
       const response = await fetch("/api/admin/check-access", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -131,29 +121,17 @@ const AdminBlogPage: React.FC = () => {
         },
       });
 
-      console.log("Admin check response:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Access denied:", errorData);
-
         setAccessDenied(true);
-        setAccessError(
-          errorData.error || "Access denied. Admin privileges required.",
-        );
+        setAccessError(errorData.error || "Access denied. Admin privileges required.");
         setLoading(false);
         return;
       }
 
       const data = await response.json();
-      console.log("Admin access granted:", data);
-      setIsAdmin(
-        data.role === "admin" ||
-          data.role === "super_admin" ||
-          data.role === "editor",
-      );
+      setIsAdmin(data.role === "admin" || data.role === "super_admin" || data.role === "editor");
 
-      // Access granted, fetch all data
       fetchAllData();
     } catch (error: any) {
       console.error("Error checking admin access:", error);
@@ -166,7 +144,6 @@ const AdminBlogPage: React.FC = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      // Use auth.currentUser instead of user!.getIdToken()
       const token = await auth.currentUser?.getIdToken();
 
       if (!token) {
@@ -174,9 +151,6 @@ const AdminBlogPage: React.FC = () => {
         return;
       }
 
-      console.log("Fetching blog data...");
-
-      // Fetch blogs
       try {
         const blogsRes = await fetch("/api/admin/blog", {
           headers: { Authorization: `Bearer ${token}` },
@@ -184,13 +158,11 @@ const AdminBlogPage: React.FC = () => {
         if (blogsRes.ok) {
           const data = await blogsRes.json();
           setBlogs(data.blogs || []);
-          console.log("Blogs loaded:", data.blogs?.length);
         }
       } catch (err) {
         console.error("Error fetching blogs:", err);
       }
 
-      // Fetch stats
       try {
         const statsRes = await fetch("/api/admin/blog/stats", {
           headers: { Authorization: `Bearer ${token}` },
@@ -198,7 +170,6 @@ const AdminBlogPage: React.FC = () => {
         if (statsRes.ok) {
           const data = await statsRes.json();
           setStats(data);
-          console.log("Stats loaded");
         }
       } catch (err) {
         console.error("Error fetching stats:", err);
@@ -210,7 +181,7 @@ const AdminBlogPage: React.FC = () => {
     }
   };
 
-  const handleSaveBlog = async (blog: Blog) => {
+  const handleSaveBlog = async (blog: Blog, imageFile?: File) => {
     try {
       const token = await auth.currentUser?.getIdToken();
 
@@ -219,35 +190,37 @@ const AdminBlogPage: React.FC = () => {
         return;
       }
 
+      const formData = new FormData();
+      formData.append("blogData", JSON.stringify(blog));
+
+      if (imageFile) {
+        formData.append("coverImage", imageFile);
+      }
+
+      if (blog._id) {
+        formData.append("blogId", blog._id);
+      }
+
       const method = blog._id ? "PUT" : "POST";
       const url = blog._id ? `/api/admin/blog/${blog._id}` : "/api/admin/blog";
-
-      console.log("Saving blog:", { method, url, blogId: blog._id });
 
       const response = await fetch(url, {
         method,
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify(blog),
+        body: formData,
       });
 
       const data = await response.json();
-      console.log("Save response:", { status: response.status, data });
 
       if (response.ok && data.success) {
-        alert(
-          blog._id
-            ? "Blog updated successfully!"
-            : "Blog created successfully!",
-        );
+        alert(blog._id ? "Blog updated successfully!" : "Blog created successfully!");
         setShowBlogModal(false);
         setEditingBlog(null);
         fetchAllData();
       } else {
         const errorMessage = data.error || "Unknown error occurred";
-        console.error("Save failed:", errorMessage);
         alert(`Failed to save blog: ${errorMessage}`);
       }
     } catch (error: any) {
@@ -257,11 +230,7 @@ const AdminBlogPage: React.FC = () => {
   };
 
   const handleDeleteBlog = async (id: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this blog? This action cannot be undone.",
-      )
-    ) {
+    if (!confirm("Are you sure you want to delete this blog? This action cannot be undone.")) {
       return;
     }
 
@@ -273,8 +242,6 @@ const AdminBlogPage: React.FC = () => {
         return;
       }
 
-      console.log("Deleting blog:", id);
-
       const response = await fetch(`/api/admin/blog/${id}`, {
         method: "DELETE",
         headers: {
@@ -284,14 +251,12 @@ const AdminBlogPage: React.FC = () => {
       });
 
       const data = await response.json();
-      console.log("Delete response:", { status: response.status, data });
 
       if (response.ok && data.success) {
         alert("Blog deleted successfully!");
         fetchAllData();
       } else {
         const errorMessage = data.error || "Unknown error occurred";
-        console.error("Delete failed:", errorMessage);
         alert(`Failed to delete blog: ${errorMessage}`);
       }
     } catch (error: any) {
@@ -301,10 +266,8 @@ const AdminBlogPage: React.FC = () => {
   };
 
   const canEditBlog = (blog: Blog) => {
-    // Check if current Firebase user matches blog creator
     const currentUserId = auth.currentUser?.uid;
 
-    // User can edit their own blogs
     if (
       blog.createdBy.userId === currentUserId ||
       isAdmin ||
@@ -313,15 +276,10 @@ const AdminBlogPage: React.FC = () => {
       return true;
     }
 
-    // Admin can edit all their own blogs + user-submitted drafts for review
     if (isAdmin) {
-      // Admin can edit any blog created by admin
-      if (
-        ["admin", "super_admin", "editor"].includes(blog.createdBy.userRole)
-      ) {
+      if (["admin", "super_admin", "editor"].includes(blog.createdBy.userRole)) {
         return true;
       }
-      // Admin can edit user-created drafts (for review purposes)
       if (blog.createdBy.userRole === "user" && blog.status === "draft") {
         return true;
       }
@@ -334,29 +292,25 @@ const AdminBlogPage: React.FC = () => {
     let filtered = blogs;
     const currentUserId = auth.currentUser?.uid;
 
-    // Filter by tab
     if (activeTab === "my-blogs") {
       filtered = filtered.filter((b) => b.createdBy.userId === currentUserId);
     }
 
-    // Filter by status
     if (filterStatus !== "all") {
       filtered = filtered.filter((b) => b.status === filterStatus);
     }
 
-    // Filter by category
     if (filterCategory !== "all") {
       filtered = filtered.filter((b) => b.category === filterCategory);
     }
 
-    // Search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (b) =>
           b.title.toLowerCase().includes(query) ||
           b.excerpt.toLowerCase().includes(query) ||
-          b.createdBy.userName.toLowerCase().includes(query),
+          b.createdBy.userName.toLowerCase().includes(query)
       );
     }
 
@@ -384,15 +338,6 @@ const AdminBlogPage: React.FC = () => {
           <div className="access-denied-actions">
             <button onClick={() => router.push("/")}>Go Home</button>
           </div>
-          <div className="help-text">
-            <h3>Need admin access?</h3>
-            <p>1. Make sure you're logged in</p>
-            <p>2. Your account must have 'admin' or 'super_admin' role</p>
-            <p>
-              3. Visit /admin/setup to make yourself admin (first time only)
-            </p>
-            <p>4. Or update your role in MongoDB directly</p>
-          </div>
         </div>
       </div>
     );
@@ -400,8 +345,7 @@ const AdminBlogPage: React.FC = () => {
 
   const filteredBlogs = getFilteredBlogs();
   const currentUserId = auth.currentUser?.uid;
-  const currentUserName =
-    auth.currentUser?.displayName || auth.currentUser?.email || "User";
+  const currentUserName = auth.currentUser?.displayName || auth.currentUser?.email || "User";
 
   return (
     <div className="admin-blog-page">
@@ -413,36 +357,23 @@ const AdminBlogPage: React.FC = () => {
       </div>
 
       <div className="admin-tabs">
-        <button
-          className={activeTab === "all" ? "active" : ""}
-          onClick={() => setActiveTab("all")}
-        >
+        <button className={activeTab === "all" ? "active" : ""} onClick={() => setActiveTab("all")}>
           <FaBlog /> All Blogs ({blogs.length})
         </button>
-        <button
-          className={activeTab === "my-blogs" ? "active" : ""}
-          onClick={() => setActiveTab("my-blogs")}
-        >
-          <FaUser /> My Blogs (
-          {blogs.filter((b) => b.createdBy.userId === currentUserId).length})
+        <button className={activeTab === "my-blogs" ? "active" : ""} onClick={() => setActiveTab("my-blogs")}>
+          <FaUser /> My Blogs ({blogs.filter((b) => b.createdBy.userId === currentUserId).length})
         </button>
-        <button
-          className={activeTab === "stats" ? "active" : ""}
-          onClick={() => setActiveTab("stats")}
-        >
+        <button className={activeTab === "stats" ? "active" : ""} onClick={() => setActiveTab("stats")}>
           <FaChartLine /> Statistics
         </button>
       </div>
 
       <div className="admin-content">
-        {/* Blogs Tab */}
         {(activeTab === "all" || activeTab === "my-blogs") && (
           <div className="blogs-section">
             <div className="section-header">
               <div className="header-left">
-                <h2>
-                  {activeTab === "all" ? "All Blog Posts" : "My Blog Posts"}
-                </h2>
+                <h2>{activeTab === "all" ? "All Blog Posts" : "My Blog Posts"}</h2>
                 <button
                   className="btn-primary"
                   onClick={() => {
@@ -480,20 +411,12 @@ const AdminBlogPage: React.FC = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as any)}
-                  className="filter-select"
-                >
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="filter-select">
                   <option value="all">All Status</option>
                   <option value="published">Published</option>
                   <option value="draft">Draft</option>
                 </select>
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="filter-select"
-                >
+                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="filter-select">
                   <option value="all">All Categories</option>
                   {BLOG_CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
@@ -533,19 +456,11 @@ const AdminBlogPage: React.FC = () => {
                         <h3>{blog.title}</h3>
                         <div className="blog-badges">
                           <span className={`status-badge ${blog.status}`}>
-                            {blog.status === "published" ? (
-                              <FaEye />
-                            ) : (
-                              <FaEyeSlash />
-                            )}
+                            {blog.status === "published" ? <FaEye /> : <FaEyeSlash />}
                             {blog.status}
                           </span>
-                          <span
-                            className={`creator-badge ${blog.createdBy.userRole}`}
-                          >
-                            {["admin", "super_admin", "editor"].includes(
-                              blog.createdBy.userRole,
-                            ) ? (
+                          <span className={`creator-badge ${blog.createdBy.userRole}`}>
+                            {["admin", "super_admin", "editor"].includes(blog.createdBy.userRole) ? (
                               <>
                                 <FaCrown /> Admin
                               </>
@@ -564,14 +479,11 @@ const AdminBlogPage: React.FC = () => {
                         <span className="category">
                           <FaTag /> {blog.category}
                         </span>
-                        <span className="author">
-                          By: {blog.createdBy.userName}
-                        </span>
+                        <span className="author">By: {blog.createdBy.userName}</span>
                         {blog.tags.length > 0 && (
                           <span className="tags">
                             Tags: {blog.tags.slice(0, 3).join(", ")}
-                            {blog.tags.length > 3 &&
-                              ` +${blog.tags.length - 3}`}
+                            {blog.tags.length > 3 && ` +${blog.tags.length - 3}`}
                           </span>
                         )}
                       </div>
@@ -587,10 +499,7 @@ const AdminBlogPage: React.FC = () => {
                           >
                             <FaEdit /> Edit
                           </button>
-                          <button
-                            className="btn-danger"
-                            onClick={() => handleDeleteBlog(blog._id!)}
-                          >
+                          <button className="btn-danger" onClick={() => handleDeleteBlog(blog._id!)}>
                             <FaTrash /> Delete
                           </button>
                         </div>
@@ -603,7 +512,6 @@ const AdminBlogPage: React.FC = () => {
           </div>
         )}
 
-        {/* Statistics Tab */}
         {activeTab === "stats" && stats && (
           <div className="stats-section">
             <h2>Blog Statistics</h2>
@@ -636,16 +544,13 @@ const AdminBlogPage: React.FC = () => {
               <div className="stat-card views">
                 <FaChartLine className="stat-icon" />
                 <h3>Total Views</h3>
-                <p className="stat-value">
-                  {stats.totalViews.toLocaleString()}
-                </p>
+                <p className="stat-value">{stats.totalViews.toLocaleString()}</p>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Blog Modal */}
       {showBlogModal && editingBlog && (
         <BlogModal
           blog={editingBlog}
@@ -665,24 +570,69 @@ const AdminBlogPage: React.FC = () => {
 // Blog Modal Component
 const BlogModal: React.FC<{
   blog: Blog;
-  onSave: (blog: Blog) => void;
+  onSave: (blog: Blog, imageFile?: File) => Promise<void>;
   onClose: () => void;
   isAdmin: boolean;
   categories: string[];
 }> = ({ blog, onSave, onClose, isAdmin, categories }) => {
   const [formData, setFormData] = useState(blog);
   const [tagsInput, setTagsInput] = useState(blog.tags.join(", "));
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>(blog.coverImage || "");
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSave = () => {
-    const tags = tagsInput
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size should be less than 5MB");
+        return;
+      }
 
-    onSave({
-      ...formData,
-      tags,
-    });
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    setFormData({ ...formData, coverImage: "" });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.title.trim() || !formData.excerpt.trim() || !formData.content.trim()) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const tags = tagsInput
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
+      await onSave(
+        {
+          ...formData,
+          tags,
+        },
+        imageFile || undefined
+      );
+    } catch (error) {
+      console.error("Error saving blog:", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -695,14 +645,36 @@ const BlogModal: React.FC<{
           </button>
         </div>
         <div className="modal-body">
+          {/* Cover Image Upload */}
+          <div className="form-group">
+            <label>Cover Image</label>
+            <div className="image-upload-section">
+              {imagePreview ? (
+                <div className="image-preview-container">
+                  <div className="blog-image-preview">
+                    <Image src={imagePreview} alt="Cover preview" fill className="preview-img" unoptimized />
+                  </div>
+                  <button type="button" className="btn-remove-image" onClick={removeImage}>
+                    <FaTrash /> Remove Image
+                  </button>
+                </div>
+              ) : (
+                <div className="image-upload-placeholder" onClick={() => fileInputRef.current?.click()}>
+                  <FaUpload size={32} />
+                  <p>Click to upload cover image</p>
+                  <span>PNG, JPG, WebP (Max 5MB)</span>
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} style={{ display: "none" }} />
+            </div>
+          </div>
+
           <div className="form-group">
             <label>Title *</label>
             <input
               type="text"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
+              value={formData.title || ""}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="Enter blog title"
               required
             />
@@ -711,10 +683,8 @@ const BlogModal: React.FC<{
           <div className="form-group">
             <label>Excerpt *</label>
             <textarea
-              value={formData.excerpt}
-              onChange={(e) =>
-                setFormData({ ...formData, excerpt: e.target.value })
-              }
+              value={formData.excerpt || ""}
+              onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
               placeholder="Short description (150-200 characters)"
               rows={3}
               required
@@ -724,10 +694,8 @@ const BlogModal: React.FC<{
           <div className="form-group">
             <label>Content *</label>
             <textarea
-              value={formData.content}
-              onChange={(e) =>
-                setFormData({ ...formData, content: e.target.value })
-              }
+              value={formData.content || ""}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               placeholder="Full blog content (supports Markdown)"
               rows={12}
               required
@@ -737,12 +705,7 @@ const BlogModal: React.FC<{
           <div className="form-row">
             <div className="form-group">
               <label>Category *</label>
-              <select
-                value={formData.category}
-                onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value })
-                }
-              >
+              <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -770,47 +733,24 @@ const BlogModal: React.FC<{
 
           <div className="form-group">
             <label>Tags (comma-separated)</label>
-            <input
-              type="text"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              placeholder="Strategy, Events, Tips, etc."
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Cover Image URL</label>
-            <input
-              type="url"
-              value={formData.coverImage || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, coverImage: e.target.value })
-              }
-              placeholder="https://example.com/image.jpg"
-            />
+            <input type="text" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="Strategy, Events, Tips, etc." />
           </div>
 
           {isAdmin && (
             <div className="form-group checkbox">
               <label>
-                <input
-                  type="checkbox"
-                  checked={formData.featured}
-                  onChange={(e) =>
-                    setFormData({ ...formData, featured: e.target.checked })
-                  }
-                />
+                <input type="checkbox" checked={formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} />
                 <FaStar /> Mark as Featured (Admin only)
               </label>
             </div>
           )}
         </div>
         <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>
+          <button className="btn-secondary" onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button className="btn-primary" onClick={handleSave}>
-            <FaSave /> {blog._id ? "Update" : "Create"} Blog
+          <button className="btn-primary" onClick={handleSave} disabled={saving}>
+            <FaSave /> {saving ? "Saving..." : blog._id ? "Update" : "Create"} Blog
           </button>
         </div>
       </div>
