@@ -1,4 +1,5 @@
 // app/api/admin/blog/stats/route.ts
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
@@ -6,8 +7,8 @@ import mongoose from "mongoose";
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    
+    const authHeader = request.headers.get("Authorization");
+
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Unauthorized" },

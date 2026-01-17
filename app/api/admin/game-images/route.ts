@@ -1,6 +1,7 @@
 // app/api/admin/game-images/route.ts
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
-import {connectToDatabase as connectDB } from "@/lib/mongodb";
+import { connectToDatabase as connectDB } from "@/lib/mongodb";
 import GameImage from "@/models/GameImage";
 
 export async function GET(request: NextRequest) {
