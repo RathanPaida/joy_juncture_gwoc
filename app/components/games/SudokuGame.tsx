@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Timer, RefreshCw, Trophy, CheckSquare,
-  XSquare, Edit2, Zap, Lock, Coins, AlertCircle,
-  HelpCircle, Grid, Check, X, Gamepad2
+  XSquare, Edit2, Zap, HelpCircle, Grid,
+  Check, X, Gamepad2, Brain
 } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -16,15 +16,6 @@ import "./sudoku-game.css";
 interface User {
   _id: string;
   name: string;
-  userPoints: number;
-  gamesPlayed?: Array<{
-    gameId: string;
-    gameName: string;
-    playedAt: Date;
-    score?: number;
-    pointsEarned: number;
-    completed: boolean;
-  }>;
 }
 
 interface SudokuCell {
@@ -37,79 +28,9 @@ interface SudokuCell {
 
 const SUDOKU_GAME_ID = "sudoku";
 const SUDOKU_GAME_NAME = "Sudoku Challenge";
-const MAX_MISTAKES = 3;
-const BASE_COINS = 5;
-const HINT_COUNT = 2;
+const HINT_COUNT = 3;
 
 /* ---------------- HELPER FUNCTIONS ---------------- */
-
-const hasPlayedToday = (user: User | null, gameId: string): boolean => {
-  if (!user || !user.gamesPlayed) return false;
-
-  const now = new Date();
-  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
-  // Check ALL records for this game, not just the first one found
-  return user.gamesPlayed.some((game) => {
-    if (game.gameId !== gameId) return false;
-
-    const playedDate = new Date(game.playedAt);
-    const playedUTC = new Date(Date.UTC(
-      playedDate.getUTCFullYear(),
-      playedDate.getUTCMonth(),
-      playedDate.getUTCDate()
-    ));
-
-    return playedUTC.getTime() === todayUTC.getTime();
-  });
-};
-
-const getNextPlayTime = (user: User | null, gameId: string): string => {
-  if (!user || !user.gamesPlayed) return "Play Now";
-
-  // Find the LATEST play record for this game
-  const gameRecords = user.gamesPlayed
-    .filter((game) => game.gameId === gameId)
-    .sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
-
-  if (gameRecords.length === 0) return "Play Now";
-
-  const lastPlayed = gameRecords[0];
-  const playedDate = new Date(lastPlayed.playedAt);
-  const playedUTC = new Date(Date.UTC(
-    playedDate.getUTCFullYear(),
-    playedDate.getUTCMonth(),
-    playedDate.getUTCDate()
-  ));
-
-  const todayUTC = new Date(Date.UTC(
-    new Date().getUTCFullYear(),
-    new Date().getUTCMonth(),
-    new Date().getUTCDate()
-  ));
-
-  // If played today (or in future??), calculate time until tomorrow
-  if (playedUTC.getTime() >= todayUTC.getTime()) {
-    const tomorrowUTC = new Date(playedUTC);
-    tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
-
-    const nowUTC = new Date();
-    const diff = tomorrowUTC.getTime() - nowUTC.getTime();
-
-    if (diff <= 0) return "Play Now";
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
-  }
-
-  return "Play Now";
-};
 
 /* ---------------- SUDOKU BOARD GENERATION ---------------- */
 
@@ -175,15 +96,22 @@ const isValid = (board: number[][], row: number, col: number, num: number): bool
   return true;
 };
 
-// Create puzzle by removing numbers (medium difficulty)
-const createPuzzle = (board: number[][]): { puzzle: number[][], solution: number[][] } => {
-  const solution = board.map(row => [...row]);
-  const puzzle = board.map(row => [...row]);
+// Create puzzle by removing numbers
+const createPuzzle = (difficulty: 'easy' | 'medium' | 'hard'): { puzzle: number[][], solution: number[][] } => {
+  const validBoard = generateValidBoard();
+  const solution = validBoard.map(row => [...row]);
+  const puzzle = validBoard.map(row => [...row]);
 
-  // Remove 50 cells for medium difficulty
-  const cellsToRemove = 50;
+  // Remove cells based on difficulty
+  let cellsToRemove;
+  switch (difficulty) {
+    case 'easy': cellsToRemove = 30; break;
+    case 'medium': cellsToRemove = 40; break;
+    case 'hard': cellsToRemove = 50; break;
+    default: cellsToRemove = 40;
+  }
+
   let removed = 0;
-
   while (removed < cellsToRemove) {
     const row = Math.floor(Math.random() * 9);
     const col = Math.floor(Math.random() * 9);
@@ -204,21 +132,17 @@ export default function SudokuGame() {
   const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [canPlay, setCanPlay] = useState(true);
-  const [nextPlayTime, setNextPlayTime] = useState("");
-  const [gameMessage, setGameMessage] = useState("");
 
   const [board, setBoard] = useState<SudokuCell[][]>([]);
   const [solution, setSolution] = useState<number[][]>([]);
   const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
   const [time, setTime] = useState(0);
-  const [mistakes, setMistakes] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [notesMode, setNotesMode] = useState(false);
   const [hintsUsed, setHintsUsed] = useState(0);
-  const [earnedCoins, setEarnedCoins] = useState(0);
   const [feedback, setFeedback] = useState("");
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -266,13 +190,6 @@ export default function SudokuGame() {
       const userData = await fetchUserData();
       if (userData) {
         setUser(userData);
-        const playedToday = hasPlayedToday(userData, SUDOKU_GAME_ID);
-        setCanPlay(!playedToday);
-
-        if (playedToday) {
-          setNextPlayTime(getNextPlayTime(userData, SUDOKU_GAME_ID));
-          setGameMessage("🚫 You have already played Sudoku today!");
-        }
         setLoading(false);
       } else {
         router.push("/login");
@@ -282,23 +199,10 @@ export default function SudokuGame() {
     initUser();
   }, [authUser, authLoading, router, fetchUserData]);
 
-  /* ---------------- UPDATE TIMER FOR NEXT PLAY ---------------- */
-  useEffect(() => {
-    if (!canPlay) {
-      const interval = setInterval(() => {
-        setNextPlayTime(getNextPlayTime(user, SUDOKU_GAME_ID));
-      }, 60000);
-      return () => clearInterval(interval);
-    }
-  }, [canPlay, user]);
-
   /* ---------------- INITIALIZE GAME ---------------- */
-  const initializeGame = useCallback(() => {
-    if (!canPlay) return;
-
-    // Generate new Sudoku
-    const validBoard = generateValidBoard();
-    const { puzzle, solution: sol } = createPuzzle(validBoard);
+  const initializeGame = useCallback((selectedDifficulty: 'easy' | 'medium' | 'hard' = difficulty) => {
+    // Generate new Sudoku with selected difficulty
+    const { puzzle, solution: sol } = createPuzzle(selectedDifficulty);
 
     // Convert to cell format
     const newBoard: SudokuCell[][] = [];
@@ -319,27 +223,25 @@ export default function SudokuGame() {
     setSolution(sol);
     setSelectedCell(null);
     setTime(0);
-    setMistakes(0);
     setGameStarted(false);
     setGameCompleted(false);
     setHintsUsed(0);
-    setEarnedCoins(0);
     setFeedback("");
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-  }, [canPlay]);
+  }, [difficulty]);
 
   useEffect(() => {
-    if (canPlay && user) {
+    if (user) {
       initializeGame();
     }
-  }, [canPlay, user, initializeGame]);
+  }, [user, initializeGame]);
 
   /* ---------------- TIMER ---------------- */
   useEffect(() => {
-    if (gameStarted && !gameCompleted && canPlay) {
+    if (gameStarted && !gameCompleted) {
       timerRef.current = setInterval(() => {
         setTime(prev => prev + 1);
       }, 1000);
@@ -352,11 +254,11 @@ export default function SudokuGame() {
         clearInterval(timerRef.current);
       }
     };
-  }, [gameStarted, gameCompleted, canPlay]);
+  }, [gameStarted, gameCompleted]);
 
   /* ---------------- GAME LOGIC ---------------- */
   const handleCellClick = (row: number, col: number) => {
-    if (gameCompleted || !canPlay) return;
+    if (gameCompleted) return;
     if (board[row][col].isOriginal) return;
 
     if (!gameStarted) setGameStarted(true);
@@ -364,7 +266,7 @@ export default function SudokuGame() {
   };
 
   const handleNumberInput = (num: number) => {
-    if (!selectedCell || gameCompleted || !canPlay) return;
+    if (!selectedCell || gameCompleted) return;
     if (board[selectedCell.row][selectedCell.col].isOriginal) return;
 
     const newBoard = [...board];
@@ -379,14 +281,8 @@ export default function SudokuGame() {
     setBoard(newBoard);
 
     if (!isCorrect) {
-      const newMistakes = mistakes + 1;
-      setMistakes(newMistakes);
       setFeedback("❌ Incorrect number!");
       setTimeout(() => setFeedback(""), 1500);
-
-      if (newMistakes >= MAX_MISTAKES) {
-        finishGame(false);
-      }
     } else {
       setFeedback("✅ Correct!");
       setTimeout(() => setFeedback(""), 1500);
@@ -397,13 +293,13 @@ export default function SudokuGame() {
       );
 
       if (isComplete) {
-        finishGame(true);
+        finishGame();
       }
     }
   };
 
   const useHint = () => {
-    if (hintsUsed >= HINT_COUNT || gameCompleted || !canPlay) return;
+    if (hintsUsed >= HINT_COUNT || gameCompleted) return;
     if (!selectedCell) {
       setFeedback("💡 Select a cell first!");
       setTimeout(() => setFeedback(""), 2000);
@@ -425,13 +321,13 @@ export default function SudokuGame() {
       );
 
       if (isComplete) {
-        finishGame(true);
+        finishGame();
       }
     }
   };
 
   const clearCell = () => {
-    if (!selectedCell || gameCompleted || !canPlay) return;
+    if (!selectedCell || gameCompleted) return;
     if (board[selectedCell.row][selectedCell.col].isOriginal) return;
 
     const newBoard = [...board];
@@ -442,112 +338,9 @@ export default function SudokuGame() {
   };
 
   /* ---------------- FINISH GAME ---------------- */
-  const calculateCoins = (isWin: boolean): number => {
-    if (!isWin) return 10; // Minimum coins for losing
-
-    // Base coins + time bonus + mistakes penalty + hint penalty
-    const timeBonus = Math.max(0, Math.floor((300 - time) / 10)); // 5 minutes max
-    const mistakesPenalty = mistakes * 5;
-    const hintPenalty = hintsUsed * 10;
-
-    return Math.max(10, BASE_COINS + timeBonus - mistakesPenalty - hintPenalty);
-  };
-
-  const finishGame = async (isWin: boolean) => {
+  const finishGame = () => {
     setGameCompleted(true);
-    const coins = calculateCoins(isWin);
-    setEarnedCoins(coins);
-
-    if (!user) {
-      console.error("❌ No user found when finishing game");
-      return;
-    }
-
-    try {
-      const token = await getIdToken();
-      if (!token) {
-        setGameMessage("❌ Failed to save your progress. Please check your connection.");
-        return;
-      }
-
-      const score = isWin ? Math.max(0, 1000 - Math.floor(time / 10) - (mistakes * 50) - (hintsUsed * 100)) : 0;
-
-      const markPlayedResponse = await fetch("/api/user/markGamePlayed", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          userId: user._id,
-          gameId: SUDOKU_GAME_ID,
-          gameName: SUDOKU_GAME_NAME,
-          score: score,
-          pointsEarned: coins
-        })
-      });
-
-      const responseData = await markPlayedResponse.json();
-
-      if (!markPlayedResponse.ok) {
-        if (responseData.error?.includes("Game already played") ||
-          responseData.error?.includes("once per day")) {
-          setGameMessage("🚫 You have already played this game today! Come back tomorrow.");
-          setCanPlay(false);
-          const tempUser = {
-            ...user,
-            gamesPlayed: [
-              ...(user.gamesPlayed || []),
-              {
-                gameId: SUDOKU_GAME_ID,
-                gameName: SUDOKU_GAME_NAME,
-                playedAt: new Date(),
-                score: score,
-                pointsEarned: coins,
-                completed: true
-              }
-            ]
-          };
-          setNextPlayTime(getNextPlayTime(tempUser, SUDOKU_GAME_ID));
-          return;
-        }
-        setGameMessage("❌ Failed to save your game progress. Please try again.");
-        return;
-      }
-
-      if (responseData.success) {
-        // Update local state immediately
-        const newGameRecord = {
-          gameId: SUDOKU_GAME_ID,
-          gameName: SUDOKU_GAME_NAME,
-          playedAt: new Date(),
-          score: score,
-          pointsEarned: coins,
-          completed: true
-        };
-
-        const updatedUser = user ? {
-          ...user,
-          userPoints: responseData.totalPoints || user.userPoints,
-          gamesPlayed: [...(user.gamesPlayed || []), newGameRecord]
-        } : null;
-
-        if (updatedUser) {
-          setUser(updatedUser);
-          setNextPlayTime(getNextPlayTime(updatedUser, SUDOKU_GAME_ID));
-        }
-
-        setCanPlay(false);
-        setGameMessage(isWin
-          ? `🎉 Congratulations! You earned ${coins} coins! Come back tomorrow to play again.`
-          : `😢 Game Over! You earned ${coins} coins. Try again tomorrow!`
-        );
-      }
-
-    } catch (error) {
-      console.error("❌ Exception during game completion:", error);
-      setGameMessage("❌ An error occurred while saving your progress. Please try again.");
-    }
+    setFeedback("🎉 Puzzle Complete! Well done!");
   };
 
   /* ---------------- FORMAT TIME ---------------- */
@@ -582,62 +375,6 @@ export default function SudokuGame() {
     );
   }
 
-  // Show "Already Played" screen
-  if (!canPlay && !gameStarted) {
-    return (
-      <div className="sudoku-game-container">
-        <div className="sudoku-game-wrapper">
-          <header className="sudoku-game-header">
-            <div className="sudoku-header-card">
-              <div className="sudoku-header-content">
-                <div>
-                  <h1 className="sudoku-game-title">
-                    <CheckSquare className="sudoku-title-icon" />
-                    Sudoku Challenge
-                  </h1>
-                  <p className="sudoku-welcome-message">
-                    Welcome, <span className="sudoku-username">{user.name}</span>!
-                  </p>
-                </div>
-                <div className="sudoku-user-coins">
-                  <div className="sudoku-coins-display">
-                    <Coins className="sudoku-coins-icon" />
-                    <span className="sudoku-coins-value">{user.userPoints}</span>
-                  </div>
-                  <div className="sudoku-coins-label">Total Coins</div>
-                </div>
-              </div>
-            </div>
-          </header>
-
-          <div className="sudoku-already-played">
-            <div className="sudoku-locked-card">
-              <Lock className="sudoku-lock-icon" />
-              <h2 className="sudoku-locked-title">Game Already Played Today</h2>
-              <p className="sudoku-locked-message">
-                {gameMessage || "🚫 You have already played Sudoku today!"}
-              </p>
-              <div className="sudoku-next-play">
-                <div className="sudoku-next-play-label">Next available in:</div>
-                <div className="sudoku-next-play-time">{nextPlayTime || "Calculating..."}</div>
-              </div>
-              <p className="sudoku-locked-hint">
-                Come back tomorrow for another challenge!
-              </p>
-              <button
-                onClick={() => router.push("/zone")}
-                className="sudoku-button sudoku-button-primary"
-              >
-                <Gamepad2 className="sudoku-button-icon" />
-                Return to Game Zone
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (board.length === 0) {
     return (
       <div className="sudoku-loading-screen">
@@ -655,19 +392,27 @@ export default function SudokuGame() {
             <div className="sudoku-header-content">
               <div>
                 <h1 className="sudoku-game-title">
-                  <CheckSquare className="sudoku-title-icon" />
+                  <Brain className="sudoku-title-icon" />
                   Sudoku Challenge
                 </h1>
                 <p className="sudoku-welcome-message">
-                  Welcome, <span className="sudoku-username">{user.name}</span>! Fill the grid correctly to earn coins.
+                  Welcome, <span className="sudoku-username">{user.name}</span>! Fill the grid correctly.
                 </p>
               </div>
-              <div className="sudoku-user-coins">
-                <div className="sudoku-coins-display">
-                  <Coins className="sudoku-coins-icon" />
-                  <span className="sudoku-coins-value">{user.userPoints}</span>
-                </div>
-                <div className="sudoku-coins-label">Total Coins</div>
+              <div className="sudoku-difficulty-selector">
+                <select
+                  value={difficulty}
+                  onChange={(e) => {
+                    const newDifficulty = e.target.value as 'easy' | 'medium' | 'hard';
+                    setDifficulty(newDifficulty);
+                    initializeGame(newDifficulty);
+                  }}
+                  className="sudoku-difficulty-select"
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
               </div>
             </div>
           </div>
@@ -684,14 +429,6 @@ export default function SudokuGame() {
               <div className="sudoku-stat-value">{formatTime(time)}</div>
             </div>
 
-            <div className="sudoku-stat-card sudoku-stat-mistakes">
-              <div className="sudoku-stat-header">
-                <XSquare className="sudoku-stat-icon" />
-                <span className="sudoku-stat-label">Mistakes</span>
-              </div>
-              <div className="sudoku-stat-value">{mistakes}/{MAX_MISTAKES}</div>
-            </div>
-
             <div className="sudoku-stat-card sudoku-stat-hints">
               <div className="sudoku-stat-header">
                 <HelpCircle className="sudoku-stat-icon" />
@@ -705,7 +442,17 @@ export default function SudokuGame() {
                 <Trophy className="sudoku-stat-icon" />
                 <span className="sudoku-stat-label">Difficulty</span>
               </div>
-              <div className="sudoku-stat-value">Medium</div>
+              <div className="sudoku-stat-value">{difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</div>
+            </div>
+
+            <div className="sudoku-stat-card sudoku-stat-cells">
+              <div className="sudoku-stat-header">
+                <CheckSquare className="sudoku-stat-icon" />
+                <span className="sudoku-stat-label">Completed</span>
+              </div>
+              <div className="sudoku-stat-value">
+                {board.flat().filter(cell => cell.value !== null).length}/81
+              </div>
             </div>
           </div>
 
@@ -713,18 +460,10 @@ export default function SudokuGame() {
           {feedback && (
             <div className={`sudoku-feedback-message ${feedback.includes("✅") ? "success" :
               feedback.includes("❌") ? "error" :
+              feedback.includes("🎉") ? "complete" :
                 "hint"
               }`}>
               {feedback}
-            </div>
-          )}
-
-          {/* Game Message */}
-          {gameMessage && (
-            <div className="sudoku-game-message">
-              <div className={`sudoku-message-card ${gameMessage.includes("🎉") ? 'success' : gameMessage.includes("🚫") ? 'error' : 'info'}`}>
-                {gameMessage}
-              </div>
             </div>
           )}
         </div>
@@ -733,7 +472,7 @@ export default function SudokuGame() {
         <div className="sudoku-controls-container">
           <div className="sudoku-controls-group">
             <button
-              onClick={initializeGame}
+              onClick={() => initializeGame()}
               className="sudoku-button sudoku-button-restart"
             >
               <RefreshCw className="sudoku-button-icon" />
@@ -754,11 +493,12 @@ export default function SudokuGame() {
               className={`sudoku-button ${notesMode ? 'sudoku-button-active' : 'sudoku-button-secondary'}`}
             >
               <Edit2 className="sudoku-button-icon" />
-              {notesMode ? 'Notes Mode ON' : 'Notes Mode OFF'}
+              {notesMode ? 'Notes Mode ON' : 'Notes Mode'}
             </button>
 
             <button
               onClick={clearCell}
+              disabled={!selectedCell || gameCompleted}
               className="sudoku-button sudoku-button-secondary"
             >
               Clear Cell
@@ -846,8 +586,8 @@ export default function SudokuGame() {
                 <li>Fill each row with numbers 1-9 (no repeats)</li>
                 <li>Fill each column with numbers 1-9 (no repeats)</li>
                 <li>Fill each 3x3 box with numbers 1-9 (no repeats)</li>
-                <li>You have {MAX_MISTAKES} mistakes allowed</li>
                 <li>Use hints to reveal correct numbers</li>
+                <li>No time limit - play at your own pace!</li>
               </ul>
             </div>
 
@@ -857,19 +597,23 @@ export default function SudokuGame() {
               <div className="sudoku-info-grid">
                 <div className="sudoku-info-item">
                   <span className="sudoku-info-label">Difficulty</span>
-                  <span className="sudoku-info-value">Medium</span>
-                </div>
-                <div className="sudoku-info-item">
-                  <span className="sudoku-info-label">Max Mistakes</span>
-                  <span className="sudoku-info-value">{MAX_MISTAKES}</span>
+                  <span className="sudoku-info-value">{difficulty}</span>
                 </div>
                 <div className="sudoku-info-item">
                   <span className="sudoku-info-label">Hints Available</span>
                   <span className="sudoku-info-value">{HINT_COUNT}</span>
                 </div>
                 <div className="sudoku-info-item">
-                  <span className="sudoku-info-label">Coins Reward</span>
-                  <span className="sudoku-info-value">{BASE_COINS}+</span>
+                  <span className="sudoku-info-label">Cells to Fill</span>
+                  <span className="sudoku-info-value">
+                    {81 - board.flat().filter(cell => cell.isOriginal).length}
+                  </span>
+                </div>
+                <div className="sudoku-info-item">
+                  <span className="sudoku-info-label">Status</span>
+                  <span className="sudoku-info-value">
+                    {gameCompleted ? 'Complete' : 'In Progress'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -880,39 +624,30 @@ export default function SudokuGame() {
         {gameCompleted && (
           <div className="sudoku-completion-overlay">
             <div className="sudoku-completion-card">
-              <div className="sudoku-completion-emoji">
-                {mistakes < MAX_MISTAKES ? "🎉" : "😢"}
-              </div>
-              <h3 className="sudoku-completion-title">
-                {mistakes < MAX_MISTAKES ? "Puzzle Complete!" : "Game Over!"}
-              </h3>
+              <div className="sudoku-completion-emoji">🎉</div>
+              <h3 className="sudoku-completion-title">Puzzle Complete!</h3>
               <p className="sudoku-completion-text">
-                Time: {formatTime(time)} • Mistakes: {mistakes}
+                Time: {formatTime(time)} • Hints Used: {hintsUsed}
               </p>
-              <div className="sudoku-coins-earned">
-                +{earnedCoins} coins earned!
+              <p className="sudoku-completion-message">
+                Great job! You solved the {difficulty} Sudoku puzzle.
+              </p>
+              <div className="sudoku-completion-actions">
+                <button
+                  onClick={() => initializeGame()}
+                  className="sudoku-button sudoku-button-primary"
+                >
+                  <RefreshCw className="sudoku-button-icon" />
+                  Play Again
+                </button>
+                <button
+                  onClick={() => router.push("/zone")}
+                  className="sudoku-button sudoku-button-secondary"
+                >
+                  <Gamepad2 className="sudoku-button-icon" />
+                  Game Zone
+                </button>
               </div>
-              <div className="sudoku-total-coins">
-                Total coins: <span className="sudoku-total-coins-value">{user.userPoints}</span>
-              </div>
-
-              {gameMessage && (
-                <div className="sudoku-game-status">
-                  <p>{gameMessage}</p>
-                </div>
-              )}
-
-              <div className="sudoku-next-play-info">
-                <p>Come back tomorrow for a new puzzle!</p>
-                <p className="sudoku-next-play-hint">Next play available: {nextPlayTime || "Calculating..."}</p>
-              </div>
-              <button
-                onClick={() => router.push("/zone")}
-                className="sudoku-button sudoku-button-primary"
-              >
-                <Gamepad2 className="sudoku-button-icon" />
-                Return to Game Zone
-              </button>
             </div>
           </div>
         )}

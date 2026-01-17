@@ -91,6 +91,12 @@ const adminMenuItems = [
         path: "/admin/experiences-gallery",
         icon: <Image size={16} />,
       },
+      {
+        id: "game-images",
+        label: "Game Images",
+        path: "/admin/game-images",
+        icon: <Gamepad2 size={16} />,
+      },
     ],
     color: "#e84393",
   },

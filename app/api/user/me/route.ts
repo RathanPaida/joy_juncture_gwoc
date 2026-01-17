@@ -47,7 +47,8 @@ export async function GET(req: NextRequest) {
           level: user.level || 1,
           streak: user.streak || 0,
           lastActivity: user.lastActivity || new Date().toISOString(),
-          gamesPlayed: user.gamesPlayed || []
+          gamesPlayed: user.gamesPlayed || [],
+          snakeHighScores: user.snakeHighScores || { easy: 0, medium: 0, hard: 0 }
         }
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }
