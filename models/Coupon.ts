@@ -188,4 +188,4 @@ couponSchema.methods.recordUsage = async function (userId: string) {
 };
 
 export const Coupon =
-  mongoose.models.Coupon || mongoose.model<ICoupon>("Coupon", couponSchema);
+  mongoose.models.Coupon || mongoose.model<ICoupon>("Coupon", couponSchema, "coupons");

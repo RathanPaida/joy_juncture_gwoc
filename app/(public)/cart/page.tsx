@@ -169,13 +169,21 @@ export default function CartPage() {
       const currentUser = auth.currentUser;
       const token = currentUser ? await currentUser.getIdToken() : '';
 
+      const subtotal = cartItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
       const res = await fetch("/api/coupons/validate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ code: codeToApply }),
+        body: JSON.stringify({
+          code: codeToApply,
+          amount: subtotal
+        }),
       });
 
       if (res.ok) {

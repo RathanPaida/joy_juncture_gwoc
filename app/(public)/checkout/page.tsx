@@ -74,6 +74,8 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState(0);
 
+  const [pendingCoupon, setPendingCoupon] = useState<string | null>(null);
+
   useEffect(() => {
     if (!authLoading) {
       if (user) {
@@ -82,13 +84,21 @@ export default function CheckoutPage() {
 
         const coupon = searchParams.get('coupon');
         if (coupon) {
-          validateCoupon(coupon);
+          setPendingCoupon(coupon);
         }
       } else {
         router.push("/login?redirect=/checkout");
       }
     }
   }, [user, authLoading]);
+
+  // Validate coupon once cart items are loaded or if user manually enters it (not implemented here but good for future)
+  useEffect(() => {
+    if (cartItems.length > 0 && pendingCoupon) {
+      validateCoupon(pendingCoupon);
+      setPendingCoupon(null);
+    }
+  }, [cartItems, pendingCoupon]);
 
   const loadRazorpayScript = () => {
     const script = document.createElement("script");
@@ -121,13 +131,21 @@ export default function CheckoutPage() {
       const token = await getFreshToken();
       if (!token) return;
 
+      const currentSubtotal = cartItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
       const res = await fetch("/api/coupons/validate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({
+          code,
+          amount: currentSubtotal
+        }),
       });
 
       if (res.ok) {

@@ -1,12 +1,12 @@
 // app/api/coupons/validate/route.ts
 import { NextResponse } from 'next/server';
-import { User } from '@/models/User';
+import { Coupon } from '@/models/Coupon';
 import connectDb from '@/lib/mongodb';
 import { verifyIdToken } from '@/lib/firebase-admin';
 
 export async function POST(request: Request) {
     try {
-        const { code } = await request.json();
+        const { code, amount } = await request.json();
         const authHeader = request.headers.get('Authorization');
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -15,32 +15,62 @@ export async function POST(request: Request) {
 
         const token = authHeader.split('Bearer ')[1];
         const decodedToken = await verifyIdToken(token);
+        const userId = decodedToken.uid;
 
         await connectDb();
-        const user = await User.findOne({ firebaseUid: decodedToken.uid });
 
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
-
-        // Check if code exists in user's redeemed coupons
-        const coupon = user.redeemedCoupons?.find((c: any) => c.code === code);
+        // Find coupon in Coupon collection
+        const coupon = await Coupon.findOne({ code: code.toUpperCase() });
 
         if (!coupon) {
             return NextResponse.json({ error: 'Invalid coupon code' }, { status: 400 });
         }
 
-        if (coupon.status !== 'available') {
-            return NextResponse.json({ error: 'Coupon already used' }, { status: 400 });
+        // Check if coupon is valid
+        if (!coupon.isValid()) {
+            if (!coupon.isActive) {
+                return NextResponse.json({ error: 'Coupon is inactive' }, { status: 400 });
+            }
+            if (new Date() > coupon.expiryDate) {
+                return NextResponse.json({ error: 'Coupon has expired' }, { status: 400 });
+            }
+            if (coupon.usedCount >= coupon.usageLimit) {
+                return NextResponse.json({ error: 'Coupon usage limit reached' }, { status: 400 });
+            }
         }
+
+        // Check if user can use this coupon
+        if (!coupon.canUserUse(userId)) {
+            const userUsage = coupon.usedBy.find((u: any) => u.userId === userId);
+            return NextResponse.json({
+                error: `You have already used this coupon ${userUsage?.usedCount || 0} time(s). Maximum usage per user is ${coupon.usagePerUser}.`
+            }, { status: 400 });
+        }
+
+        // Check minimum purchase amount
+        if (amount && amount < (coupon.minPurchaseAmount || 0)) {
+            return NextResponse.json({
+                error: `Minimum purchase amount of ₹${coupon.minPurchaseAmount} required`
+            }, { status: 400 });
+        }
+
+        // Calculate discount
+        const discount = amount ? coupon.calculateDiscount(amount) : 0;
 
         return NextResponse.json({
             valid: true,
-            discount: coupon.discountAmount || 10, // Default to 10 if not set, or calculated from points
-            type: 'fixed', // or percentage
+            discount,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
+            maxDiscount: coupon.maxDiscountAmount,
+            minPurchase: coupon.minPurchaseAmount,
             coupon: {
                 code: coupon.code,
-                name: coupon.name
+                name: coupon.name,
+                description: coupon.description,
+                expiryDate: coupon.expiryDate,
+                remainingUses: coupon.usageLimit - coupon.usedCount,
+                userRemainingUses: coupon.usagePerUser - (coupon.usedBy.find((u: any) => u.userId === userId)?.usedCount || 0)
             }
         });
 

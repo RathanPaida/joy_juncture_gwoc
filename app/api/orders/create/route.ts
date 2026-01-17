@@ -1,11 +1,22 @@
-// app/api/orders/create/route.ts - COMPLETE WITH CART CLEARING
+// app/api/orders/create/route.ts - UPDATED WITH NEW COUPON SYSTEM
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/mongodb";
 import { Order } from "@/models/Order";
 import { User, Transaction } from "@/models/User";
+import { Coupon } from "@/models/Coupon";
 import { verifyIdToken } from "@/lib/firebase-admin";
 import { MongoClient } from "mongodb";
 import { sendEmail } from "@/lib/mail";
+
+
+interface CartItem {
+  productId: string;
+  productName: string;
+  price: number;
+  quantity?: number;
+  productImage?: string;
+
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +45,13 @@ export async function POST(request: NextRequest) {
     const firebaseUid = decodedToken.uid;
 
     const { cartItems, shippingAddress, paymentMethod, total, couponCode } =
-      await request.json();
+      (await request.json()) as {
+        cartItems: CartItem[];
+        shippingAddress: any;
+        paymentMethod: string;
+        total: number;
+        couponCode?: string;
+      };
 
     if (!cartItems || !shippingAddress || !paymentMethod || !cartItems.length) {
       return NextResponse.json(
@@ -56,27 +73,63 @@ export async function POST(request: NextRequest) {
 
     // Validate Coupon if provided
     let discountAmount = 0;
-    if (couponCode) {
-      const coupon = user.redeemedCoupons?.find((c: any) => c.code === couponCode);
-      if (coupon && coupon.status === 'available') {
-        discountAmount = coupon.discountAmount || 10;
+    let appliedCoupon = null;
 
-        // Mark coupon as used
-        await User.updateOne(
-          { _id: user._id, "redeemedCoupons.code": couponCode },
-          {
-            $set: {
-              "redeemedCoupons.$.status": "used",
-              "redeemedCoupons.$.usedAt": new Date()
-            }
-          }
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
+
+      if (!coupon) {
+        return NextResponse.json(
+          { error: "Invalid coupon code" },
+          { status: 400 }
         );
-        console.log(`🎟️ Coupon ${couponCode} applied. Discount: ${discountAmount}`);
-      } else {
-        console.warn(`⚠️ Invalid or used coupon code: ${couponCode}`);
-        // We continue without discount if invalid, or return error? 
-        // Better to ignore invalid coupon to avoid blocking order, but ideally frontend handles this.
       }
+
+      if (!coupon.isValid()) {
+        if (!coupon.isActive) {
+          return NextResponse.json(
+            { error: "Coupon is inactive" },
+            { status: 400 }
+          );
+        }
+        if (new Date() > coupon.expiryDate) {
+          return NextResponse.json(
+            { error: "Coupon has expired" },
+            { status: 400 }
+          );
+        }
+        if (coupon.usedCount >= coupon.usageLimit) {
+          return NextResponse.json(
+            { error: "Coupon usage limit reached" },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (!coupon.canUserUse(firebaseUid)) {
+        return NextResponse.json(
+          { error: "You have already used this coupon the maximum number of times" },
+          { status: 400 }
+        );
+      }
+
+      // Calculate subtotal
+      const subtotal = cartItems.reduce(
+        (sum, item) => sum + item.price * (item.quantity || 1),
+        0
+      );
+
+      if (subtotal < (coupon.minPurchaseAmount || 0)) {
+        return NextResponse.json(
+          { error: `Minimum purchase amount of ₹${coupon.minPurchaseAmount} required` },
+          { status: 400 }
+        );
+      }
+
+      discountAmount = coupon.calculateDiscount(subtotal);
+      appliedCoupon = coupon;
+
+      console.log(`🎟️ Coupon ${couponCode} applied. Discount: ₹${discountAmount}`);
     }
 
     console.log("📦 Creating orders for", cartItems.length, "items");
@@ -84,19 +137,11 @@ export async function POST(request: NextRequest) {
     const orders = [];
     const itemCount = cartItems.length;
 
-    // Distributed discount logic: Pro-rate discount across items or apply to first?
-    // For simplicity, we apply discount to the first item (or just track it on the total order logic if we were creating a single Order document).
-    // BUT this system creates MULTIPLE Order documents (one per item).
-    // This is a bad design for "Orders" usually (Order normally contains multiple Items), but I must follow existing pattern.
-    // If we have multiple orders, how do we apply a single flat discount?
-    // We should probably split the discount across orders or apply to the first one.
-    // Let's divide discount by number of items to distribute it safely.
-
+    // Distribute discount across items
     const discountPerItem = discountAmount > 0 ? (discountAmount / itemCount) : 0;
 
     for (const item of cartItems) {
       const itemTotal = item.price * (item.quantity || 1);
-      // Ensure specific order total doesn't go below 0
       const orderTotalWithDiscount = Math.max(0, itemTotal - discountPerItem);
 
       const orderData = {
@@ -122,8 +167,9 @@ export async function POST(request: NextRequest) {
         subtotal: itemTotal,
         shipping: 0,
         tax: 0,
-        discount: discountPerItem, // Track discount per order
-        couponCode: couponCode || null,
+        discount: discountPerItem,
+        couponCode: appliedCoupon ? appliedCoupon.code : null,
+        couponId: appliedCoupon ? appliedCoupon._id : null,
         trackingNumber: `${paymentMethod === "cod" ? "COD" : "ORD"}-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`,
         purchaseDate: new Date(),
         paidAt: paymentMethod === "cod" ? null : new Date(),
@@ -134,13 +180,17 @@ export async function POST(request: NextRequest) {
       console.log("✅ Order created:", order._id);
     }
 
-    // Recalculate total Paid for transaction and points
+    // Record coupon usage
+    if (appliedCoupon) {
+      await appliedCoupon.recordUsage(firebaseUid);
+      console.log(`✅ Coupon usage recorded for ${firebaseUid}`);
+    }
+
+    // Calculate final total
     const totalAmount = orders.reduce(
       (sum, order) => sum + order.totalAmount,
       0,
     );
-
-    // ... rest of the code for points and transaction logging ...
 
     console.log("💰 Total amount (after discount):", totalAmount);
 
@@ -173,7 +223,8 @@ export async function POST(request: NextRequest) {
             purchaseAmount: totalAmount,
             itemCount: orders.length,
             paymentMethod: paymentMethod,
-            couponCode: couponCode || null
+            couponCode: appliedCoupon ? appliedCoupon.code : null,
+            discountApplied: discountAmount
           },
           balanceAfter: userUpdate?.totalPoints || 0,
           status: "completed",
@@ -184,14 +235,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 🎯 CLEAR THE CART AFTER SUCCESSFUL ORDER CREATION (FOR COD)
+    // Clear cart
     console.log("\n========================================");
     console.log("🧹 ATTEMPTING TO CLEAR CART");
     console.log("========================================");
-    console.log("FirebaseUid:", firebaseUid);
 
     try {
-      // Use the same MongoDB connection as the cart API
       const cartClient = new MongoClient(process.env.MONGODB_URI!);
       await cartClient.connect();
 
@@ -199,54 +248,30 @@ export async function POST(request: NextRequest) {
         const db = cartClient.db("joyjuncture");
         const cartCollection = db.collection("cart");
 
-        // Find all cart items for this user
         const existingItems = await cartCollection.find({ userId: firebaseUid }).toArray();
-
         console.log("📦 Cart items found:", existingItems.length);
 
-        if (existingItems.length > 0) {
-          console.log("📦 Items to delete:");
-          existingItems.forEach((item: any, index: number) => {
-            console.log(`   ${index + 1}. ${item.productName} (${item.quantity}x)`);
-          });
-        }
-
-        // Delete all cart items
         const cartDeleteResult = await cartCollection.deleteMany({ userId: firebaseUid });
-
         console.log("🗑️ Delete result:", {
           acknowledged: cartDeleteResult.acknowledged,
           deletedCount: cartDeleteResult.deletedCount
         });
 
-        // Verify deletion
         const verifyItems = await cartCollection.find({ userId: firebaseUid }).toArray();
         console.log("✅ Remaining items after delete:", verifyItems.length);
 
         if (verifyItems.length === 0) {
           console.log("🎉 CART SUCCESSFULLY DELETED!");
-        } else {
-          console.error("❌ CART ITEMS STILL EXIST AFTER DELETE!");
         }
       } finally {
         await cartClient.close();
       }
-
-      console.log("========================================\n");
     } catch (cartError: any) {
-      console.error("\n========================================");
-      console.error("❌ CART DELETION ERROR");
-      console.error("========================================");
-      console.error("Error:", cartError.message);
-      console.error("Stack:", cartError.stack);
-      console.error("========================================\n");
-      // Don't fail the order if cart clearing fails
+      console.error("❌ CART DELETION ERROR:", cartError.message);
     }
 
-    // Send Order Confirmation Email
+    // Send email
     const userEmail = user.email;
-    console.log(`📧 Attempting to send order email to: ${userEmail}`);
-
     if (userEmail) {
       const orderListHtml = orders.map(o => `
         <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
@@ -266,6 +291,7 @@ export async function POST(request: NextRequest) {
                <h3>Order Summary</h3>
                ${orderListHtml}
                <hr style="border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+               ${discountAmount > 0 ? `<p><strong>Coupon Discount:</strong> -₹${discountAmount.toFixed(2)}</p>` : ''}
                <p><strong>Total Paid:</strong> ₹${totalAmount}</p>
                <p><strong>Joy Points Earned:</strong> ${joyPoints}</p>
             </div>
@@ -274,8 +300,6 @@ export async function POST(request: NextRequest) {
           </div>
         `
       });
-    } else {
-      console.warn("⚠️ No email found for user, skipping order confirmation email.");
     }
 
     return NextResponse.json({
@@ -284,6 +308,7 @@ export async function POST(request: NextRequest) {
       ordersCreated: orders.length,
       joyPointsEarned: joyPoints,
       totalAmount: totalAmount,
+      discountApplied: discountAmount,
       cartCleared: true,
       message: `Order placed successfully! You earned ${joyPoints} Joy Points.`,
     });
