@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { checkAdminAccess } from "@/lib/admin-middleware";
@@ -145,8 +146,8 @@ export async function POST(req: NextRequest) {
           : [],
         photography: Array.isArray(body.includes?.photography)
           ? body.includes.photography.filter(
-              (item: string) => item.trim() !== "",
-            )
+            (item: string) => item.trim() !== "",
+          )
           : [],
         games: Array.isArray(body.includes?.games)
           ? body.includes.games.filter((item: string) => item.trim() !== "")
@@ -264,8 +265,8 @@ export async function PUT(req: NextRequest) {
           : existingPackage.includes.sound,
         photography: Array.isArray(data.includes.photography)
           ? data.includes.photography.filter(
-              (item: string) => item.trim() !== "",
-            )
+            (item: string) => item.trim() !== "",
+          )
           : existingPackage.includes.photography,
         games: Array.isArray(data.includes.games)
           ? data.includes.games.filter((item: string) => item.trim() !== "")
