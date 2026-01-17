@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Timer, RefreshCw, Trophy, Gamepad2, Lock, Coins, AlertCircle } from "lucide-react";
+import { Timer, RefreshCw, Trophy, Gamepad2, Lock, Coins } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { getAuth } from "firebase/auth";
@@ -10,7 +10,7 @@ import "./memory-game.css";
 interface User {
   _id: string;
   name: string;
-  userPoints: number;
+  totalPoints: number;
   gamesPlayed?: Array<{
     gameId: string;
     gameName: string;
@@ -60,13 +60,14 @@ export default function MemoryGame() {
 
   const CARD_BACK = "https://res.cloudinary.com/dwvb2cgmq/image/upload/v1767973882/50a5ca49-d3e1-4441-89dd-4cfd1177c9b5.png";
 
+  // ========== HELPER FUNCTIONS ==========
+  
   const hasPlayedToday = (user: User | null, gameId: string): boolean => {
     if (!user || !user.gamesPlayed) return false;
 
     const now = new Date();
     const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-    // Check ALL records for this game, not just the first one found
     return user.gamesPlayed.some((game) => {
       if (game.gameId !== gameId) return false;
 
@@ -84,7 +85,6 @@ export default function MemoryGame() {
   const getNextPlayTime = (user: User | null, gameId: string): string => {
     if (!user || !user.gamesPlayed) return "Play Now";
 
-    // Find the LATEST play record for this game
     const gameRecords = user.gamesPlayed
       .filter((game) => game.gameId === gameId)
       .sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
@@ -105,7 +105,6 @@ export default function MemoryGame() {
       new Date().getUTCDate()
     ));
 
-    // If played today (or in future??), calculate time until tomorrow
     if (playedUTC.getTime() >= todayUTC.getTime()) {
       const tomorrowUTC = new Date(playedUTC);
       tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
@@ -158,6 +157,8 @@ export default function MemoryGame() {
     }
   }, []);
 
+  // ========== AUTH & INITIALIZATION ==========
+  
   useEffect(() => {
     if (authLoading) return;
     if (!authUser) {
@@ -194,19 +195,30 @@ export default function MemoryGame() {
     }
   }, [canPlay, user]);
 
+  // ========== FETCH GAMES ==========
+  
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const res = await fetch("/api/games/public");
+        const res = await fetch("/api/game-images");
         const data = await res.json();
-        if (data.success) setGames(data.data);
+        if (data.success && data.data) {
+          const formattedGames = data.data.map((gameImage: any) => ({
+            id: gameImage._id?.toString() || Math.random().toString(36).substr(2, 9),
+            name: gameImage.name || 'Unnamed Image',
+            imageUrl: gameImage.imageUrl || 'https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=600&h=400&fit=crop',
+          }));
+          setGames(formattedGames);
+        }
       } catch (error) {
-        console.error("Error fetching games:", error);
+        console.error("Error fetching game images:", error);
       }
     };
     fetchGames();
   }, []);
 
+  // ========== GAME LOGIC ==========
+  
   const initializeGame = useCallback(() => {
     if (games.length === 0 || !canPlay) return;
 
@@ -262,12 +274,16 @@ export default function MemoryGame() {
     }
   };
 
+  // ========== TIMER ==========
+  
   useEffect(() => {
     if (!gameStarted || gameCompleted) return;
     const timer = setInterval(() => setTime((t) => t + 1), 1000);
     return () => clearInterval(timer);
   }, [gameStarted, gameCompleted]);
 
+  // ========== COINS CALCULATION ==========
+  
   const calculateCoins = () => {
     const timeBonus = Math.max(0, Math.floor((120 - time) / 5));
     const movesBonus = Math.max(0, 20 - Math.floor(moves / 4));
@@ -275,6 +291,8 @@ export default function MemoryGame() {
     return totalCoins;
   };
 
+  // ========== FINISH GAME ==========
+  
   const finishGame = async () => {
     setGameCompleted(true);
     const coins = calculateCoins();
@@ -313,7 +331,7 @@ export default function MemoryGame() {
 
       if (!markPlayedResponse.ok) {
         if (responseData.error?.includes("Game already played") ||
-          responseData.error?.includes("once per day")) {
+            responseData.error?.includes("once per day")) {
           setGameMessage("🚫 You have already played this game today! Come back tomorrow.");
           setCanPlay(false);
           const tempUser = {
@@ -338,7 +356,6 @@ export default function MemoryGame() {
       }
 
       if (responseData.success) {
-        // Update local user state immediately with new game record
         const newGameRecord = {
           gameId: MEMORY_GAME_ID,
           gameName: MEMORY_GAME_NAME,
@@ -350,7 +367,7 @@ export default function MemoryGame() {
 
         const updatedUser = user ? {
           ...user,
-          userPoints: responseData.userPoints || user.userPoints,
+          totalPoints: responseData.totalPoints || user.totalPoints,
           gamesPlayed: [...(user.gamesPlayed || []), newGameRecord]
         } : null;
 
@@ -359,7 +376,6 @@ export default function MemoryGame() {
           setNextPlayTime(getNextPlayTime(updatedUser, MEMORY_GAME_ID));
         }
 
-        setCanPlay(false);
         setCanPlay(false);
         setGameMessage(`🎉 Congratulations! You completed the game in ${moves} moves and earned ${coins} coins!`);
       }
@@ -370,6 +386,8 @@ export default function MemoryGame() {
     }
   };
 
+  // ========== LOADING STATES ==========
+  
   if (authLoading) {
     return (
       <div className="memory-loading-screen">
@@ -394,55 +412,46 @@ export default function MemoryGame() {
     );
   }
 
+  // ========== ALREADY PLAYED VIEW ==========
+  
   if (!canPlay && !gameStarted) {
     return (
       <div className="memory-game-container">
-        <div className="memory-game-wrapper">
-          <header className="memory-game-header">
-            <div className="memory-header-card">
-              <div className="memory-header-content">
-                <div>
-                  <h1 className="memory-game-title">
-                    <Gamepad2 className="memory-title-icon" />
-                    Memory Challenge
-                  </h1>
-                  <p className="memory-welcome-message">
-                    Welcome, <span className="memory-username">{user.name}</span>!
-                  </p>
-                </div>
-                <div className="memory-user-coins">
-                  <div className="memory-coins-display">
-                    <Coins className="memory-coins-icon" />
-                    <span className="memory-coins-value">{user.userPoints}</span>
-                  </div>
-                  <div className="memory-coins-label">Total Coins</div>
-                </div>
-              </div>
+        <div className="memory-user-info">
+          <div className="memory-user-header">
+            <div>
+              <h1 className="memory-game-title">Memory Challenge</h1>
+              <p className="memory-welcome-message">
+                Welcome, <span className="memory-username">{user.name}</span>!
+              </p>
             </div>
-          </header>
+            <div className="memory-user-coins">
+              <div className="memory-coins-value">{user.totalPoints}</div>
+              <div className="memory-coins-label">Total Coins</div>
+            </div>
+          </div>
+        </div>
 
-          <div className="memory-already-played">
-            <div className="memory-locked-card">
-              <Lock className="memory-lock-icon" />
-              <h2 className="memory-locked-title">Game Already Played Today</h2>
-              <p className="memory-locked-message">
-                {gameMessage || "🚫 You have already played Memory Game today!"}
-              </p>
-              <div className="memory-next-play">
-                <div className="memory-next-play-label">Next available in:</div>
-                <div className="memory-next-play-time">{nextPlayTime || "Calculating..."}</div>
-              </div>
-              <p className="memory-locked-hint">
-                Come back tomorrow for another challenge!
-              </p>
-              <button
-                onClick={() => router.push("/zone")}
-                className="memory-button memory-button-primary"
-              >
-                <Gamepad2 className="memory-button-icon" />
-                Return to Game Zone
-              </button>
+        <div className="memory-already-played">
+          <div className="memory-locked-card">
+            <Lock className="memory-lock-icon" />
+            <h2 className="memory-locked-title">Game Already Played Today</h2>
+            <p className="memory-locked-message">
+              {gameMessage || "🚫 You have already played Memory Game today!"}
+            </p>
+            <div className="memory-next-play">
+              <div className="memory-next-play-label">Next available in:</div>
+              <div className="memory-next-play-time">{nextPlayTime || "Calculating..."}</div>
             </div>
+            <p className="memory-locked-hint">
+              Come back tomorrow for another challenge!
+            </p>
+            <button
+              onClick={() => router.push("/zone")}
+              className="memory-button"
+            >
+              Return to Game Zone
+            </button>
           </div>
         </div>
       </div>
@@ -457,151 +466,148 @@ export default function MemoryGame() {
     );
   }
 
+  // ========== MAIN GAME VIEW ==========
+  
   return (
     <div className="memory-game-container">
-      <div className="memory-game-wrapper">
-        <header className="memory-game-header">
-          <div className="memory-header-card">
-            <div className="memory-header-content">
-              <div>
-                <h1 className="memory-game-title">
-                  <Gamepad2 className="memory-title-icon" />
-                  Memory Challenge
-                </h1>
-                <p className="memory-welcome-message">
-                  Welcome, <span className="memory-username">{user.name}</span>! Find matching pairs to earn coins.
-                </p>
-              </div>
-              <div className="memory-user-coins">
-                <div className="memory-coins-display">
-                  <Coins className="memory-coins-icon" />
-                  <span className="memory-coins-value">{user.userPoints}</span>
-                </div>
-                <div className="memory-coins-label">Total Coins</div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <div className="memory-stats-container">
-          <div className="memory-stats-grid">
-            <div className="memory-stat-card">
-              <Timer className="memory-stat-icon" />
-              <div className="memory-stat-label">Time</div>
-              <div className="memory-stat-value">{time}s</div>
-            </div>
-
-            <div className="memory-stat-card">
-              <RefreshCw className="memory-stat-icon" />
-              <div className="memory-stat-label">Moves</div>
-              <div className="memory-stat-value">{moves}</div>
-            </div>
-
-            <div className="memory-stat-card">
-              <Trophy className="memory-stat-icon" />
-              <div className="memory-stat-label">Matches</div>
-              <div className="memory-stat-value">{matched.length}/{TOTAL_PAIRS}</div>
-            </div>
-
-            <div className="memory-stat-card">
-              <Gamepad2 className="memory-stat-icon" />
-              <div className="memory-stat-label">Cards</div>
-              <div className="memory-stat-value">{TOTAL_CARDS}</div>
-            </div>
-          </div>
-
-          {gameMessage && (
-            <div className="memory-message">
-              <div className={`memory-message-card ${gameMessage.includes('🎉') ? 'success' : gameMessage.includes('🚫') ? 'error' : 'info'}`}>
-                {gameMessage}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="memory-board-container">
-          <div className="memory-board">
-            {cards.map((card, index) => {
-              const isFlipped = flipped.includes(index) || matched.includes(card.pairId);
-              return (
-                <button
-                  key={card.id}
-                  onClick={() => handleCardClick(index)}
-                  className={`memory-card ${isFlipped ? 'memory-card-flipped' : ''}`}
-                  disabled={isFlipped || gameCompleted}
-                >
-                  <div className="memory-card-front">
-                    <img
-                      src={card.imageUrl}
-                      alt={card.name}
-                      className="memory-card-image"
-                    />
-                  </div>
-                  <div className="memory-card-back">
-                    <img
-                      src={CARD_BACK}
-                      alt="Card back"
-                      className="memory-card-back-image"
-                    />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="memory-controls">
-          <button
-            onClick={initializeGame}
-            className="memory-button memory-button-restart"
-          >
-            <RefreshCw className="memory-button-icon" />
-            Restart Game
-          </button>
-        </div>
-
-        {gameCompleted && (
-          <div className="memory-game-over">
-            <div className="memory-completion-card">
-              <h3>🎉 Memory Challenge Complete!</h3>
-              <p>Time: {time}s • Moves: {moves}</p>
-              <div className="memory-coins-earned">
-                +{earnedCoins} coins earned!
-              </div>
-              <div className="memory-total-coins">
-                Total coins: <span>{user.userPoints || 0}</span>
-              </div>
-
-              {gameMessage && (
-                <div className="memory-game-status">
-                  <p>{gameMessage}</p>
-                </div>
-              )}
-
-              <div className="memory-next-play-info">
-                <p>Come back tomorrow to play again!</p>
-                <p className="memory-next-play-hint">
-                  Next play available: {nextPlayTime}
-                </p>
-              </div>
-              <button
-                onClick={() => router.push("/zone")}
-                className="memory-button memory-button-primary"
-              >
-                Return to Game Zone
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!gameStarted && (
-          <div className="memory-instructions">
-            <p className="memory-instructions-text">
-              💡 <strong>How to play:</strong> Click on cards to flip them and find matching pairs. Complete all {TOTAL_PAIRS} pairs to win!
+      {/* User Info Header */}
+      <div className="memory-user-info">
+        <div className="memory-user-header">
+          <div>
+            <h1 className="memory-game-title">Memory Challenge</h1>
+            <p className="memory-welcome-message">
+              Welcome, <span className="memory-username">{user.name}</span>! Find matching pairs to earn coins.
             </p>
           </div>
-        )}
+          <div className="memory-user-coins">
+            <div className="memory-coins-value">{user.totalPoints}</div>
+            <div className="memory-coins-label">Total Coins</div>
+          </div>
+        </div>
       </div>
+
+      {/* Stats Grid */}
+      <div className="memory-stats-grid">
+        <StatCard
+          icon={<Timer className="memory-stat-icon" />}
+          value={`${time}s`}
+          label="Time"
+        />
+        <StatCard
+          icon={<RefreshCw className="memory-stat-icon" />}
+          value={moves}
+          label="Moves"
+        />
+        <StatCard
+          icon={<Trophy className="memory-stat-icon" />}
+          value={`${matched.length}/${TOTAL_PAIRS}`}
+          label="Matches"
+        />
+        <StatCard
+          icon={<Gamepad2 className="memory-stat-icon" />}
+          value={TOTAL_CARDS}
+          label="Cards"
+        />
+      </div>
+
+      {/* Game Messages */}
+      {gameMessage && (
+        <div className="memory-game-message">
+          <div className={`memory-message-card ${gameMessage.includes('🎉') ? 'success' : gameMessage.includes('🚫') ? 'error' : 'info'}`}>
+            {gameMessage}
+          </div>
+        </div>
+      )}
+
+      {/* Game Board */}
+      <div className="memory-board">
+        {cards.map((card, index) => {
+          const isFlipped = flipped.includes(index) || matched.includes(card.pairId);
+          return (
+            <button
+              key={card.id}
+              onClick={() => handleCardClick(index)}
+              className={`memory-card ${isFlipped ? 'memory-card-open' : ''} ${gameCompleted ? 'memory-card-game-over' : ''}`}
+              disabled={isFlipped || gameCompleted}
+            >
+              <img
+                src={isFlipped ? card.imageUrl : CARD_BACK}
+                alt={isFlipped ? card.name : "Card back"}
+                className="memory-card-image"
+              />
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Controls */}
+      <div className="memory-controls">
+        <button
+          onClick={initializeGame}
+          className="memory-button"
+        >
+          <RefreshCw className="memory-button-icon" />
+          Restart Game
+        </button>
+      </div>
+
+      {/* Game Completed Overlay */}
+      {gameCompleted && (
+        <div className="memory-game-over">
+          <div className="memory-completion-card">
+            <div className="memory-completion-title">🎉 Congratulations!</div>
+            <div className="memory-completion-text">
+              Completed in {time}s with {moves} moves!
+            </div>
+            <div className="memory-coins-earned">
+              +{earnedCoins} coins earned!
+            </div>
+            <div className="memory-total-coins">
+              Total coins: <span className="memory-total-coins-value">{user.totalPoints || 0}</span>
+            </div>
+
+            {gameMessage && (
+              <div className="memory-game-status">
+                <p>{gameMessage}</p>
+              </div>
+            )}
+
+            <div className="memory-next-play-info">
+              <p>Come back tomorrow to play again!</p>
+              <p className="memory-next-play-hint">
+                Next play available: {nextPlayTime}
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/zone")}
+              className="memory-button"
+            >
+              Return to Game Zone
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Instructions */}
+      {!gameStarted && (
+        <div className="memory-instructions">
+          <p className="memory-instructions-text">
+            💡 <strong>How to play:</strong> Click on cards to flip them and find matching pairs. Complete all {TOTAL_PAIRS} pairs to win!
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ========== STAT CARD COMPONENT ==========
+
+function StatCard({ icon, value, label }: { icon?: React.ReactNode; value: string | number; label: string }) {
+  return (
+    <div className="memory-stat-card">
+      <div className="memory-stat-icon-container">{icon}</div>
+      <div className="memory-stat-value">{value}</div>
+      <div className="memory-stat-label">{label}</div>
     </div>
   );
 }

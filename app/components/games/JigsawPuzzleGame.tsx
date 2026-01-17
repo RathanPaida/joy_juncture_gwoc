@@ -237,38 +237,41 @@ export default function JigsawPuzzleGame() {
     }
   }, [canPlay, user]);
 
-  const fetchGames = async () => {
-    if (gamesFetched.current) return;
+  // Only showing the updated fetchGames function - replace in your jigsaw-puzzle-game.tsx
 
-    try {
-      console.log("Fetching games...");
-      const response = await fetch('/api/games/public');
-      if (!response.ok) return;
+const fetchGames = async () => {
+  if (gamesFetched.current) return;
 
-      const data = await response.json();
-      if (data.success && data.data && data.data.length > 0) {
-        const formattedGames = data.data.map((game: any) => ({
-          id: game.id?.toString() || Math.random().toString(36).substr(2, 9),
-          name: game.name || 'Unnamed Game',
-          imageUrl: game.imageUrl || game.image || 'https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=600&h=400&fit=crop',
-          category: Array.isArray(game.category) ? game.category : [game.category || ''],
-          players: game.players || '2-4',
-          duration: game.duration || '30-60 min'
-        }));
+  try {
+    console.log("Fetching game images...");
+    // CHANGED: Using new game-images endpoint instead of games/public
+    const response = await fetch('/api/game-images');
+    if (!response.ok) return;
 
-        setGames(formattedGames);
-        gamesFetched.current = true;
+    const data = await response.json();
+    if (data.success && data.data && data.data.length > 0) {
+      const formattedGames = data.data.map((gameImage: any) => ({
+        id: gameImage._id?.toString() || Math.random().toString(36).substr(2, 9),
+        name: gameImage.name || 'Unnamed Image',
+        imageUrl: gameImage.imageUrl || 'https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=600&h=400&fit=crop',
+        category: [gameImage.category || 'general'],
+        players: '1',
+        duration: '5-15 min'
+      }));
 
-        if (formattedGames.length > 0) {
-          const randomGame = formattedGames[Math.floor(Math.random() * formattedGames.length)];
-          setCurrentGame(randomGame);
-          console.log("Set current game:", randomGame.name);
-        }
+      setGames(formattedGames);
+      gamesFetched.current = true;
+
+      if (formattedGames.length > 0) {
+        const randomGame = formattedGames[Math.floor(Math.random() * formattedGames.length)];
+        setCurrentGame(randomGame);
+        console.log("Set current game:", randomGame.name);
       }
-    } catch (err) {
-      console.error('Error fetching games:', err);
     }
-  };
+  } catch (err) {
+    console.error('Error fetching game images:', err);
+  }
+};
 
   const getPieceBackgroundPosition = (row: number, col: number): string => {
     const xPercent = (col / (COLS - 1)) * 100;

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Gamepad2, Coins, Trophy, RefreshCw,
-  Zap, Lock, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  Clock, TrendingUp, AlertCircle
+  Gamepad2, Trophy, RefreshCw,
+  Zap, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
+  Clock, Gauge, Crown
 } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -14,34 +14,24 @@ import "./snake-game.css";
 interface User {
   _id: string;
   name: string;
-  userPoints: number;
-  gamesPlayed?: Array<{
-    gameId: string;
-    gameName: string;
-    playedAt: Date;
-    score?: number;
-    pointsEarned: number;
-    completed: boolean;
-  }>;
+  snakeHighScores?: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
 }
 
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 type GameStatus = 'playing' | 'paused' | 'game-over' | 'not-started';
+type Difficulty = 'easy' | 'medium' | 'hard';
 
-const SNAKE_GAME_ID = "snake";
-const SNAKE_GAME_NAME = "Snake Challenge";
-const BASE_COINS = 5;
 const GRID_SIZE = 20;
-const INITIAL_SPEED = 150;
 
 export default function SnakeGame() {
   const router = useRouter();
   const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [canPlay, setCanPlay] = useState(true);
-  const [nextPlayTime, setNextPlayTime] = useState("");
-  const [gameMessage, setGameMessage] = useState("");
 
   // Game state
   const [snake, setSnake] = useState([{ x: 10, y: 10 }]);
@@ -50,84 +40,88 @@ export default function SnakeGame() {
   const [gameStatus, setGameStatus] = useState<GameStatus>('not-started');
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
-  const [speed, setSpeed] = useState(INITIAL_SPEED);
   const [time, setTime] = useState(0);
-  const [earnedCoins, setEarnedCoins] = useState(0);
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [speed, setSpeed] = useState(150);
+  const [gameMode, setGameMode] = useState<'classic' | 'walls'>('classic');
+  const [isNewHighScore, setIsNewHighScore] = useState(false);
+  const [dataTimestamp, setDataTimestamp] = useState<string>(''); // NEW: Track data freshness
 
   // Refs
   const directionRef = useRef<Direction>('RIGHT');
   const gameStatusRef = useRef<GameStatus>('not-started');
   const snakeRef = useRef([{ x: 10, y: 10 }]);
   const foodRef = useRef({ x: 5, y: 5 });
+  const scoreRef = useRef(0);
+  const highScoreRef = useRef(0);
+  const isNewHighScoreRef = useRef(false);
 
-  // Check if user has already played a game TODAY (using UTC)
-  const hasPlayedToday = (user: User | null, gameId: string): boolean => {
-    if (!user || !user.gamesPlayed) return false;
-
-    const now = new Date();
-    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
-    // Check ALL records for this game, not just the first one found
-    return user.gamesPlayed.some((game) => {
-      if (game.gameId !== gameId) return false;
-
-      const playedDate = new Date(game.playedAt);
-      const playedUTC = new Date(Date.UTC(
-        playedDate.getUTCFullYear(),
-        playedDate.getUTCMonth(),
-        playedDate.getUTCDate()
-      ));
-
-      return playedUTC.getTime() === todayUTC.getTime();
-    });
-  };
-
-  const getNextPlayTime = (user: User | null, gameId: string): string => {
-    if (!user || !user.gamesPlayed) return "Play Now";
-
-    // Find the LATEST play record for this game
-    const gameRecords = user.gamesPlayed
-      .filter((game) => game.gameId === gameId)
-      .sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
-
-    if (gameRecords.length === 0) return "Play Now";
-
-    const lastPlayed = gameRecords[0];
-    const playedDate = new Date(lastPlayed.playedAt);
-    const playedUTC = new Date(Date.UTC(
-      playedDate.getUTCFullYear(),
-      playedDate.getUTCMonth(),
-      playedDate.getUTCDate()
-    ));
-
-    const todayUTC = new Date(Date.UTC(
-      new Date().getUTCFullYear(),
-      new Date().getUTCMonth(),
-      new Date().getUTCDate()
-    ));
-
-    // If played today (or in future??), calculate time until tomorrow
-    if (playedUTC.getTime() >= todayUTC.getTime()) {
-      const tomorrowUTC = new Date(playedUTC);
-      tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
-
-      const nowUTC = new Date();
-      const diff = tomorrowUTC.getTime() - nowUTC.getTime();
-
-      if (diff <= 0) return "Play Now";
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-      if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-      } else {
-        return `${minutes}m`;
-      }
+  // Get token helper
+  const getIdToken = async (): Promise<string | null> => {
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) return null;
+      return await currentUser.getIdToken();
+    } catch (error) {
+      console.error("Error getting ID token:", error);
+      return null;
     }
-
-    return "Play Now";
   };
+
+  // FIXED: Fetch user data with cache busting
+  const fetchUserData = useCallback(async (forceRefresh = false) => {
+    try {
+      const token = await getIdToken();
+      if (!token) return null;
+
+      console.log("🔄 Fetching user data...");
+
+      // Add cache busting to prevent stale data
+      const url = forceRefresh
+        ? `/api/user/me?t=${Date.now()}`
+        : '/api/user/me';
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          console.log("✅ User data received:", {
+            name: data.user.name,
+            scores: data.user.snakeHighScores,
+            timestamp: data.timestamp || 'no timestamp'
+          });
+
+          setUser(data.user);
+
+          // Update high score for current difficulty
+          if (data.user.snakeHighScores) {
+            const scoreForDifficulty = data.user.snakeHighScores[difficulty] || 0;
+            setHighScore(scoreForDifficulty);
+            highScoreRef.current = scoreForDifficulty;
+            setIsNewHighScore(false);
+            isNewHighScoreRef.current = false;
+          } else {
+            setHighScore(0);
+            highScoreRef.current = 0;
+          }
+
+          setDataTimestamp(data.timestamp || new Date().toISOString());
+          return data.user;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      return null;
+    }
+  }, [difficulty]);
 
   // Authentication and user data
   useEffect(() => {
@@ -138,42 +132,24 @@ export default function SnakeGame() {
     }
 
     const initUser = async () => {
-      try {
-        const token = await getAuth().currentUser?.getIdToken();
-        if (!token) return;
-
-        const res = await fetch("/api/user/me", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            setUser(data.user);
-            const playedToday = hasPlayedToday(data.user, SNAKE_GAME_ID);
-            setCanPlay(!playedToday);
-
-            if (playedToday) {
-              setNextPlayTime(getNextPlayTime(data.user, SNAKE_GAME_ID));
-              setGameMessage("🚫 You have already played Snake today!");
-            }
-
-            // Load high score from localStorage
-            const savedHighScore = localStorage.getItem('snakeHighScore');
-            if (savedHighScore) {
-              setHighScore(parseInt(savedHighScore));
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user:", error);
-      } finally {
-        setLoading(false);
-      }
+      await fetchUserData(true); // Force refresh on initial load
+      setLoading(false);
     };
 
     initUser();
-  }, [authUser, authLoading, router]);
+  }, [authUser, authLoading, router, fetchUserData]);
+
+  // Update high score when difficulty changes
+  useEffect(() => {
+    if (user?.snakeHighScores) {
+      const scoreForDifficulty = user.snakeHighScores[difficulty] || 0;
+      console.log(`🔄 Difficulty changed to ${difficulty}: high score = ${scoreForDifficulty}`);
+      setHighScore(scoreForDifficulty);
+      highScoreRef.current = scoreForDifficulty;
+      setIsNewHighScore(false);
+      isNewHighScoreRef.current = false;
+    }
+  }, [difficulty, user]);
 
   // Update refs when state changes
   useEffect(() => {
@@ -181,16 +157,43 @@ export default function SnakeGame() {
     gameStatusRef.current = gameStatus;
     snakeRef.current = snake;
     foodRef.current = food;
-  }, [direction, gameStatus, snake, food]);
+    scoreRef.current = score;
+    highScoreRef.current = highScore;
+    isNewHighScoreRef.current = isNewHighScore;
+  }, [direction, gameStatus, snake, food, score, highScore, isNewHighScore]);
+
+  // Set speed based on difficulty
+  useEffect(() => {
+    switch (difficulty) {
+      case 'easy':
+        setSpeed(200);
+        break;
+      case 'medium':
+        setSpeed(150);
+        break;
+      case 'hard':
+        setSpeed(100);
+        break;
+    }
+  }, [difficulty]);
 
   // Generate random food
   const generateFood = useCallback(() => {
     let newFood;
+    let attempts = 0;
+    const maxAttempts = 100;
+
     do {
       newFood = {
         x: Math.floor(Math.random() * GRID_SIZE),
         y: Math.floor(Math.random() * GRID_SIZE)
       };
+      attempts++;
+
+      if (attempts > maxAttempts) {
+        newFood = { x: 5, y: 5 };
+        break;
+      }
     } while (snakeRef.current.some(segment =>
       segment.x === newFood.x && segment.y === newFood.y
     ));
@@ -228,30 +231,39 @@ export default function SnakeGame() {
 
       switch (e.key) {
         case 'ArrowUp':
+        case 'w':
+        case 'W':
           if (directionRef.current !== 'DOWN') {
             setDirection('UP');
             directionRef.current = 'UP';
           }
           break;
         case 'ArrowDown':
+        case 's':
+        case 'S':
           if (directionRef.current !== 'UP') {
             setDirection('DOWN');
             directionRef.current = 'DOWN';
           }
           break;
         case 'ArrowLeft':
+        case 'a':
+        case 'A':
           if (directionRef.current !== 'RIGHT') {
             setDirection('LEFT');
             directionRef.current = 'LEFT';
           }
           break;
         case 'ArrowRight':
+        case 'd':
+        case 'D':
           if (directionRef.current !== 'LEFT') {
             setDirection('RIGHT');
             directionRef.current = 'RIGHT';
           }
           break;
         case ' ':
+        case 'Escape':
           togglePause();
           break;
       }
@@ -260,6 +272,44 @@ export default function SnakeGame() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // FIXED: Save high score to backend with proper refresh
+  const saveHighScore = async (score: number) => {
+    try {
+      const token = await getIdToken();
+      if (!token || !user) return false;
+
+      console.log(`📤 Saving high score: ${score} for ${difficulty}`);
+
+      const response = await fetch("/api/user/snake-high-score", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: user._id,
+          difficulty: difficulty,
+          score: score
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // IMPORTANT: Force refresh user data after save to ensure sync
+        await fetchUserData(true);
+
+        return true;
+      } else {
+        console.error("❌ Failed to save high score:", data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error("❌ Error saving high score:", error);
+      return false;
+    }
+  };
 
   // Move snake
   const moveSnake = () => {
@@ -283,13 +333,21 @@ export default function SnakeGame() {
         break;
     }
 
-    // Check wall collision
-    if (
-      head.x < 0 || head.x >= GRID_SIZE ||
-      head.y < 0 || head.y >= GRID_SIZE
-    ) {
-      endGame();
-      return;
+    // Check wall collision (if walls mode is enabled)
+    if (gameMode === 'walls') {
+      if (
+        head.x < 0 || head.x >= GRID_SIZE ||
+        head.y < 0 || head.y >= GRID_SIZE
+      ) {
+        endGame();
+        return;
+      }
+    } else {
+      // Classic mode: wrap around edges
+      if (head.x < 0) head.x = GRID_SIZE - 1;
+      if (head.x >= GRID_SIZE) head.x = 0;
+      if (head.y < 0) head.y = GRID_SIZE - 1;
+      if (head.y >= GRID_SIZE) head.y = 0;
     }
 
     // Check self collision
@@ -304,20 +362,18 @@ export default function SnakeGame() {
 
     // Check food collision
     if (head.x === foodRef.current.x && head.y === foodRef.current.y) {
-      // Increase score
-      const newScore = score + 10;
-      setScore(newScore);
+      // Calculate points based on difficulty
+      let points = 10;
+      if (difficulty === 'medium') points = 15;
+      if (difficulty === 'hard') points = 20;
 
-      // Update high score if needed
-      if (newScore > highScore) {
-        setHighScore(newScore);
-        localStorage.setItem('snakeHighScore', newScore.toString());
-      }
+      const newScoreValue = scoreRef.current + points;
 
-      // Increase speed every 50 points
-      if (newScore % 50 === 0 && speed > 50) {
-        setSpeed(prev => Math.max(50, prev - 20));
-      }
+      console.log(`🍎 Food eaten! +${points} points. Score: ${scoreRef.current} → ${newScoreValue}`);
+
+      // Update score
+      setScore(newScoreValue);
+      scoreRef.current = newScoreValue;
 
       // Generate new food
       generateFood();
@@ -332,120 +388,56 @@ export default function SnakeGame() {
 
   // Start game
   const startGame = () => {
-    if (!canPlay) return;
-
     resetGame();
     setGameStatus('playing');
-    setGameStatusRef('playing');
-    setGameMessage("");
+    gameStatusRef.current = 'playing';
   };
 
   // Pause game
   const togglePause = () => {
     if (gameStatus === 'playing') {
       setGameStatus('paused');
-      setGameStatusRef('paused');
-      setGameMessage("⏸️ Game Paused");
+      gameStatusRef.current = 'paused';
     } else if (gameStatus === 'paused') {
       setGameStatus('playing');
-      setGameStatusRef('playing');
-      setGameMessage("");
+      gameStatusRef.current = 'playing';
     }
   };
 
-  // Set game status ref
-  const setGameStatusRef = (status: GameStatus) => {
-    gameStatusRef.current = status;
-  };
-
-  // End game
+  // FIXED: End game with immediate UI update
   const endGame = async () => {
+    console.log("🎮 Game ending...");
     setGameStatus('game-over');
-    setGameStatusRef('game-over');
+    gameStatusRef.current = 'game-over';
 
-    // Calculate coins
-    const coins = calculateCoins();
-    setEarnedCoins(coins);
+    // Get current values from refs
+    const finalScore = scoreRef.current;
+    const currentHighScore = highScoreRef.current;
 
-    if (!user) {
-      setGameMessage(`🎮 Game Over! Score: ${score}. Login to save your score.`);
-      return;
-    }
+    console.log(`📊 Final Score: ${finalScore}, Current High Score: ${currentHighScore}`);
 
-    try {
-      const token = await getAuth().currentUser?.getIdToken();
-      if (!token) {
-        setGameMessage(`🎮 Game Over! Score: ${score}. Earned ${coins} coins!`);
-        return;
-      }
+    // Check if this is a new high score
+    if (finalScore > currentHighScore) {
+      console.log(`🏆 NEW HIGH SCORE DETECTED! ${currentHighScore} → ${finalScore}`);
 
-      const response = await fetch("/api/user/markGamePlayed", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          userId: user._id,
-          gameId: SNAKE_GAME_ID,
-          gameName: SNAKE_GAME_NAME,
-          score: score,
-          pointsEarned: coins
-        })
-      });
+      // IMMEDIATELY update UI for better UX
+      setHighScore(finalScore);
+      highScoreRef.current = finalScore;
+      setIsNewHighScore(true);
+      isNewHighScoreRef.current = true;
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Update local user state immediately with new game record
-        const newGameRecord = {
-          gameId: SNAKE_GAME_ID,
-          gameName: SNAKE_GAME_NAME,
-          playedAt: new Date(),
-          score: score,
-          pointsEarned: coins,
-          completed: true
-        };
-
-        const updatedUser = user ? {
-          ...user,
-          userPoints: data.userPoints || user.userPoints,
-          gamesPlayed: [...(user.gamesPlayed || []), newGameRecord]
-        } : null;
-
-        if (updatedUser) {
-          setUser(updatedUser);
-          setNextPlayTime(getNextPlayTime(updatedUser, SNAKE_GAME_ID));
-        }
-
-        setCanPlay(false);
-        setGameMessage(`🎮 Game Over! Score: ${score}. Earned ${coins} coins!`);
+      // Save to database
+      const saved = await saveHighScore(finalScore);
+      if (saved) {
+        console.log("🎉 New high score saved and UI updated!");
       } else {
-        setCanPlay(false);
-        setGameMessage(`🎮 Game Over! Score: ${score}. Earned ${coins} coins!`);
+        console.error("❌ Failed to save high score to database");
       }
-    } catch (error) {
-      console.error("Error saving game:", error);
-      setGameMessage(`🎮 Game Over! Score: ${score}. Earned ${coins} coins!`);
+    } else {
+      console.log(`ℹ️ Score ${finalScore} not higher than high score ${currentHighScore}`);
+      setIsNewHighScore(false);
+      isNewHighScoreRef.current = false;
     }
-  };
-
-  // Calculate coins
-  const calculateCoins = (): number => {
-    let coins = BASE_COINS;
-
-    // Score bonus
-    const scoreBonus = Math.floor(score / 10);
-
-    // Time bonus (longer survival is better)
-    const timeBonus = Math.floor(time / 10);
-
-    // Speed bonus (higher speed = more skill)
-    const speedBonus = Math.floor((INITIAL_SPEED - speed) / 10);
-
-    coins = coins + scoreBonus + timeBonus + speedBonus;
-
-    return Math.max(10, coins);
   };
 
   // Reset game
@@ -461,10 +453,11 @@ export default function SnakeGame() {
     setDirection('RIGHT');
     directionRef.current = 'RIGHT';
     setScore(0);
-    setSpeed(INITIAL_SPEED);
+    scoreRef.current = 0;
     setTime(0);
-    setEarnedCoins(0);
-    setGameMessage("");
+    setIsNewHighScore(false);
+    isNewHighScoreRef.current = false;
+    generateFood();
   };
 
   // Format time
@@ -474,6 +467,24 @@ export default function SnakeGame() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Get speed percentage
+  const getSpeedPercentage = () => {
+    switch (difficulty) {
+      case 'easy': return '50%';
+      case 'medium': return '75%';
+      case 'hard': return '100%';
+      default: return '75%';
+    }
+  };
+
+  // Get all high scores
+  const getAllHighScores = () => {
+    if (!user?.snakeHighScores) {
+      return { easy: 0, medium: 0, hard: 0 };
+    }
+    return user.snakeHighScores;
+  };
+
   // Render grid cell
   const renderCell = (row: number, col: number) => {
     const isSnakeHead = snake[0].x === col && snake[0].y === row;
@@ -481,6 +492,10 @@ export default function SnakeGame() {
       index > 0 && segment.x === col && segment.y === row
     );
     const isFood = food.x === col && food.y === row;
+    const isWall = gameMode === 'walls' && (
+      row === 0 || row === GRID_SIZE - 1 ||
+      col === 0 || col === GRID_SIZE - 1
+    );
 
     let className = "snake-grid-cell";
 
@@ -490,6 +505,8 @@ export default function SnakeGame() {
       className += " snake-body";
     } else if (isFood) {
       className += " snake-food";
+    } else if (isWall) {
+      className += " snake-wall";
     }
 
     return <div key={`${row}-${col}`} className={className} />;
@@ -503,58 +520,7 @@ export default function SnakeGame() {
     );
   }
 
-  if (!canPlay && gameStatus === 'not-started') {
-    return (
-      <div className="snake-game-container">
-        <header className="snake-game-header">
-          <div className="snake-header-card">
-            <div className="snake-header-content">
-              <div>
-                <h1 className="snake-game-title">
-                  <Gamepad2 className="snake-title-icon" />
-                  Snake Challenge
-                </h1>
-                <p className="snake-welcome-message">
-                  Welcome, <span className="snake-username">{user?.name}</span>!
-                </p>
-              </div>
-              <div className="snake-user-coins">
-                <div className="snake-coins-display">
-                  <Coins className="snake-coins-icon" />
-                  <span className="snake-coins-value">{user?.userPoints || 0}</span>
-                </div>
-                <div className="snake-coins-label">Total Coins</div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <div className="snake-already-played">
-          <div className="snake-locked-card">
-            <Lock className="snake-lock-icon" />
-            <h2 className="snake-locked-title">Game Already Played Today</h2>
-            <p className="snake-locked-message">
-              {gameMessage || "🚫 You have already played Snake today!"}
-            </p>
-            <div className="snake-next-play">
-              <div className="snake-next-play-label">Next available in:</div>
-              <div className="snake-next-play-time">{nextPlayTime || "Calculating..."}</div>
-            </div>
-            <p className="snake-locked-hint">
-              Come back tomorrow for another challenge!
-            </p>
-            <button
-              onClick={() => router.push("/zone")}
-              className="snake-button snake-button-primary"
-            >
-              <Gamepad2 className="snake-button-icon" />
-              Return to Game Zone
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const allHighScores = getAllHighScores();
 
   return (
     <div className="snake-game-container">
@@ -564,19 +530,51 @@ export default function SnakeGame() {
             <div>
               <h1 className="snake-game-title">
                 <Gamepad2 className="snake-title-icon" />
-                Snake Challenge
+                Snake Game
               </h1>
               <p className="snake-welcome-message">
                 Welcome, <span className="snake-username">{user?.name}</span>!
-                {canPlay ? " Eat food, avoid walls and yourself!" : " Game already played today."}
+                Eat food, grow your snake, and avoid collisions!
               </p>
             </div>
-            <div className="snake-user-coins">
-              <div className="snake-coins-display">
-                <Coins className="snake-coins-icon" />
-                <span className="snake-coins-value">{user?.userPoints || 0}</span>
+            <div className="snake-game-settings">
+              <div className="snake-setting-group">
+                <label>Difficulty:</label>
+                <select
+                  value={difficulty}
+                  onChange={(e) => {
+                    const newDiff = e.target.value as Difficulty;
+                    setDifficulty(newDiff);
+                    if (gameStatus !== 'not-started') {
+                      resetGame();
+                    }
+                  }}
+                  disabled={gameStatus === 'playing'}
+                  className="snake-setting-select"
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
               </div>
-              <div className="snake-coins-label">Total Coins</div>
+              <div className="snake-setting-group">
+                <label>Mode:</label>
+                <select
+                  value={gameMode}
+                  onChange={(e) => {
+                    const newMode = e.target.value as 'classic' | 'walls';
+                    setGameMode(newMode);
+                    if (gameStatus !== 'not-started') {
+                      resetGame();
+                    }
+                  }}
+                  disabled={gameStatus === 'playing'}
+                  className="snake-setting-select"
+                >
+                  <option value="classic">Classic (Wrap-around)</option>
+                  <option value="walls">Walls Mode</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -584,23 +582,33 @@ export default function SnakeGame() {
 
       <div className="snake-stats-container">
         <div className="snake-stats-grid">
-          <div className="snake-stat-card">
+          <div className="snake-stat-card snake-stat-score">
             <div className="snake-stat-header">
               <Zap className="snake-stat-icon" />
               <span className="snake-stat-label">Score</span>
             </div>
             <div className="snake-stat-value">{score}</div>
+            {isNewHighScore && (
+              <div className="snake-new-highscore-badge">
+                <Crown size={14} /> New Record!
+              </div>
+            )}
           </div>
 
-          <div className="snake-stat-card">
+          <div className="snake-stat-card snake-stat-highscore">
             <div className="snake-stat-header">
               <Trophy className="snake-stat-icon" />
               <span className="snake-stat-label">High Score</span>
             </div>
             <div className="snake-stat-value">{highScore}</div>
+            <div className="snake-stat-subtext">({difficulty})</div>
+            {/* Debug info - remove in production */}
+            <div className="snake-debug-info" style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
+              Updated: {dataTimestamp ? new Date(dataTimestamp).toLocaleTimeString() : 'Never'}
+            </div>
           </div>
 
-          <div className="snake-stat-card">
+          <div className="snake-stat-card snake-stat-time">
             <div className="snake-stat-header">
               <Clock className="snake-stat-icon" />
               <span className="snake-stat-label">Time</span>
@@ -608,21 +616,61 @@ export default function SnakeGame() {
             <div className="snake-stat-value">{formatTime(time)}</div>
           </div>
 
-          <div className="snake-stat-card">
+          <div className="snake-stat-card snake-stat-difficulty">
             <div className="snake-stat-header">
-              <TrendingUp className="snake-stat-icon" />
-              <span className="snake-stat-label">Speed</span>
+              <Gauge className="snake-stat-icon" />
+              <span className="snake-stat-label">Difficulty</span>
             </div>
-            <div className="snake-stat-value">{INITIAL_SPEED - speed + 50}%</div>
+            <div className="snake-stat-value">{difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</div>
+            <div className="snake-stat-subtext">Speed: {getSpeedPercentage()}</div>
           </div>
         </div>
 
-        {gameMessage && (
-          <div className={`snake-feedback-message ${gameMessage.includes('🎮') ? 'info' :
-            gameMessage.includes('⏸️') ? 'warning' :
-              gameMessage.includes('🚫') ? 'error' : 'success'
-            }`}>
-            {gameMessage}
+        <div className="snake-highscores-summary">
+          <div className="snake-highscores-title">
+            <Trophy size={16} />
+            <span>Your High Scores</span>
+            <button
+              onClick={() => fetchUserData(true)}
+              className="snake-refresh-button"
+              style={{
+                marginLeft: '10px',
+                background: 'transparent',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 Refresh
+            </button>
+          </div>
+          <div className="snake-highscores-grid">
+            <div className="snake-highscore-item diff-easy">
+              <span className="snake-highscore-label">Easy:</span>
+              <span className="snake-highscore-value">{allHighScores.easy}</span>
+            </div>
+            <div className="snake-highscore-item diff-medium">
+              <span className="snake-highscore-label">Medium:</span>
+              <span className="snake-highscore-value">{allHighScores.medium}</span>
+            </div>
+            <div className="snake-highscore-item diff-hard">
+              <span className="snake-highscore-label">Hard:</span>
+              <span className="snake-highscore-value">{allHighScores.hard}</span>
+            </div>
+          </div>
+        </div>
+
+        {gameStatus === 'paused' && (
+          <div className="snake-status-message warning">
+            ⏸️ Game Paused - Press SPACE or click Resume to continue
+          </div>
+        )}
+        {gameStatus === 'game-over' && (
+          <div className="snake-status-message error">
+            🎮 Game Over! Final Score: {score}
+            {isNewHighScore && " 🏆 NEW HIGH SCORE!"}
           </div>
         )}
       </div>
@@ -650,10 +698,9 @@ export default function SnakeGame() {
             </h3>
 
             <div className="snake-action-buttons">
-              {gameStatus === 'not-started' ? (
+              {gameStatus === 'not-started' || gameStatus === 'game-over' ? (
                 <button
                   onClick={startGame}
-                  disabled={!canPlay}
                   className="snake-button snake-button-primary"
                 >
                   <Zap className="snake-button-icon" />
@@ -666,21 +713,12 @@ export default function SnakeGame() {
                 >
                   ⏸️ Pause Game
                 </button>
-              ) : gameStatus === 'paused' ? (
+              ) : (
                 <button
                   onClick={togglePause}
                   className="snake-button snake-button-success"
                 >
                   ▶️ Resume Game
-                </button>
-              ) : (
-                <button
-                  onClick={startGame}
-                  disabled={!canPlay}
-                  className="snake-button snake-button-primary"
-                >
-                  <RefreshCw className="snake-button-icon" />
-                  Play Again
                 </button>
               )}
 
@@ -696,11 +734,19 @@ export default function SnakeGame() {
             <div className="snake-control-instructions">
               <h4>How to Play:</h4>
               <ul>
-                <li>Use <strong>Arrow Keys</strong> to control the snake</li>
+                <li>Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to control the snake</li>
                 <li>Eat <span className="food-sample">●</span> to grow and score points</li>
-                <li>Avoid walls and yourself</li>
-                <li>Speed increases every 50 points</li>
-                <li>Press <strong>SPACE</strong> to pause/resume</li>
+                <li>{gameMode === 'classic' ? 'Pass through walls (wrap-around)' : 'Avoid walls (game over on collision)'}</li>
+                <li>Avoid colliding with yourself</li>
+                <li>Press <strong>SPACE</strong> or <strong>ESC</strong> to pause/resume</li>
+                <li>Your high scores are saved automatically!</li>
+                <li>Difficulty affects speed and points:
+                  <ul className="snake-difficulty-list">
+                    <li><span className="diff-easy">Easy</span>: Slow speed, 10 points per food</li>
+                    <li><span className="diff-medium">Medium</span>: Medium speed, 15 points per food</li>
+                    <li><span className="diff-hard">Hard</span>: Fast speed, 20 points per food</li>
+                  </ul>
+                </li>
               </ul>
             </div>
 
@@ -765,23 +811,27 @@ export default function SnakeGame() {
             </div>
 
             <div className="snake-game-info">
-              <h4>Game Info:</h4>
+              <h4>Current Game Info:</h4>
               <div className="snake-info-grid">
+                <div className="snake-info-item">
+                  <span className="snake-info-label">Mode</span>
+                  <span className="snake-info-value">{gameMode === 'classic' ? 'Classic' : 'Walls'}</span>
+                </div>
                 <div className="snake-info-item">
                   <span className="snake-info-label">Grid Size</span>
                   <span className="snake-info-value">{GRID_SIZE}×{GRID_SIZE}</span>
                 </div>
                 <div className="snake-info-item">
-                  <span className="snake-info-label">Base Coins</span>
-                  <span className="snake-info-value">{BASE_COINS}</span>
+                  <span className="snake-info-label">Snake Length</span>
+                  <span className="snake-info-value">{snake.length}</span>
                 </div>
                 <div className="snake-info-item">
-                  <span className="snake-info-label">Food Value</span>
-                  <span className="snake-info-value">10 points</span>
-                </div>
-                <div className="snake-info-item">
-                  <span className="snake-info-label">Speed Bonus</span>
-                  <span className="snake-info-value">Yes</span>
+                  <span className="snake-info-label">Status</span>
+                  <span className="snake-info-value">
+                    {gameStatus === 'playing' ? 'Playing' :
+                      gameStatus === 'paused' ? 'Paused' :
+                        gameStatus === 'game-over' ? 'Game Over' : 'Ready'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -792,8 +842,12 @@ export default function SnakeGame() {
       {gameStatus === 'game-over' && (
         <div className="snake-game-overlay">
           <div className="snake-game-over-card">
-            <div className="snake-game-over-emoji">🎮</div>
-            <h3 className="snake-game-over-title">Game Over!</h3>
+            <div className="snake-game-over-emoji">
+              {isNewHighScore ? '👑' : '🎮'}
+            </div>
+            <h3 className="snake-game-over-title">
+              {isNewHighScore ? 'New High Score!' : 'Game Over!'}
+            </h3>
             <div className="snake-game-over-stats">
               <div className="snake-stat-result">
                 <span className="snake-stat-label">Final Score:</span>
@@ -804,27 +858,32 @@ export default function SnakeGame() {
                 <span className="snake-stat-value">{formatTime(time)}</span>
               </div>
               <div className="snake-stat-result">
-                <span className="snake-stat-label">High Score:</span>
+                <span className="snake-stat-label">High Score ({difficulty}):</span>
                 <span className="snake-stat-value">{highScore}</span>
               </div>
-              {earnedCoins > 0 && (
-                <div className="snake-stat-result coins-earned">
-                  <span className="snake-stat-label">Coins Earned:</span>
-                  <span className="snake-stat-value">+{earnedCoins}</span>
+              <div className="snake-stat-result">
+                <span className="snake-stat-label">Snake Length:</span>
+                <span className="snake-stat-value">{snake.length}</span>
+              </div>
+            </div>
+
+            <div className="snake-game-over-message">
+              {isNewHighScore ? (
+                <div className="new-highscore-message">
+                  <Crown className="crown-icon" />
+                  <span>Congratulations! You set a new high score for {difficulty} difficulty!</span>
+                  <Crown className="crown-icon" />
+                </div>
+              ) : (
+                <div className="regular-message">
+                  Great effort! Your high score for {difficulty} difficulty is {highScore}.
                 </div>
               )}
             </div>
 
-            {gameMessage && (
-              <div className="snake-game-over-message">
-                {gameMessage}
-              </div>
-            )}
-
             <div className="snake-game-over-buttons">
               <button
                 onClick={startGame}
-                disabled={!canPlay}
                 className="snake-button snake-button-primary"
               >
                 <RefreshCw className="snake-button-icon" />
@@ -835,7 +894,7 @@ export default function SnakeGame() {
                 className="snake-button snake-button-secondary"
               >
                 <Gamepad2 className="snake-button-icon" />
-                Return to Zone
+                Game Zone
               </button>
             </div>
           </div>

@@ -65,6 +65,13 @@ export interface IUser extends Document {
   totalGamesPlayed: number;
   totalGamePoints: number;
 
+  // In your user model or where you define user schema
+snakeHighScores?: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -288,7 +295,22 @@ const userSchema = new Schema<IUser>(
       default: 0,
       min: 0,
     },
+    snakeHighScores: {
+      type: {
+        easy: { type: Number, default: 0 },
+        medium: { type: Number, default: 0 },
+        hard: { type: Number, default: 0 },
+      },
+      default: () => ({
+        easy: 0,
+        medium: 0,
+        hard: 0,
+      }),
+    },
+    
   },
+  
+
   {
     timestamps: true,
   }

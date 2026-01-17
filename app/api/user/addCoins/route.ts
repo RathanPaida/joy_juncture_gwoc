@@ -1,6 +1,6 @@
 // app/api/user/addCoins/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { connectDb } from "@/lib/mongodb";
+import { connectToDatabase as connectDb } from "@/lib/mongodb";
 import { User } from "@/models/User";
 
 export async function POST(req: NextRequest) {

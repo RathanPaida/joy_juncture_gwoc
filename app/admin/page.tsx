@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Package, Plus, TrendingUp, ShoppingBag, Grid } from "lucide-react";
+import { Package, Plus, TrendingUp, ShoppingBag, Grid, Image } from "lucide-react";
 
 async function getStoreStats() {
   try {
@@ -29,8 +29,29 @@ async function getStoreStats() {
   }
 }
 
+async function getGameImageStats() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const res = await fetch(`${baseUrl}/api/admin/game-images`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return { total: 0, active: 0 };
+
+    const data = await res.json();
+    const images = data.data || [];
+
+    return {
+      total: images.length,
+      active: images.filter((img: any) => img.isActive).length,
+    };
+  } catch {
+    return { total: 0, active: 0 };
+  }
+}
+
 export default async function AdminDashboard() {
   const { total, categories } = await getStoreStats();
+  const { total: gameImagesTotal, active: gameImagesActive } = await getGameImageStats();
 
   return (
     <div className="min-h-screen">
@@ -52,7 +73,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Products */}
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
@@ -89,6 +110,17 @@ export default async function AdminDashboard() {
           <p className="text-5xl font-black text-white mb-2">{categories}</p>
           <p className="text-gray-400 font-semibold">Categories</p>
         </div>
+
+        {/* Game Images */}
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-8 rounded-2xl border border-gray-700 shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-4 rounded-xl bg-blue-600">
+              <Image size={32} className="text-white" />
+            </div>
+          </div>
+          <p className="text-5xl font-black text-white mb-2">{gameImagesActive}/{gameImagesTotal}</p>
+          <p className="text-gray-400 font-semibold">Game Images</p>
+        </div>
       </div>
 
       {/* Quick Actions */}
@@ -115,6 +147,13 @@ export default async function AdminDashboard() {
           >
             <Package size={20} strokeWidth={2.5} />
             View All Products
+          </Link>
+          <Link
+            href="/admin/game-images"
+            className="flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all hover:scale-105"
+          >
+            <Image size={20} strokeWidth={2.5} />
+            Manage Game Images
           </Link>
           <Link
             href="/store"
@@ -153,6 +192,15 @@ export default async function AdminDashboard() {
                 {categories} categories
               </span>{" "}
               available
+            </p>
+          </div>
+          <div className="flex items-center gap-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+            <p className="text-gray-300">
+              <span className="text-white font-bold">
+                {gameImagesActive} active game images
+              </span>{" "}
+              ready for puzzles
             </p>
           </div>
           <div className="flex items-center gap-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700">

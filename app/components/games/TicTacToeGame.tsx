@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, X, Circle, Trophy, Coins, Lock, Gamepad2, Timer } from "lucide-react";
+import { RefreshCw, X, Circle, Trophy, Gamepad2, Timer, Zap } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { getAuth } from "firebase/auth";
@@ -10,32 +10,16 @@ import "./tic-tac-toe-game.css";
 interface User {
   _id: string;
   name: string;
-  userPoints: number;
-  gamesPlayed?: Array<{
-    gameId: string;
-    gameName: string;
-    playedAt: Date;
-    score?: number;
-    pointsEarned: number;
-    completed: boolean;
-  }>;
 }
 
 type Player = 'X' | 'O' | null;
 type GameMode = 'easy' | 'medium' | 'hard';
-
-const TICTACTOE_GAME_ID = "tictactoe";
-const TICTACTOE_GAME_NAME = "Tic Tac Toe Challenge";
-const BASE_COINS = 5;
 
 export default function TicTacToeGame() {
   const router = useRouter();
   const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [canPlay, setCanPlay] = useState(true);
-  const [nextPlayTime, setNextPlayTime] = useState("");
-  const [gameMessage, setGameMessage] = useState("");
 
   const [board, setBoard] = useState<Player[]>(Array(9).fill(null));
   const [isXNext, setIsXNext] = useState(true);
@@ -43,80 +27,12 @@ export default function TicTacToeGame() {
   const [isDraw, setIsDraw] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameCompleted, setGameCompleted] = useState(false);
-  const [score, setScore] = useState({ X: 0, O: 0 });
+  const [score, setScore] = useState({ X: 0, O: 0, draws: 0 });
   const [time, setTime] = useState(0);
   const [gameMode, setGameMode] = useState<GameMode>('medium');
-  const [earnedCoins, setEarnedCoins] = useState(0);
   const [moves, setMoves] = useState(0);
-
-  // Check if user has already played a game TODAY (using UTC)
-  const hasPlayedToday = (user: User | null, gameId: string): boolean => {
-    if (!user || !user.gamesPlayed) return false;
-
-    const now = new Date();
-    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
-    // Check ALL records for this game, not just the first one found
-    return user.gamesPlayed.some((game) => {
-      if (game.gameId !== gameId) return false;
-
-      const playedDate = new Date(game.playedAt);
-      const playedUTC = new Date(Date.UTC(
-        playedDate.getUTCFullYear(),
-        playedDate.getUTCMonth(),
-        playedDate.getUTCDate()
-      ));
-
-      return playedUTC.getTime() === todayUTC.getTime();
-    });
-  };
-
-  const getNextPlayTime = (user: User | null, gameId: string): string => {
-    if (!user || !user.gamesPlayed) return "Play Now";
-
-    // Find the LATEST play record for this game
-    const gameRecords = user.gamesPlayed
-      .filter((game) => game.gameId === gameId)
-      .sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
-
-    if (gameRecords.length === 0) return "Play Now";
-
-    const lastPlayed = gameRecords[0];
-    const playedDate = new Date(lastPlayed.playedAt);
-    const playedUTC = new Date(Date.UTC(
-      playedDate.getUTCFullYear(),
-      playedDate.getUTCMonth(),
-      playedDate.getUTCDate()
-    ));
-
-    const todayUTC = new Date(Date.UTC(
-      new Date().getUTCFullYear(),
-      new Date().getUTCMonth(),
-      new Date().getUTCDate()
-    ));
-
-    // If played today (or in future??), calculate time until tomorrow
-    if (playedUTC.getTime() >= todayUTC.getTime()) {
-      const tomorrowUTC = new Date(playedUTC);
-      tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
-
-      const nowUTC = new Date();
-      const diff = tomorrowUTC.getTime() - nowUTC.getTime();
-
-      if (diff <= 0) return "Play Now";
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-      if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-      } else {
-        return `${minutes}m`;
-      }
-    }
-
-    return "Play Now";
-  };
+  const [feedback, setFeedback] = useState("");
+  const [aiThinking, setAiThinking] = useState(false);
 
   // Authentication and user data
   useEffect(() => {
@@ -139,13 +55,6 @@ export default function TicTacToeGame() {
           const data = await res.json();
           if (data.success) {
             setUser(data.user);
-            const playedToday = hasPlayedToday(data.user, TICTACTOE_GAME_ID);
-            setCanPlay(!playedToday);
-
-            if (playedToday) {
-              setNextPlayTime(getNextPlayTime(data.user, TICTACTOE_GAME_ID));
-              setGameMessage("🚫 You have already played Tic Tac Toe today!");
-            }
           }
         }
       } catch (error) {
@@ -161,13 +70,13 @@ export default function TicTacToeGame() {
   // Timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (gameStarted && !gameCompleted && canPlay) {
+    if (gameStarted && !gameCompleted) {
       interval = setInterval(() => {
         setTime(prev => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [gameStarted, gameCompleted, canPlay]);
+  }, [gameStarted, gameCompleted]);
 
   // Calculate winner
   const calculateWinner = useCallback((boardState: Player[]): Player => {
@@ -201,168 +110,131 @@ export default function TicTacToeGame() {
     return -1;
   }, []);
 
-  // Calculate coins
-  const calculateCoins = useCallback((result: 'win' | 'lose' | 'draw'): number => {
-    if (result === 'lose') return 10;
+  // Minimax algorithm for hard difficulty
+  const minimax = useCallback((boardState: Player[], depth: number, isMaximizing: boolean): number => {
+    const winner = calculateWinner(boardState);
+    
+    if (winner === 'O') return 10 - depth;
+    if (winner === 'X') return depth - 10;
+    if (!boardState.includes(null)) return 0;
 
-    let coins = BASE_COINS;
-
-    const timeBonus = Math.max(0, Math.floor((60 - time) / 5));
-    const movesBonus = Math.max(0, 15 - moves);
-    const difficultyMultiplier = gameMode === 'easy' ? 1 : gameMode === 'medium' ? 1.5 : 2;
-
-    if (result === 'win') {
-      coins = Math.floor((coins + timeBonus + movesBonus) * difficultyMultiplier);
+    if (isMaximizing) {
+      let bestScore = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (boardState[i] === null) {
+          boardState[i] = 'O';
+          const score = minimax(boardState, depth + 1, false);
+          boardState[i] = null;
+          bestScore = Math.max(score, bestScore);
+        }
+      }
+      return bestScore;
     } else {
-      coins = Math.floor((coins / 2 + timeBonus + movesBonus) * difficultyMultiplier * 0.5);
-    }
-
-    return Math.max(10, coins);
-  }, [time, moves, gameMode]);
-
-  // Finish game
-  const finishGame = useCallback(async (result: 'win' | 'lose' | 'draw') => {
-    const coins = calculateCoins(result);
-    setEarnedCoins(coins);
-
-    if (!user) return;
-
-    try {
-      const token = await getAuth().currentUser?.getIdToken();
-      if (!token) return;
-
-      const scoreValue = result === 'win' ? 100 : result === 'draw' ? 50 : 0;
-
-      const response = await fetch("/api/user/markGamePlayed", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          userId: user._id,
-          gameId: TICTACTOE_GAME_ID,
-          gameName: TICTACTOE_GAME_NAME,
-          score: scoreValue,
-          pointsEarned: coins
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Determine if the game was a win or draw
-        const isWin = result === 'win';
-        const isDraw = result === 'draw';
-
-        // Update local user state immediately with new game record
-        const newGameRecord = {
-          gameId: TICTACTOE_GAME_ID,
-          gameName: TICTACTOE_GAME_NAME,
-          playedAt: new Date(),
-          score: scoreValue,
-          pointsEarned: coins,
-          completed: true
-        };
-
-        const updatedUser = user ? {
-          ...user,
-          userPoints: data.totalPoints || user.userPoints, // Use data.totalPoints from API response
-          gamesPlayed: [...(user.gamesPlayed || []), newGameRecord]
-        } : null;
-
-        if (updatedUser) {
-          setUser(updatedUser);
-          setNextPlayTime(getNextPlayTime(updatedUser, TICTACTOE_GAME_ID));
+      let bestScore = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (boardState[i] === null) {
+          boardState[i] = 'X';
+          const score = minimax(boardState, depth + 1, true);
+          boardState[i] = null;
+          bestScore = Math.min(score, bestScore);
         }
-
-        setCanPlay(false);
-        setGameMessage(
-          isWin
-            ? `🎉 Congratulations! You won and earned ${coins} coins! Come back tomorrow to play again.`
-            : isDraw
-              ? `🤝 Draw! You earned ${coins} coins. Come back tomorrow!`
-              : `😢 You lost! You earned ${coins} coins. Come back tomorrow!`
-        );
       }
-    } catch (error) {
-      console.error("Error saving game:", error);
+      return bestScore;
     }
-  }, [calculateCoins, user]);
+  }, [calculateWinner]);
 
-  // AI Move - optimized with immediate execution
+  // AI Move based on difficulty
   const makeAIMove = useCallback((currentBoard: Player[]) => {
-    const emptyIndices = currentBoard
-      .map((cell, index) => cell === null ? index : -1)
-      .filter(index => index !== -1);
+    setAiThinking(true);
+    
+    setTimeout(() => {
+      const emptyIndices = currentBoard
+        .map((cell, index) => cell === null ? index : -1)
+        .filter(index => index !== -1);
 
-    if (emptyIndices.length === 0) return;
-
-    let moveIndex: number;
-
-    // Try to win
-    const winningMove = findWinningMove(currentBoard, 'O');
-    if (winningMove !== -1) {
-      moveIndex = winningMove;
-    }
-    // Block player
-    else {
-      const blockingMove = findWinningMove(currentBoard, 'X');
-      if (blockingMove !== -1) {
-        moveIndex = blockingMove;
+      if (emptyIndices.length === 0) {
+        setAiThinking(false);
+        return;
       }
-      // Take center
-      else if (currentBoard[4] === null) {
-        moveIndex = 4;
-      }
-      // Take corners
-      else {
-        const corners = [0, 2, 6, 8];
-        const availableCorners = corners.filter(index => currentBoard[index] === null);
-        if (availableCorners.length > 0) {
-          moveIndex = availableCorners[Math.floor(Math.random() * availableCorners.length)];
+
+      let moveIndex: number;
+
+      if (gameMode === 'easy') {
+        // Easy: Random moves
+        moveIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      } else if (gameMode === 'medium') {
+        // Medium: Basic strategy
+        const winningMove = findWinningMove(currentBoard, 'O');
+        const blockingMove = findWinningMove(currentBoard, 'X');
+
+        if (winningMove !== -1) {
+          moveIndex = winningMove;
+        } else if (blockingMove !== -1) {
+          moveIndex = blockingMove;
+        } else if (currentBoard[4] === null) {
+          moveIndex = 4;
+        } else {
+          const corners = [0, 2, 6, 8];
+          const availableCorners = corners.filter(index => currentBoard[index] === null);
+          if (availableCorners.length > 0) {
+            moveIndex = availableCorners[Math.floor(Math.random() * availableCorners.length)];
+          } else {
+            moveIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+          }
         }
-        // Random move
-        else {
-          moveIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      } else {
+        // Hard: Minimax algorithm
+        let bestScore = -Infinity;
+        let bestMove = -1;
+
+        for (let i = 0; i < 9; i++) {
+          if (currentBoard[i] === null) {
+            currentBoard[i] = 'O';
+            const score = minimax(currentBoard, 0, false);
+            currentBoard[i] = null;
+            
+            if (score > bestScore) {
+              bestScore = score;
+              bestMove = i;
+            }
+          }
         }
+        moveIndex = bestMove;
       }
-    }
 
-    const newBoard = [...currentBoard];
-    newBoard[moveIndex] = 'O';
+      const newBoard = [...currentBoard];
+      newBoard[moveIndex] = 'O';
 
-    setBoard(newBoard);
-    setIsXNext(true);
-    setMoves(prev => prev + 1);
+      setBoard(newBoard);
+      setIsXNext(true);
+      setMoves(prev => prev + 1);
+      setAiThinking(false);
 
-    const newWinner = calculateWinner(newBoard);
-    if (newWinner) {
-      setWinner(newWinner);
-      setGameCompleted(true);
-      setScore(prev => ({ ...prev, [newWinner]: prev[newWinner] + 1 }));
-      finishGame(newWinner === 'X' ? 'win' : 'lose');
-    } else if (newBoard.every(cell => cell !== null)) {
-      setIsDraw(true);
-      setGameCompleted(true);
-      finishGame('draw');
-    }
-  }, [findWinningMove, calculateWinner, finishGame]);
+      const newWinner = calculateWinner(newBoard);
+      if (newWinner) {
+        setWinner(newWinner);
+        setGameCompleted(true);
+        setScore(prev => ({ ...prev, [newWinner]: prev[newWinner] + 1 }));
+        setFeedback(newWinner === 'X' ? '🎉 You Win!' : '🤖 AI Wins!');
+      } else if (newBoard.every(cell => cell !== null)) {
+        setIsDraw(true);
+        setGameCompleted(true);
+        setScore(prev => ({ ...prev, draws: prev.draws + 1 }));
+        setFeedback('🤝 Draw!');
+      }
+    }, gameMode === 'hard' ? 1000 : 500); // Longer delay for hard mode to show "thinking"
+  }, [gameMode, findWinningMove, minimax, calculateWinner]);
 
-  // AI move trigger - simplified with minimal delay
+  // AI move trigger
   useEffect(() => {
-    if (!isXNext && !winner && !isDraw && canPlay && gameStarted) {
-      const timer = setTimeout(() => {
-        makeAIMove(board);
-      }, 200); // Reduced to 200ms for faster response
-
-      return () => clearTimeout(timer);
+    if (!isXNext && !winner && !isDraw && gameStarted) {
+      makeAIMove(board);
     }
-  }, [isXNext, winner, isDraw, canPlay, gameStarted, board, makeAIMove]);
+  }, [isXNext, winner, isDraw, gameStarted, board, makeAIMove]);
 
   // Handle player move
   const handleClick = (index: number) => {
-    if (board[index] || winner || isDraw || !isXNext || !canPlay) return;
+    if (board[index] || winner || isDraw || !isXNext || aiThinking) return;
 
     if (!gameStarted) setGameStarted(true);
 
@@ -377,11 +249,12 @@ export default function TicTacToeGame() {
       setWinner(newWinner);
       setGameCompleted(true);
       setScore(prev => ({ ...prev, [newWinner]: prev[newWinner] + 1 }));
-      finishGame(newWinner === 'X' ? 'win' : 'lose');
+      setFeedback(newWinner === 'X' ? '🎉 You Win!' : '🤖 AI Wins!');
     } else if (newBoard.every(cell => cell !== null)) {
       setIsDraw(true);
       setGameCompleted(true);
-      finishGame('draw');
+      setScore(prev => ({ ...prev, draws: prev.draws + 1 }));
+      setFeedback('🤝 Draw!');
     }
   };
 
@@ -395,8 +268,8 @@ export default function TicTacToeGame() {
     setGameCompleted(false);
     setTime(0);
     setMoves(0);
-    setEarnedCoins(0);
-    setGameMessage("");
+    setFeedback("");
+    setAiThinking(false);
   };
 
   // Format time
@@ -411,9 +284,9 @@ export default function TicTacToeGame() {
     const cell = board[index];
     return (
       <button
-        className={`ttt-cell ${cell ? `ttt-cell-${cell.toLowerCase()}` : ''}`}
+        className={`ttt-cell ${cell ? `ttt-cell-${cell.toLowerCase()}` : ''} ${!cell && !winner && !isDraw && isXNext && !aiThinking ? 'ttt-cell-hover' : ''}`}
         onClick={() => handleClick(index)}
-        disabled={!!cell || winner !== null || isDraw || !isXNext || !canPlay}
+        disabled={!!cell || winner !== null || isDraw || !isXNext || aiThinking}
       >
         {cell === 'X' && <X className="ttt-x" />}
         {cell === 'O' && <Circle className="ttt-o" />}
@@ -429,105 +302,97 @@ export default function TicTacToeGame() {
     );
   }
 
-  if (!canPlay && !gameStarted) {
-    return (
-      <div className="ttt-game-container">
-        <header className="ttt-game-header">
-          <h1 className="ttt-game-title">
-            <Trophy className="ttt-title-icon" />
-            Tic Tac Toe Challenge
-          </h1>
-          <p className="ttt-welcome-message">
-            Welcome, <span className="ttt-username">{user?.name}</span>!
-          </p>
-        </header>
-
-        <div className="ttt-already-played">
-          <Lock className="ttt-lock-icon" />
-          <h2>Game Already Played Today</h2>
-          <p>{gameMessage || "🚫 You have already played Tic Tac Toe today!"}</p>
-          <div className="ttt-next-play">
-            Next available in: <span className="ttt-next-play-time">{nextPlayTime}</span>
-          </div>
-          <button
-            onClick={() => router.push("/zone")}
-            className="ttt-button ttt-button-primary"
-          >
-            <Gamepad2 className="ttt-button-icon" />
-            Return to Game Zone
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="ttt-game-container">
       <header className="ttt-game-header">
         <div className="ttt-header-content">
           <div>
             <h1 className="ttt-game-title">
-              <Trophy className="ttt-title-icon" />
-              Tic Tac Toe Challenge
+              <Zap className="ttt-title-icon" />
+              Tic Tac Toe
             </h1>
             <p className="ttt-welcome-message">
               Welcome, <span className="ttt-username">{user?.name}</span>!
             </p>
           </div>
-          <div className="ttt-user-coins">
-            <Coins className="ttt-coins-icon" />
-            <span className="ttt-coins-value">{user?.userPoints || 0}</span>
+          <div className="ttt-difficulty-selector">
+            <select
+              value={gameMode}
+              onChange={(e) => {
+                const newMode = e.target.value as GameMode;
+                setGameMode(newMode);
+                resetGame();
+              }}
+              className="ttt-difficulty-select"
+              disabled={gameStarted}
+            >
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
           </div>
         </div>
       </header>
 
       <div className="ttt-stats-container">
-        <div className="ttt-stat-card">
-          <Timer className="ttt-stat-icon" />
-          <div className="ttt-stat-label">Time</div>
-          <div className="ttt-stat-value">{formatTime(time)}</div>
-        </div>
-
-        <div className="ttt-stat-card">
-          <div className="ttt-stat-label">Moves</div>
-          <div className="ttt-stat-value">{moves}</div>
-        </div>
-
-        <div className="ttt-stat-card">
-          <div className="ttt-stat-label">Score</div>
-          <div className="ttt-stat-value">X: {score.X} | O: {score.O}</div>
-        </div>
-      </div>
-
-      <div className="ttt-game-info">
-        <div className="ttt-mode-selector">
-          <label>Difficulty:</label>
-          <select
-            value={gameMode}
-            onChange={(e) => setGameMode(e.target.value as GameMode)}
-            disabled={gameStarted}
-            className="ttt-mode-select"
-          >
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-        </div>
-
-        <div className="ttt-current-player">
-          Current Player:
-          <span className={`ttt-player-indicator ${isXNext ? 'ttt-player-x' : 'ttt-player-o'}`}>
-            {isXNext ? 'X (You)' : 'O (Computer)'}
-          </span>
-        </div>
-
-        {!isXNext && !winner && !isDraw && gameStarted && (
-          <div className="ttt-ai-thinking">
-            🤖 AI is thinking...
+        <div className="ttt-stats-grid">
+          <div className="ttt-stat-card">
+            <Timer className="ttt-stat-icon" />
+            <div className="ttt-stat-label">Time</div>
+            <div className="ttt-stat-value">{formatTime(time)}</div>
           </div>
-        )}
+
+          <div className="ttt-stat-card">
+            <div className="ttt-stat-label">Moves</div>
+            <div className="ttt-stat-value">{moves}</div>
+          </div>
+
+          <div className="ttt-stat-card">
+            <div className="ttt-stat-label">Score (X:O:Draws)</div>
+            <div className="ttt-stat-value">{score.X} : {score.O} : {score.draws}</div>
+          </div>
+
+          <div className="ttt-stat-card">
+            <Trophy className="ttt-stat-icon" />
+            <div className="ttt-stat-label">Difficulty</div>
+            <div className="ttt-stat-value">{gameMode.charAt(0).toUpperCase() + gameMode.slice(1)}</div>
+          </div>
+        </div>
       </div>
 
+      {/* Feedback Message */}
+      {feedback && (
+        <div className={`ttt-feedback-message ${feedback.includes('🎉') ? 'success' : feedback.includes('🤖') ? 'error' : 'draw'}`}>
+          {feedback}
+        </div>
+      )}
+
+      {/* AI Thinking Indicator */}
+      {aiThinking && (
+        <div className="ttt-ai-thinking">
+          <div className="ttt-ai-spinner"></div>
+          <span>🤖 AI is thinking...</span>
+        </div>
+      )}
+
+      {/* Current Player */}
+      <div className="ttt-current-player">
+        <div className={`ttt-player-indicator ${isXNext ? 'ttt-player-x' : 'ttt-player-o'}`}>
+          {isXNext ? (
+            <>
+              <X className="ttt-player-icon" />
+              <span>Your Turn (X)</span>
+            </>
+          ) : (
+            <>
+              <Circle className="ttt-player-icon" />
+              <span>AI's Turn (O)</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Game Board */}
       <div className="ttt-board-container">
         <div className="ttt-board">
           <div className="ttt-row">
@@ -548,36 +413,62 @@ export default function TicTacToeGame() {
         </div>
       </div>
 
+      {/* Controls */}
       <div className="ttt-controls">
         <button onClick={resetGame} className="ttt-button ttt-button-restart">
           <RefreshCw className="ttt-button-icon" />
-          Restart Game
+          New Game
+        </button>
+        <button
+          onClick={() => router.push("/zone")}
+          className="ttt-button ttt-button-secondary"
+        >
+          <Gamepad2 className="ttt-button-icon" />
+          Game Zone
         </button>
       </div>
 
-      {gameMessage && (
-        <div className="ttt-message">
-          <div className={`ttt-message-card ${gameMessage.includes('🎉') ? 'success' : gameMessage.includes('🤝') ? 'draw' : 'info'}`}>
-            {gameMessage}
+      {/* Game Completed Overlay */}
+      {gameCompleted && (
+        <div className="ttt-game-overlay">
+          <div className="ttt-game-over-card">
+            <div className="ttt-result-emoji">
+              {feedback.includes('🎉') ? '🎉' : feedback.includes('🤖') ? '🤖' : '🤝'}
+            </div>
+            <h3 className="ttt-result-title">{feedback}</h3>
+            <div className="ttt-result-stats">
+              <p>Time: {formatTime(time)}</p>
+              <p>Moves: {moves}</p>
+              <p>Difficulty: {gameMode}</p>
+            </div>
+            <div className="ttt-result-actions">
+              <button onClick={resetGame} className="ttt-button ttt-button-primary">
+                Play Again
+              </button>
+              <button
+                onClick={() => setGameCompleted(false)}
+                className="ttt-button ttt-button-secondary"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {gameCompleted && (
-        <div className="ttt-game-over">
-          <div className="ttt-game-over-card">
-            <h3>{winner === 'X' ? '🎉 You Win!' : winner === 'O' ? '😢 You Lose!' : '🤝 Draw!'}</h3>
-            <p>Time: {formatTime(time)} • Moves: {moves}</p>
-            <div className="ttt-coins-earned">+{earnedCoins} coins earned!</div>
-            <div className="ttt-total-coins">
-              Total coins: <span>{user?.userPoints || 0}</span>
-            </div>
-            <button
-              onClick={() => router.push("/zone")}
-              className="ttt-button ttt-button-primary"
-            >
-              Return to Game Zone
-            </button>
+      {/* Instructions */}
+      {!gameStarted && (
+        <div className="ttt-instructions">
+          <h3 className="ttt-instructions-title">How to Play</h3>
+          <div className="ttt-instructions-content">
+            <p>• You play as <strong>X</strong>, AI plays as <strong>O</strong></p>
+            <p>• Get three in a row to win</p>
+            <p>• Choose difficulty: 
+              <span className="ttt-diff-easy">Easy</span> (random moves), 
+              <span className="ttt-diff-medium">Medium</span> (basic strategy), 
+              <span className="ttt-diff-hard">Hard</span> (unbeatable)
+            </p>
+            <p>• No time limits - play at your own pace!</p>
           </div>
         </div>
       )}
