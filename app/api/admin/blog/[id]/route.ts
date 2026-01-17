@@ -1,4 +1,5 @@
 // app/api/admin/blog/[id]/route.ts
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
@@ -14,10 +15,10 @@ function generateUniqueId(): string {
 // PUT - Update blog with image upload
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const params = await context.params;
+    const { id } = await params;
 
     // Verify authentication
     const authHeader = request.headers.get("Authorization");
@@ -36,15 +37,15 @@ export async function PUT(
       "PUT /api/admin/blog/[id] - User:",
       firebaseUid,
       "Blog ID:",
-      params.id,
+      id,
     );
 
     await connectDb();
 
     // Find the blog
-    const blog = await Blog.findById(params.id);
+    const blog = await Blog.findById(id);
     if (!blog) {
-      console.log("Blog not found:", params.id);
+      console.log("Blog not found:", id);
       return NextResponse.json(
         { success: false, error: "Blog not found" },
         { status: 404 },
@@ -186,10 +187,10 @@ export async function PUT(
 // DELETE - Delete blog
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const params = await context.params;
+    const { id } = await params;
 
     // Verify authentication
     const authHeader = request.headers.get("Authorization");
@@ -208,15 +209,15 @@ export async function DELETE(
       "DELETE /api/admin/blog/[id] - User:",
       firebaseUid,
       "Blog ID:",
-      params.id,
+      id,
     );
 
     await connectDb();
 
     // Find the blog
-    const blog = await Blog.findById(params.id);
+    const blog = await Blog.findById(id);
     if (!blog) {
-      console.log("Blog not found:", params.id);
+      console.log("Blog not found:", id);
       return NextResponse.json(
         { success: false, error: "Blog not found" },
         { status: 404 },
@@ -249,8 +250,8 @@ export async function DELETE(
     }
 
     // Delete the blog
-    await Blog.findByIdAndDelete(params.id);
-    console.log("Blog deleted successfully:", params.id);
+    await Blog.findByIdAndDelete(id);
+    console.log("Blog deleted successfully:", id);
 
     return NextResponse.json({
       success: true,

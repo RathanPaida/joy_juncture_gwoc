@@ -1,4 +1,5 @@
 // app/api/admin/wallet/achievements/[id]/route.ts - FIXED FOR NEXT.JS 15
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAccess } from "@/lib/admin-middleware";
 import { connectDb } from "@/lib/mongodb";
@@ -23,9 +24,9 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function PUT(req: NextRequest, context: RouteContext) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
 
     console.log("=== PUT Achievement:", id);
 
@@ -96,9 +97,9 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   }
 }
 
-export async function DELETE(req: NextRequest, context: RouteContext) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
 
     console.log("=== DELETE Achievement:", id);
 

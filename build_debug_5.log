@@ -1,0 +1,255 @@
+
+> joy_juncture_gwoc@0.1.0 build
+> next build
+
+   ▲ Next.js 16.0.10 (Turbopack)
+   - Environments: .env.local
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 9.6s
+   Running TypeScript ...
+   Collecting page data using 19 workers ...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+   Generating static pages using 19 workers (0/149) ...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+   Generating static pages using 19 workers (37/149) 
+   Generating static pages using 19 workers (74/149) 
+   Generating static pages using 19 workers (111/149) 
+ ✓ Generating static pages using 19 workers (149/149) in 2.0s
+   Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /about
+├ ƒ /admin
+├ ○ /admin-diagnostic
+├ ○ /admin/analytics
+├ ○ /admin/blog
+├ ○ /admin/bookings
+├ ○ /admin/check
+├ ○ /admin/community
+├ ○ /admin/coupons
+├ ○ /admin/dashboard
+├ ○ /admin/debug
+├ ○ /admin/debug-api
+├ ○ /admin/events
+├ ○ /admin/experiences-gallery
+├ ○ /admin/gallery
+├ ○ /admin/game-images
+├ ○ /admin/games
+├ ○ /admin/packages
+├ ○ /admin/products
+├ ƒ /admin/products/[id]/edit
+├ ○ /admin/products/new
+├ ○ /admin/settings
+├ ○ /admin/setup
+├ ○ /admin/test
+├ ○ /admin/users
+├ ○ /admin/verify
+├ ○ /admin/wallet
+├ ƒ /api/admin/analytics/stats
+├ ƒ /api/admin/blog
+├ ƒ /api/admin/blog/[id]
+├ ƒ /api/admin/blog/stats
+├ ƒ /api/admin/check-access
+├ ƒ /api/admin/coupons
+├ ƒ /api/admin/dashboard/stats
+├ ƒ /api/admin/discussions
+├ ƒ /api/admin/discussions/bulk
+├ ƒ /api/admin/gallery
+├ ƒ /api/admin/game-images
+├ ƒ /api/admin/game-images/[id]
+├ ƒ /api/admin/products
+├ ƒ /api/admin/products/[id]
+├ ƒ /api/admin/products/check-name
+├ ƒ /api/admin/products/clear
+├ ƒ /api/admin/settings
+├ ƒ /api/admin/users
+├ ƒ /api/admin/verify-ticket
+├ ƒ /api/admin/wallet/achievements
+├ ƒ /api/admin/wallet/achievements/[id]
+├ ƒ /api/admin/wallet/clear
+├ ƒ /api/admin/wallet/criteria
+├ ƒ /api/admin/wallet/criteria/[id]
+├ ƒ /api/admin/wallet/rewards
+├ ƒ /api/admin/wallet/rewards/[id]
+├ ƒ /api/admin/wallet/seed
+├ ƒ /api/admin/wallet/stats
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/auth/register
+├ ƒ /api/auth/send-otp
+├ ƒ /api/auth/sync
+├ ƒ /api/blogs
+├ ƒ /api/blogs/[slug]
+├ ƒ /api/blogs/bookmark
+├ ƒ /api/blogs/interactions
+├ ƒ /api/blogs/like
+├ ƒ /api/blogs/search
+├ ƒ /api/blogs/search/suggestions
+├ ƒ /api/blogs/stats
+├ ƒ /api/blogs/test
+├ ƒ /api/bookings
+├ ƒ /api/bookings/public
+├ ƒ /api/cart
+├ ƒ /api/cart/[itemId]
+├ ƒ /api/cart/clear
+├ ƒ /api/cart/count
+├ ƒ /api/cart/remove
+├ ƒ /api/cart/update
+├ ƒ /api/community/discussions
+├ ƒ /api/community/discussions/[id]
+├ ƒ /api/community/discussions/[id]/like
+├ ƒ /api/community/discussions/[id]/replies
+├ ƒ /api/community/discussions/[id]/replies/[replyId]
+├ ƒ /api/community/discussions/[id]/replies/[replyId]/like
+├ ƒ /api/coupons
+├ ƒ /api/coupons/validate
+├ ƒ /api/debug/cart
+├ ƒ /api/debug/discussion
+├ ƒ /api/debug/gallery
+├ ƒ /api/debug/make-admin
+├ ƒ /api/debug/order-schema
+├ ƒ /api/debug/razorpay-test
+├ ƒ /api/debug/revenue
+├ ƒ /api/delivery/calculate
+├ ƒ /api/events
+├ ƒ /api/events/[id]
+├ ƒ /api/gallery
+├ ƒ /api/game-images
+├ ƒ /api/games
+├ ƒ /api/games/complete
+├ ƒ /api/games/continue
+├ ƒ /api/games/public
+├ ƒ /api/games/start
+├ ƒ /api/games/stats
+├ ƒ /api/health
+├ ƒ /api/orders/create
+├ ƒ /api/packages
+├ ƒ /api/packages/public
+├ ƒ /api/payment/create
+├ ƒ /api/payment/create-order
+├ ƒ /api/payment/verify
+├ ƒ /api/products
+├ ƒ /api/products/[slug]
+├ ƒ /api/products/debug
+├ ƒ /api/products/seed
+├ ƒ /api/promo/validate
+├ ƒ /api/registrations
+├ ƒ /api/registrations/[id]/payment
+├ ƒ /api/registrations/[id]/payment/success
+├ ƒ /api/registrations/check
+├ ƒ /api/registrations/user/[userId]
+├ ƒ /api/test-blogs
+├ ƒ /api/test-email
+├ ƒ /api/user/addCoins
+├ ƒ /api/user/blogs
+├ ƒ /api/user/markGamePlayed
+├ ƒ /api/user/me
+├ ƒ /api/user/profile
+├ ƒ /api/user/purchased-products
+├ ƒ /api/user/registered-events
+├ ƒ /api/user/role
+├ ƒ /api/user/snake-high-score
+├ ƒ /api/user/wallet
+├ ƒ /api/verify-ticket
+├ ƒ /api/wallet
+├ ƒ /api/wallet/achievements
+├ ƒ /api/wallet/achievements/[id]
+├ ƒ /api/wallet/add-points
+├ ƒ /api/wallet/create
+├ ƒ /api/wallet/daily-login
+├ ƒ /api/wallet/debug
+├ ƒ /api/wallet/points-criteria
+├ ƒ /api/wallet/redeem
+├ ƒ /api/wallet/redeem-coupon
+├ ƒ /api/wallet/rewards
+├ ƒ /api/wallet/rewards/[id]
+├ ƒ /api/wallet/transactions
+├ ○ /blog
+├ ƒ /blog/[slug]
+├ ○ /blog/create
+├ ○ /cart
+├ ○ /cart-debug
+├ ƒ /cart/debug
+├ ○ /checkout
+├ ○ /community
+├ ƒ /community/discussion/[id]
+├ ○ /corporate
+├ ○ /events
+├ ƒ /events/[id]
+├ ƒ /events/[id]/gallery
+├ ƒ /events/[id]/payment
+├ ○ /events/past
+├ ○ /events/registered
+├ ○ /events/upcoming
+├ ○ /experiences
+├ ○ /forgot-password
+├ ○ /games
+├ ƒ /games/[gameType]
+├ ○ /games/jigsaw
+├ ○ /games/memory
+├ ○ /home
+├ ○ /login
+├ ○ /order-succes
+├ ○ /profile
+├ ○ /register
+├ ○ /settings
+├ ƒ /store
+├ ƒ /store/[slug]
+├ ○ /unauthorized
+├ ○ /walletandpoints
+└ ○ /zone
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

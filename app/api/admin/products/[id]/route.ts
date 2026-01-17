@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import mongoose from "mongoose";
@@ -5,11 +6,10 @@ import mongoose from "mongoose";
 // DELETE - Delete a product
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const params = await context.params;
-    const productId = params.id;
+    const { id: productId } = await params;
 
     console.log("🗑️ DELETE API called with ID:", productId);
 
@@ -63,11 +63,10 @@ export async function DELETE(
 // GET - Get single product
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const params = await context.params;
-    const productId = params.id;
+    const { id: productId } = await params;
 
     console.log("📖 GET API called with ID:", productId);
 
@@ -113,11 +112,10 @@ export async function GET(
 // PUT - Update product with image upload support
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const params = await context.params;
-    const productId = params.id;
+    const { id: productId } = await params;
 
     console.log("✏️ PUT API called with ID:", productId);
 
