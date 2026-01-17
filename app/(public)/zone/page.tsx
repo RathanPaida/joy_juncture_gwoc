@@ -1,3 +1,4 @@
+
 "use client";
 
 import ZoneGameCard from "@/app/components/zone/ZoneGameCard";
@@ -9,7 +10,7 @@ export default function ZonePage() {
       id: "jigsaw-puzzle",
       title: "Jigsaw Puzzle",
       description: "Solve the 4×4 puzzle of game images. Complete it to earn daily coins!",
-      image: "/games/jigsaw-puzzle.jpg",
+      image: "https://res.cloudinary.com/dwvb2cgmq/image/upload/v1768660916/Screenshot_2026-01-17_at_8.11.20_PM_ws5uev.png",
       category: "Puzzle",
       difficulty: "Medium",
       dailyLimit: true,
@@ -19,7 +20,7 @@ export default function ZonePage() {
       id: "memory-game",
       title: "Memory Game",
       description: "Match cards and test your memory skills. Find all pairs to win!",
-      image: "/games/memory-game.jpg",
+      image: "https://res.cloudinary.com/dwvb2cgmq/image/upload/v1768079331/dc2584c1-4eb3-43cf-98da-25bfdc79e498.png",
       category: "Memory",
       difficulty: "Easy",
       dailyLimit: true,
@@ -29,7 +30,7 @@ export default function ZonePage() {
       id: "sudoku",
       title: "Sudoku Challenge",
       description: "Fill the grid with numbers. Each puzzle has a unique solution.",
-      image: "/games/sudoku.jpg",
+      image: "https://res.cloudinary.com/dwvb2cgmq/image/upload/v1768660995/sudko_bh59wu.jpg",
       category: "Logic",
       difficulty: "Hard",
       dailyLimit: true,
@@ -39,7 +40,7 @@ export default function ZonePage() {
       id: "tictactoe",
       title: "Tic Tac Toe",
       description: "Classic 3-in-a-row game. Play against AI with three difficulty levels.",
-      image: "/games/tictactoe.jpg",
+      image: "https://res.cloudinary.com/dwvb2cgmq/image/upload/v1768661128/tic_cfiwvn.png",
       category: "Strategy",
       difficulty: "Easy",
       dailyLimit: false,
@@ -49,7 +50,7 @@ export default function ZonePage() {
     id: "snake",
     title: "Snake Challenge",
     description: "Classic snake game. Eat food, grow longer, and avoid collisions!",
-    image: "/games/snake.jpg",
+    image: "https://res.cloudinary.com/dwvb2cgmq/image/upload/v1768661207/snake_kewvjm.png",
     category: "Arcade",
     difficulty: "Medium",
     dailyLimit: true,
@@ -67,20 +68,7 @@ export default function ZonePage() {
         </p>
       </div>
 
-      <div className="zone-stats-bar">
-        <div className="zone-stat">
-          <span className="zone-stat-number">{games.length}</span>
-          <span className="zone-stat-label">Total Games</span>
-        </div>
-        <div className="zone-stat">
-          <span className="zone-stat-number">{games.filter(g => g.dailyLimit).length}</span>
-          <span className="zone-stat-label">Daily Games</span>
-        </div>
-        <div className="zone-stat">
-          <span className="zone-stat-number">5</span>
-          <span className="zone-stat-label">Categories</span>
-        </div>
-      </div>
+      
 
       <div className="zone-games-grid">
         {games.map((game) => (

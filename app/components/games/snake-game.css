@@ -1,5 +1,5 @@
 /* ============================================
-   SNAKE GAME STYLES
+   SNAKE GAME - PREMIUM DARK + ORANGE THEME
    ============================================ */
 
 /* Loading Screens */
@@ -9,8 +9,20 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
-  color: white;
+  background: linear-gradient(135deg, #050505 0%, #111111 45%, #050505 100%);
+  color: #f5f5f5;
+  position: relative;
+  overflow: hidden;
+}
+
+.snake-loading-screen::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 40%, rgba(255, 102, 0, 0.14) 0%, transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(255, 170, 0, 0.1) 0%, transparent 55%);
+  pointer-events: none;
 }
 
 .snake-loading-message {
@@ -22,22 +34,38 @@
 /* Main Container */
 .snake-game-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+  background: linear-gradient(135deg, #050505 0%, #111111 45%, #050505 100%);
   padding: 1rem;
-  color: white;
+  color: #f5f5f5;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.snake-game-container::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 30%, rgba(255, 102, 0, 0.13) 0%, transparent 55%),
+    radial-gradient(circle at 80% 85%, rgba(255, 170, 0, 0.09) 0%, transparent 55%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* Header */
 .snake-game-header {
   margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
 }
 
 .snake-header-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: radial-gradient(circle at top left, rgba(255, 102, 0, 0.18), #050505);
+  backdrop-filter: blur(14px);
   border-radius: 16px;
-  padding: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1.5rem 1.75rem;
+  border: 1px solid #262626;
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.95);
 }
 
 .snake-header-content {
@@ -51,25 +79,28 @@
 .snake-game-title {
   font-size: 2rem;
   font-weight: 800;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  color: #fafafa;
 }
 
 .snake-title-icon {
   width: 32px;
   height: 32px;
+  color: #ff7a1a;
 }
 
 .snake-welcome-message {
-  font-size: 1.1rem;
+  font-size: 1rem;
   opacity: 0.9;
+  color: #d4d4d4;
 }
 
 .snake-username {
   font-weight: 700;
-  color: #FFD700;
+  color: #ffb84d;
 }
 
 /* Game Settings */
@@ -89,30 +120,31 @@
   font-size: 0.9rem;
   opacity: 0.8;
   font-weight: 600;
+  color: #b3b3b3;
 }
 
 .snake-setting-select {
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  background: #101010;
+  border: 1px solid #404040;
+  color: #f5f5f5;
   padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   min-width: 180px;
 }
 
 .snake-setting-select:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: #ff7a1a;
+  box-shadow: 0 0 0 1px rgba(255, 122, 26, 0.6);
 }
 
 .snake-setting-select:focus {
   outline: none;
-  border-color: #FFD700;
-  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);
+  border-color: #ffb84d;
+  box-shadow: 0 0 0 2px rgba(255, 184, 77, 0.45);
 }
 
 .snake-setting-select:disabled {
@@ -123,6 +155,8 @@
 /* Stats Container */
 .snake-stats-container {
   margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
 }
 
 .snake-stats-grid {
@@ -133,17 +167,20 @@
 }
 
 .snake-stat-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), #050505);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 1rem;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: transform 0.3s ease;
+  border: 1px solid #262626;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.9);
 }
 
 .snake-stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  border-color: rgba(255, 122, 26, 0.8);
+  box-shadow: 0 16px 40px rgba(255, 122, 26, 0.28);
 }
 
 .snake-stat-header {
@@ -157,70 +194,75 @@
 .snake-stat-icon {
   width: 20px;
   height: 20px;
+  color: #ff7a1a;
 }
 
 .snake-stat-label {
   font-size: 0.9rem;
   opacity: 0.8;
+  color: #b3b3b3;
 }
 
 .snake-stat-value {
   font-size: 2rem;
   font-weight: 700;
   margin: 0.25rem 0;
+  color: #f5f5f5;
 }
 
 .snake-stat-subtext {
   font-size: 0.8rem;
   opacity: 0.7;
+  color: #9ca3af;
 }
 
-/* Difficulty-specific stat colors */
+/* Difficulty-specific stat colors (slightly tweaked) */
 .snake-stat-score .snake-stat-value {
-  color: #3498DB;
+  color: #60a5fa;
 }
 
 .snake-stat-highscore .snake-stat-value {
-  color: #F1C40F;
+  color: #facc15;
 }
 
 .snake-stat-time .snake-stat-value {
-  color: #2ECC71;
+  color: #4ade80;
 }
 
 .snake-stat-difficulty .snake-stat-value {
-  color: #9B59B6;
+  color: #a855f7;
 }
 
 /* Status Messages */
 .snake-status-message {
   text-align: center;
   padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: 999px;
   font-weight: 600;
   margin-top: 1rem;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
   animation: fadeIn 0.3s ease;
+  border: 1px solid transparent;
 }
 
 .snake-status-message.warning {
-  background: rgba(241, 196, 15, 0.2);
-  border: 1px solid #F1C40F;
-  color: #F1C40F;
+  background: rgba(234, 179, 8, 0.18);
+  border-color: #eab308;
+  color: #fef08a;
 }
 
 .snake-status-message.error {
-  background: rgba(231, 76, 60, 0.2);
-  border: 1px solid #E74C3C;
-  color: #E74C3C;
+  background: rgba(220, 38, 38, 0.18);
+  border-color: #ef4444;
+  color: #fecaca;
 }
 
 .snake-status-message.success {
-  background: rgba(46, 204, 113, 0.2);
-  border: 1px solid #2ECC71;
-  color: #2ECC71;
+  background: rgba(22, 163, 74, 0.18);
+  border-color: #22c55e;
+  color: #bbf7d0;
 }
 
 /* Game Area */
@@ -244,11 +286,12 @@
 }
 
 .snake-game-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), #050505);
+  backdrop-filter: blur(12px);
   border-radius: 16px;
   padding: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #262626;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.95);
 }
 
 /* Snake Grid */
@@ -256,10 +299,10 @@
   display: grid;
   grid-template-rows: repeat(20, 1fr);
   gap: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: #020617;
   padding: 2px;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.9);
 }
 
 .snake-grid-row {
@@ -271,38 +314,44 @@
 .snake-grid-cell {
   width: 20px;
   height: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 2px;
-  transition: background-color 0.2s ease;
+  background: #020617;
+  border-radius: 3px;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* Snake/head/food colors tuned for dark neon feel */
 .snake-grid-cell.snake-head {
-  background: #3498DB;
-  border-radius: 4px;
-  box-shadow: 0 0 8px #3498DB;
-  animation: pulse 1.5s infinite;
+  background: #22c55e;
+  border-radius: 6px;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
+  animation: snakeHeadPulse 1.2s infinite;
 }
 
 .snake-grid-cell.snake-body {
-  background: #2980B9;
-  border-radius: 3px;
+  background: #16a34a;
+  border-radius: 4px;
 }
 
 .snake-grid-cell.snake-food {
-  background: #E74C3C;
+  background: #ef4444;
   border-radius: 50%;
-  animation: pulse 1s infinite;
-  box-shadow: 0 0 8px #E74C3C;
+  animation: snakeFoodPulse 1s infinite;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
 }
 
 .snake-grid-cell.snake-wall {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
+  background: #1f2937;
+  border-radius: 3px;
 }
 
-@keyframes pulse {
+@keyframes snakeHeadPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 8px rgba(34, 197, 94, 0.7); }
+  50%      { transform: scale(1.05); box-shadow: 0 0 14px rgba(34, 197, 94, 1); }
+}
+
+@keyframes snakeFoodPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50%      { transform: scale(1.1); }
 }
 
 /* Controls Section */
@@ -312,28 +361,31 @@
 }
 
 .snake-controls-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), #050505);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #262626;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9);
 }
 
 .snake-controls-title {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+  color: #fafafa;
 }
 
 .snake-controls-icon {
   width: 20px;
   height: 20px;
+  color: #ff7a1a;
 }
 
 /* Action Buttons */
@@ -349,13 +401,14 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 0.7rem 1.6rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
   font-weight: 600;
   border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.9);
 }
 
 .snake-button:hover:not(:disabled) {
@@ -368,44 +421,45 @@
 }
 
 .snake-button-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
+/* Primary actions orange; others neutral/green */
 .snake-button-primary {
-  background: linear-gradient(135deg, #3498DB, #2980B9);
-  color: white;
+  background: linear-gradient(135deg, #ff7a1a, #ffb84d);
+  color: #050505;
 }
 
 .snake-button-secondary {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  background: #101010;
+  border: 1px solid #333333;
+  color: #e5e5e5;
 }
 
 .snake-button-warning {
-  background: linear-gradient(135deg, #F39C12, #E67E22);
-  color: white;
+  background: linear-gradient(135deg, #f97316, #facc15);
+  color: #050505;
 }
 
 .snake-button-success {
-  background: linear-gradient(135deg, #2ECC71, #27AE60);
-  color: white;
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  color: #052e16;
 }
 
 /* Control Instructions */
 .snake-control-instructions {
-  background: rgba(255, 255, 255, 0.05);
+  background: #090909;
   border-radius: 12px;
   padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #1f2933;
 }
 
 .snake-control-instructions h4 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
-  color: #FFD700;
+  color: #ffb84d;
 }
 
 .snake-control-instructions ul {
@@ -421,18 +475,19 @@
   position: relative;
   padding-left: 1rem;
   line-height: 1.4;
+  color: #e5e5e5;
 }
 
 .snake-control-instructions li:before {
   content: "•";
   position: absolute;
   left: 0;
-  color: #FFD700;
+  color: #ff7a1a;
 }
 
 .food-sample {
-  color: #E74C3C;
-  font-weight: bold;
+  color: #ef4444;
+  font-weight: 700;
 }
 
 /* Difficulty List */
@@ -447,17 +502,17 @@
 }
 
 .diff-easy {
-  color: #2ECC71;
+  color: #bbf7d0;
   font-weight: 700;
 }
 
 .diff-medium {
-  color: #F1C40F;
+  color: #fed7aa;
   font-weight: 700;
 }
 
 .diff-hard {
-  color: #E74C3C;
+  color: #fecaca;
   font-weight: 700;
 }
 
@@ -479,144 +534,21 @@
 .snake-direction-button {
   width: 60px;
   height: 60px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  color: white;
+  background: #101010;
+  border: 1px solid #404040;
+  border-radius: 12px;
+  color: #f5f5f5;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-}
-/* Add these to your snake-game.css */
-
-/* New High Score Badge */
-.snake-new-highscore-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  color: #000;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  margin-top: 0.5rem;
-  animation: pulse 1.5s infinite;
-}
-
-/* High Scores Summary */
-.snake-highscores-summary {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 1rem;
-  margin-top: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.snake-highscores-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: #FFD700;
-}
-
-.snake-highscores-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-.snake-highscore-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.5rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.snake-highscore-item.diff-easy {
-  border: 1px solid rgba(46, 204, 113, 0.3);
-}
-
-.snake-highscore-item.diff-medium {
-  border: 1px solid rgba(241, 196, 15, 0.3);
-}
-
-.snake-highscore-item.diff-hard {
-  border: 1px solid rgba(231, 76, 60, 0.3);
-}
-
-.snake-highscore-label {
-  font-size: 0.8rem;
-  opacity: 0.8;
-  margin-bottom: 0.25rem;
-}
-
-.snake-highscore-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.snake-highscore-item.diff-easy .snake-highscore-value {
-  color: #2ECC71;
-}
-
-.snake-highscore-item.diff-medium .snake-highscore-value {
-  color: #F1C40F;
-}
-
-.snake-highscore-item.diff-hard .snake-highscore-value {
-  color: #E74C3C;
-}
-
-/* Game Over New High Score */
-.new-highscore-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
-  border: 1px solid #FFD700;
-  border-radius: 12px;
-  padding: 1rem;
-  margin: 1rem 0;
-  font-weight: 600;
-  color: #FFD700;
-  text-align: center;
-}
-
-.crown-icon {
-  width: 20px;
-  height: 20px;
-  color: #FFD700;
-  animation: bounce 1s infinite;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-.regular-message {
-  text-align: center;
-  font-size: 1rem;
-  opacity: 0.9;
-  margin: 1rem 0;
-  line-height: 1.6;
+  transition: all 0.25s ease;
 }
 
 .snake-direction-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.25);
+  background: #171717;
   transform: scale(1.05);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.8);
 }
 
 .snake-direction-button:disabled {
@@ -625,19 +557,19 @@
 }
 
 .snake-direction-button.up {
-  border-color: #3498DB;
+  border-color: #3b82f6;
 }
 
 .snake-direction-button.down {
-  border-color: #2ECC71;
+  border-color: #22c55e;
 }
 
 .snake-direction-button.left {
-  border-color: #F39C12;
+  border-color: #f97316;
 }
 
 .snake-direction-button.right {
-  border-color: #9B59B6;
+  border-color: #a855f7;
 }
 
 .snake-direction-center {
@@ -648,17 +580,17 @@
 
 /* Game Info */
 .snake-game-info {
-  background: rgba(255, 255, 255, 0.05);
+  background: #090909;
   border-radius: 12px;
   padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #1f2933;
 }
 
 .snake-game-info h4 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
-  color: #FFD700;
+  color: #ffb84d;
 }
 
 .snake-info-grid {
@@ -676,22 +608,170 @@
 .snake-info-label {
   font-size: 0.85rem;
   opacity: 0.8;
+  color: #b3b3b3;
 }
 
 .snake-info-value {
   font-size: 1rem;
   font-weight: 600;
-  color: #FFD700;
+  color: #fbbf24;
+}
+
+/* New High Score Badge */
+.snake-new-highscore-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  background: linear-gradient(135deg, #ffd700, #ff9800);
+  color: #000;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  margin-top: 0.5rem;
+  animation: pulseBadge 1.5s infinite;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+}
+
+/* High Scores Summary */
+.snake-highscores-summary {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), #050505);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid #262626;
+}
+
+.snake-highscores-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #ffb84d;
+}
+
+.snake-highscores-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.snake-highscore-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.3s ease;
+}
+
+.snake-highscore-item.diff-easy {
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.snake-highscore-item.diff-medium {
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.snake-highscore-item.diff-hard {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.snake-highscore-label {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-bottom: 0.25rem;
+  color: #d4d4d4;
+}
+
+.snake-highscore-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.snake-highscore-item.diff-easy .snake-highscore-value {
+  color: #4ade80;
+}
+
+.snake-highscore-item.diff-medium .snake-highscore-value {
+  color: #fed7aa;
+}
+
+.snake-highscore-item.diff-hard .snake-highscore-value {
+  color: #fecaca;
+}
+
+/* Game Over New High Score */
+.new-highscore-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(255, 165, 0, 0.18));
+  border: 1px solid #facc15;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  font-weight: 600;
+  color: #facc15;
+  text-align: center;
+}
+
+.crown-icon {
+  width: 20px;
+  height: 20px;
+  color: #facc15;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+.regular-message {
+  text-align: center;
+  font-size: 1rem;
+  opacity: 0.9;
+  margin: 1rem 0;
+  line-height: 1.6;
+  color: #e5e5e5;
+}
+
+/* Score highlight */
+.snake-stat-score {
+  position: relative;
+  overflow: hidden;
+}
+
+.snake-stat-score::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.18), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.snake-stat-score.highlight::after {
+  opacity: 1;
+  animation: highlight 2s ease-out;
 }
 
 /* Game Overlay */
 .snake-game-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -700,18 +780,19 @@
 }
 
 .snake-game-over-card {
-  background: linear-gradient(135deg, #00b09b, #96c93d);
+  background: radial-gradient(circle at top, rgba(255, 122, 26, 0.16), #050505);
   border-radius: 20px;
-  padding: 3rem 2rem;
+  padding: 2.5rem 2rem;
   text-align: center;
   max-width: 500px;
   width: 90%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  animation: scaleIn 0.3s ease;
+  border: 1px solid #262626;
+  animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95);
 }
 
 .snake-game-over-emoji {
-  font-size: 4rem;
+  font-size: 3.5rem;
   margin-bottom: 1rem;
 }
 
@@ -719,13 +800,15 @@
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 1rem;
+  color: #fafafa;
 }
 
 .snake-game-over-stats {
-  background: rgba(255, 255, 255, 0.15);
+  background: #101010;
   border-radius: 12px;
   padding: 1rem;
   margin: 1.5rem 0;
+  border: 1px solid #1f2933;
 }
 
 .snake-stat-result {
@@ -733,7 +816,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 .snake-stat-result:last-child {
@@ -743,65 +826,72 @@
 .snake-stat-result .snake-stat-label {
   font-size: 1rem;
   opacity: 0.9;
+  color: #e5e5e5;
 }
 
 .snake-stat-result .snake-stat-value {
   font-size: 1.25rem;
-  color: #FFD700;
+  color: #fbbf24;
 }
 
 .snake-stat-result.coins-earned .snake-stat-value {
-  color: #F1C40F;
+  color: #facc15;
   font-weight: 800;
 }
 
 .new-highscore {
-  color: #F1C40F;
+  color: #facc15;
   font-size: 1.25rem;
   font-weight: 700;
   margin: 1rem 0;
-  animation: pulse 1.5s infinite;
+  animation: pulseBadge 1.5s infinite;
 }
 
 .snake-game-over-message {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   opacity: 0.9;
   margin: 1.5rem 0;
   line-height: 1.6;
+  color: #e5e5e5;
 }
 
 .snake-game-over-buttons {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: center;
   flex-wrap: wrap;
 }
 
-/* Animations */
+/* Shared animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes scaleIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0.9); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+@keyframes popIn {
+  0%   { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulseBadge {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+@keyframes highlight {
+  0%   { background: linear-gradient(135deg, rgba(250, 204, 21, 0.35), transparent); }
+  100% { background: linear-gradient(135deg, rgba(250, 204, 21, 0.15), transparent); }
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .snake-game-title {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
   }
   
   .snake-header-content {
@@ -863,109 +953,6 @@
   }
   
   .snake-game-over-title {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
   }
-}
-/* Add to snake-game.css */
-
-/* Enhanced high score badge */
-.snake-new-highscore-badge {
-  background: linear-gradient(135deg, #ffd700, #ff9800);
-  color: #000;
-  font-weight: bold;
-  font-size: 0.75rem;
-  padding: 4px 8px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-  animation: pulse 1.5s infinite;
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
-}
-
-/* Pulse animation for new high score */
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-/* Game status messages */
-.snake-status-message {
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin: 12px 0;
-  text-align: center;
-  font-weight: bold;
-  animation: slideIn 0.3s ease-out;
-}
-
-.snake-status-message.warning {
-  background: rgba(255, 193, 7, 0.15);
-  border: 1px solid #ffc107;
-  color: #ffc107;
-}
-
-.snake-status-message.error {
-  background: rgba(220, 53, 69, 0.15);
-  border: 1px solid #dc3545;
-  color: #dc3545;
-}
-
-.snake-status-message.success {
-  background: rgba(40, 167, 69, 0.15);
-  border: 1px solid #28a745;
-  color: #28a745;
-}
-
-/* Game over overlay enhancements */
-.snake-game-over-card {
-  animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-@keyframes popIn {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* High score items */
-.snake-highscore-item {
-  transition: all 0.3s ease;
-}
-
-.snake-highscore-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.diff-easy { background: rgba(40, 167, 69, 0.1); }
-.diff-medium { background: rgba(255, 193, 7, 0.1); }
-.diff-hard { background: rgba(220, 53, 69, 0.1); }
-
-/* Score highlight */
-.snake-stat-score {
-  position: relative;
-  overflow: hidden;
-}
-
-.snake-stat-score::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.snake-stat-score.highlight::after {
-  opacity: 1;
-  animation: highlight 2s ease-out;
-}
-
-@keyframes highlight {
-  0% { background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), transparent); }
-  100% { background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), transparent); }
 }

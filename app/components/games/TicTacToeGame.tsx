@@ -445,12 +445,7 @@ export default function TicTacToeGame() {
               <button onClick={resetGame} className="ttt-button ttt-button-primary">
                 Play Again
               </button>
-              <button
-                onClick={() => setGameCompleted(false)}
-                className="ttt-button ttt-button-secondary"
-              >
-                Continue
-              </button>
+              
             </div>
           </div>
         </div>
