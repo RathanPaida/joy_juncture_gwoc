@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebase";
@@ -44,7 +44,7 @@ declare global {
   }
 }
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -801,5 +801,22 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="checkout-page">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading checkout...</p>
+          </div>
+        </div>
+      }
+    >
+      <CheckoutPageContent />
+    </Suspense>
   );
 }
