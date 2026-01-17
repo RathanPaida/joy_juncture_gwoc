@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     console.log('📝 Creating new event:', body);
-    
+
     // Validate required fields
     if (!body.name || !body.description || !body.date) {
       return NextResponse.json(
@@ -53,18 +53,20 @@ export async function POST(request: Request) {
       isActive: body.isActive !== undefined ? body.isActive : true,
       createdAt: new Date(),
       updatedAt: new Date(),
-      totalSeats:body.totalSeats,
-      availableSeats:body.availableSeats
-    }; 
+      totalSeats: body.totalSeats,
+      availableSeats: body.availableSeats,
+      gallery: body.gallery || [],
+      postEventDescription: body.postEventDescription || '',
+    };
     const result = await collection.insertOne({
       ...body,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
     console.log('✅ Event created with ID:', result.insertedId);
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    return NextResponse.json({
+      success: true,
       id: result.insertedId.toString(),
       event: {
         ...eventData,

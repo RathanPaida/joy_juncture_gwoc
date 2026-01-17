@@ -24,49 +24,66 @@ interface EventCardProps {
   user?: any;
   detailedDescription: string;
   onRegisterSuccess?: () => void;
+  isRegistered?: boolean;
 }
 
-export default function EventCard({ event, isUpcoming, user, onRegisterSuccess, detailedDescription }: EventCardProps) {
+export default function EventCard({ event, isUpcoming, user, onRegisterSuccess, detailedDescription, isRegistered }: EventCardProps) {
   const router = useRouter();
 
   const handleCardClick = () => {
-    router.push(`/events/${event._id}`);
+    // If it's a past event, go to gallery
+    if (isPast) {
+      router.push(`/events/${event._id}/gallery`);
+    } else {
+      router.push(`/events/${event._id}`);
+    }
   };
 
   const handleRegisterClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (!user) {
       router.push('/login');
       return;
     }
-    
+
     router.push(`/events/${event._id}`);
   };
 
+  const handleGalleryClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/events/${event._id}/gallery`);
+  };
+
   const eventDate = new Date(event.date);
-  const isPast = eventDate < new Date();
-  const seatsPercentage = event.availableSeats && event.totalSeats 
-    ? (event.availableSeats / event.totalSeats) * 100 
+  // Compare timestamps for more accurate past/future detection
+  const isPast = eventDate.getTime() < new Date().getTime();
+  const seatsPercentage = event.availableSeats && event.totalSeats
+    ? (event.availableSeats / event.totalSeats) * 100
     : 0;
 
   return (
-    <div onClick={handleCardClick} className="event-card">
+    <div onClick={handleCardClick} className="event-card cursor-pointer group">
       {/* Event Image */}
       {event.imageUrl && (
-        <div className="event-card-image">
-          <img src={event.imageUrl} alt={event.name} />
+        <div className="event-card-image relative overflow-hidden">
+          <img src={event.imageUrl} alt={event.name} className="transition-transform duration-500 group-hover:scale-110" />
           <div className="event-card-overlay">
             {event.collabWith && (
               <div className="event-badge badge-collab">
                 Collaboration
               </div>
             )}
-            {!isUpcoming && (
-              <div className="event-badge badge-past">
-                Past Event
+            {/* Priority badges */}
+            {isRegistered ? (
+              <div className="event-badge bg-green-500 text-white">
+                Registered
               </div>
-            )}
+            ) : !isUpcoming ? (
+              <div className="event-badge badge-past">
+                Completed
+              </div>
+            ) : null}
           </div>
         </div>
       )}
@@ -80,9 +97,9 @@ export default function EventCard({ event, isUpcoming, user, onRegisterSuccess, 
           <span>{format(eventDate, 'PPP')}</span>
         </div>
 
-        <h3 className="event-title">{event.name}</h3>
-        
-        <p className="event-description">{event.description}</p>
+        <h3 className="event-title group-hover:text-[#ff6b00] transition-colors">{event.name}</h3>
+
+        <p className="event-description line-clamp-2">{event.description}</p>
 
         {event.Venue && (
           <div className="event-info">
@@ -112,33 +129,52 @@ export default function EventCard({ event, isUpcoming, user, onRegisterSuccess, 
           )}
         </div>
 
-        {event.availableSeats !== undefined && event.totalSeats !== undefined && (
-          <div className="seats-progress">
-            <div className="seats-info">
-              <span className="seats-label">Available Seats</span>
-              <span className="seats-count">{event.availableSeats} / {event.totalSeats}</span>
-            </div>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${seatsPercentage}%` }}
-              />
-            </div>
-          </div>
-        )}
-
         {isUpcoming && !isPast && (
-          <button
-            onClick={handleRegisterClick}
-            className="event-action-button btn-register"
-          >
-            View Details & Register
-          </button>
+          <>
+            {event.availableSeats !== undefined && event.totalSeats !== undefined && (
+              <div className="seats-progress">
+                <div className="seats-info">
+                  <span className="seats-label">Available Seats</span>
+                  <span className="seats-count">{event.availableSeats} / {event.totalSeats}</span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${seatsPercentage}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {isRegistered ? (
+              <button
+                className="event-action-button bg-green-600 cursor-default opacity-90 hover:bg-green-600"
+                disabled
+              >
+                Registered Already
+              </button>
+            ) : (
+              <button
+                onClick={handleRegisterClick}
+                className="event-action-button btn-register"
+              >
+                View Details & Register
+              </button>
+            )}
+          </>
         )}
 
         {isPast && (
-          <div className="event-action-button btn-ended">
-            Event Ended
+          <div className="flex flex-col gap-2 mt-auto">
+            <div className="event-action-button btn-ended opacity-70">
+              Event Completed
+            </div>
+            <button
+              onClick={handleGalleryClick}
+              className="event-action-button bg-[#ff6b00] hover:bg-[#ff8c00] text-black font-bold"
+            >
+              View Gallery
+            </button>
           </div>
         )}
       </div>

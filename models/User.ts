@@ -10,9 +10,9 @@ export interface IUser extends Document {
   authProvider: "local" | "firebase" | "google";
   totalPoints: number;
   level: number;
-  streak: { type: Number; default: 0 };
+  streak: number;
   lastLogin?: Date;
-  lastDailyClaim?: Date; // Added for daily reward tracking
+  lastDailyClaim?: Date;
   lastActivity?: Date;
   achievements: Array<{
     achievementId: string;
@@ -295,7 +295,7 @@ userSchema.index({ "badges.badgeId": 1 }); // For badge queries
 userSchema.index({ isBanned: 1, warnings: 1 }); // For admin moderation
 
 // Generate referral code before saving
-userSchema.pre("save", function (next) {
+userSchema.pre("save", function (this: IUser, next) {
   if (!this.referralCode) {
     this.referralCode = `JJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   }
@@ -308,12 +308,13 @@ userSchema.pre("save", function (next) {
 });
 
 // Virtual for total community contributions
-userSchema.virtual("totalContributions").get(function () {
+userSchema.virtual("totalContributions").get(function (this: IUser) {
   return this.discussionCount + this.replyCount;
 });
 
 // Method to award community points
 userSchema.methods.awardCommunityPoints = async function (
+  this: IUser,
   points: number,
   reason: string,
   transactionType?: "discussion" | "reply" | "like" | "achievement",
@@ -341,6 +342,7 @@ userSchema.methods.awardCommunityPoints = async function (
 
 // Method to add badge
 userSchema.methods.addBadge = async function (
+  this: IUser,
   badgeId: string,
   name: string,
   description: string,
@@ -364,6 +366,7 @@ userSchema.methods.addBadge = async function (
 
 // Method to track discussion creation
 userSchema.methods.trackDiscussionCreation = async function (
+  this: IUser,
   discussionId: string,
 ) {
   if (!this.discussionsCreated.includes(discussionId)) {
@@ -375,7 +378,7 @@ userSchema.methods.trackDiscussionCreation = async function (
 };
 
 // Method to track reply creation
-userSchema.methods.trackReplyCreation = async function (replyId: string) {
+userSchema.methods.trackReplyCreation = async function (this: IUser, replyId: string) {
   if (!this.repliesCreated.includes(replyId)) {
     this.repliesCreated.push(replyId);
     this.replyCount += 1;
@@ -386,13 +389,14 @@ userSchema.methods.trackReplyCreation = async function (replyId: string) {
 
 // Method to check if user has liked a discussion
 userSchema.methods.hasLikedDiscussion = function (
+  this: IUser,
   discussionId: string,
 ): boolean {
   return this.likedDiscussions.includes(discussionId);
 };
 
 // Method to check if user has liked a reply
-userSchema.methods.hasLikedReply = function (replyId: string): boolean {
+userSchema.methods.hasLikedReply = function (this: IUser, replyId: string): boolean {
   return this.likedReplies.includes(replyId);
 };
 

@@ -47,16 +47,19 @@ import { useEventData } from '@/hooks/useEventData';
 import EventsListLayout from '@/app/components/EventsListLayout';
 
 export default function UpcomingPage() {
-  const { upcomingEvents, loading, refreshEvents } = useEventData();
-  
+  const { upcomingEvents, loading, refreshEvents, registeredEvents } = useEventData();
+
+  const registeredIds = registeredEvents.map(e => e._id);
+
   return (
-    <EventsListLayout 
+    <EventsListLayout
       title="Upcoming"
       subtitle="Register now to secure your spot and earn coins in our latest tournaments."
       events={upcomingEvents}
       loading={loading}
       type="upcoming"
       onRefresh={refreshEvents}
+      registeredItemIds={registeredIds}
     />
   );
 }

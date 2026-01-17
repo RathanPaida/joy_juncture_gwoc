@@ -35,7 +35,24 @@ import {
 } from "@/lib/levelHelper";
 import "./wallet.css";
 
-
+interface Transaction {
+  _id: string;
+  userId: string;
+  type:
+  | "purchase"
+  | "event"
+  | "game"
+  | "daily_login"
+  | "referral"
+  | "bonus"
+  | "achievement"
+  | "redeem";
+  amount: number;
+  description: string;
+  createdAt: string;
+  metadata?: any;
+  balance?: number;
+}
 
 interface Reward {
   _id: string;
@@ -202,7 +219,7 @@ const WalletPointsPage: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to create wallet: ${response.status}`);
+        throw new Error(errorData.error ? `${errorData.error}: ${errorData.details || ''}` : `Failed to create wallet: ${response.status}`);
       }
 
       return await response.json();

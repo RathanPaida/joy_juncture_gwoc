@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+
 import UpcomingEventsSection from '@/app/components/UpcomingEventsSection';
-import GallerySection from '../../components/GallerySection'; 
+import GallerySection from '../../components/GallerySection';
 
 import PlayStyleCards from '../../components/PlayStyleCards'; // ✅ FIXED PATH
 
@@ -20,12 +21,14 @@ export default function App() {
   return (
     <div className="relative bg-black min-h-screen overflow-hidden">
 
+
+
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center px-4 pt-20">
         {/* Grid Background */}
         <div className="absolute inset-0 overflow-hidden">
-          <div 
-            className="absolute inset-0" 
+          <div
+            className="absolute inset-0"
             style={{
               backgroundImage: 'linear-gradient(rgba(255, 107, 53, 0.25) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(255, 107, 53, 0.25) 1.5px, transparent 1.5px)',
               backgroundSize: '60px 60px',
@@ -36,14 +39,13 @@ export default function App() {
 
         {/* Background Logo */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <img 
+          <img
             src="https://res.cloudinary.com/dwvb2cgmq/image/upload/v1768065885/88cbe5ed-ee67-4540-8752-2abad4842e9d.png"
             alt="Joy Juncture Logo Background"
             className="w-full max-w-6xl h-auto object-contain opacity-40"
           />
         </div>
 
-        {/* Hero Content */}
         {/* Hero Content */}
         <div className="relative z-10 text-center max-w-4xl mx-auto">
           <motion.div
@@ -93,11 +95,11 @@ export default function App() {
 
       {/* Play Style Cards Section */}
       <PlayStyleCards />
-        {/* Upcoming Events Section - NEW */}
-        <UpcomingEventsSection />
-       
-        {/* Gallery Section */}
-        <GallerySection />
+      {/* Upcoming Events Section - NEW */}
+      <UpcomingEventsSection />
+
+      {/* Gallery Section */}
+      <GallerySection />
 
 
       {/* Footer Spacer */}

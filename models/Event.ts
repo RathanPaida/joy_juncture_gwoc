@@ -38,6 +38,14 @@ const EventSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  gallery: {
+    type: [String],
+    default: [],
+  },
+  postEventDescription: {
+    type: String,
+    default: '',
+  },
 });
 
 const UserSchema = new mongoose.Schema({
