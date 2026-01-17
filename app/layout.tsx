@@ -1,6 +1,7 @@
 // app/layout.tsx - ROOT LAYOUT
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Suspense } from "react";
 import RefreshOnNavigation from "./components/RefreshOnNavigation";
 import "./globals.css";
 
@@ -19,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <RefreshOnNavigation />
+        <Suspense fallback={null}>
+          <RefreshOnNavigation />
+        </Suspense>
         {children}
       </body>
     </html>

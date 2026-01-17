@@ -23,12 +23,23 @@ async function debugDB() {
         await mongoose.connect(MONGODB_URI);
         console.log("Connected.");
 
+        if (!mongoose.connection.db) {
+            throw new Error("Database connection not established");
+        }
         const db = mongoose.connection.db;
         const collections = await db.listCollections().toArray();
         const productCollection = db.collection("products");
         const count = await productCollection.countDocuments();
 
-        const output = {
+        interface DebugOutput {
+            collections: string[];
+            productCount: number;
+            distinctGametypes: any[];
+            missingGametypeDocs: number;
+            sampleGametypes: any[];
+        }
+
+        const output: DebugOutput = {
             collections: collections.map(c => c.name),
             productCount: count,
             distinctGametypes: [],

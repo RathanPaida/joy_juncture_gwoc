@@ -179,7 +179,7 @@ export default function SnakeGame() {
 
   // Generate random food
   const generateFood = useCallback(() => {
-    let newFood;
+    let newFood: { x: number; y: number };
     let attempts = 0;
     const maxAttempts = 100;
 

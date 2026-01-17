@@ -23,6 +23,9 @@ async function migrate() {
         await mongoose.connect(MONGODB_URI);
         console.log("Connected.");
 
+        if (!mongoose.connection.db) {
+            throw new Error("Database connection not established");
+        }
         const db = mongoose.connection.db;
         const collection = db.collection("products");
 
