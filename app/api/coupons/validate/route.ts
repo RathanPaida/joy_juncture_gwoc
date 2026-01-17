@@ -1,6 +1,7 @@
 // app/api/coupons/validate/route.ts
 import { NextResponse } from 'next/server';
 import { Coupon } from '@/models/Coupon';
+import { User } from '@/models/User';
 import connectDb from '@/lib/mongodb';
 import { verifyIdToken } from '@/lib/firebase-admin';
 
@@ -39,6 +40,22 @@ export async function POST(request: Request) {
             }
         }
 
+        // Check if user has redeemed this coupon (if it requires points)
+        if (coupon.coinsRequired > 0) {
+            const user = await User.findOne({ firebaseUid: userId });
+            if (!user) {
+                return NextResponse.json({ error: 'User not found' }, { status: 404 });
+            }
+
+            const hasRedeemed = user.redeemedCoupons?.some((rc: any) => rc.rewardId === coupon._id.toString());
+
+            if (!hasRedeemed) {
+                return NextResponse.json({
+                    error: `This coupon must be redeemed with ${coupon.coinsRequired} Joy Points first.`
+                }, { status: 400 });
+            }
+        }
+
         // Check if user can use this coupon
         if (!coupon.canUserUse(userId)) {
             const userUsage = coupon.usedBy.find((u: any) => u.userId === userId);
@@ -74,8 +91,8 @@ export async function POST(request: Request) {
             }
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Coupon validation error:', error);
-        return NextResponse.json({ error: 'Validation failed' }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Validation failed' }, { status: 500 });
     }
 }

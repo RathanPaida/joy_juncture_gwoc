@@ -135,6 +135,9 @@ const WalletPointsPage: React.FC = () => {
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [redeeming, setRedeeming] = useState<boolean>(false);
 
+  // Coupon Redemption State
+  const [redeemableCoupons, setRedeemableCoupons] = useState<any[]>([]);
+
   const categories = [
     { id: "all", name: "All Rewards", color: "#FF8C00" },
     { id: "discount", name: "Discounts", color: "#4ECDC4" },
@@ -342,6 +345,25 @@ const WalletPointsPage: React.FC = () => {
           []
         ).filter((c: PointsCriteria) => c.isActive !== false);
         setPointsCriteria(activeCriteria);
+      }
+
+
+      // NEW: Fetch Redeemable Coupons
+      const couponsRes = await fetch("/api/coupons?status=active", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log("Coupons API Status:", couponsRes.status);
+
+      if (couponsRes.ok) {
+        const cData = await couponsRes.json();
+        console.log("Coupons Data:", cData);
+        // Show ALL coupons for debugging
+        const rCoupons = cData.coupons || [];
+        console.log("Redeemable Coupons:", rCoupons);
+        setRedeemableCoupons(rCoupons);
+      } else {
+        console.error("Coupons API Failed");
       }
     } catch (err: any) {
       console.error("❌ Error fetching wallet data:", err);
@@ -576,6 +598,39 @@ const WalletPointsPage: React.FC = () => {
       alert(`Redemption failed: ${err.message}`);
     } finally {
       setRedeeming(false);
+    }
+  };
+
+  const handleRedeemCoupon = async (coupon: any) => {
+    if (userPoints < coupon.coinsRequired) {
+      alert(`Insufficient points! You need ${coupon.coinsRequired - userPoints} more points.`);
+      return;
+    }
+
+    if (!confirm(`Redeem "${coupon.name}" for ${coupon.coinsRequired} points?`)) return;
+
+    try {
+      const token = await getFirebaseToken();
+      const res = await fetch("/api/wallet/redeem-coupon", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ couponId: coupon._id })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`🎉 Success! Coupon Code: ${data.coupon.code}\n\nCopied to clipboard!`);
+        navigator.clipboard.writeText(data.coupon.code);
+        fetchWalletData(); // Refresh points
+      } else {
+        alert(data.error || "Redemption failed");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
     }
   };
 
@@ -1118,6 +1173,103 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
+      {/* NEW: Exclusive Coupons Section */}
+      {/* Exclusive Coupons Section */}
+      <section className="rewards-section" style={{ marginBottom: '2rem' }}>
+        <div className="container">
+          <div className="section-header">
+            <h2>Exclusive <span className="highlight">Coupons</span></h2>
+            <p>Redeem your points for special discounts!</p>
+          </div>
+
+          {redeemableCoupons.length === 0 ? (
+            <div className="empty-state" style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+              <div style={{ fontSize: '40px', marginBottom: '10px' }}>🏷️</div>
+              <p>No exclusive coupons available at the moment.</p>
+            </div>
+          ) : (
+            <div className="rewards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+              {redeemableCoupons.map((coupon) => {
+                const isRedeemed = walletUser?.redeemedCoupons?.some((rc: any) => rc.rewardId === coupon._id);
+                const userUsage = isRedeemed ? walletUser?.redeemedCoupons?.find((rc: any) => rc.rewardId === coupon._id) : null;
+
+                return (
+                  <div key={coupon._id} className="reward-card" style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '15px'
+                  }}>
+                    <div className="reward-icon" style={{
+                      backgroundColor: "#FF6B6B",
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px'
+                    }}>
+                      <FaGift />
+                    </div>
+                    <div className="reward-content">
+                      <h4 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '5px' }}>{coupon.name}</h4>
+                      <p className="description" style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '15px' }}>{coupon.description}</p>
+                      <div className="cost-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="points" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#FFCC00', fontWeight: 'bold' }}>
+                          <FaCoins /> {coupon.coinsRequired}
+                        </div>
+                        {isRedeemed ? (
+                          <div className="redeemed-info">
+                            <span className="code-badge"
+                              onClick={() => {
+                                navigator.clipboard.writeText(userUsage.code);
+                                alert("Code copied!");
+                              }}
+                              style={{
+                                background: '#2ECC71',
+                                color: '#fff',
+                                padding: '5px 10px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                userSelect: 'none'
+                              }}
+                            >
+                              {userUsage.code} (Copy)
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            className="redeem-btn"
+                            onClick={() => handleRedeemCoupon(coupon)}
+                            disabled={userPoints < coupon.coinsRequired}
+                            style={{
+                              background: userPoints < coupon.coinsRequired ? '#555' : '#FF6B6B',
+                              color: '#fff',
+                              border: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '8px',
+                              cursor: userPoints < coupon.coinsRequired ? 'not-allowed' : 'pointer',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            Redeem
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Transaction History */}
       <section className="transactions-section">
         <div className="container">
@@ -1339,7 +1491,6 @@ const WalletPointsPage: React.FC = () => {
                   disabled={redeeming}
                   style={{ backgroundColor: selectedReward.color || "#FF8C00" }}
                 >
-                  {redeeming ? "Processing..." : "Confirm Redemption"}
                 </button>
               </div>
             </div>

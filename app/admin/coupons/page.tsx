@@ -12,6 +12,7 @@ interface Coupon {
     discountValue: number;
     minPurchaseAmount: number;
     maxDiscountAmount: number | null;
+    coinsRequired: number;
     expiryDate: string;
     usageLimit: number;
     usagePerUser: number;
@@ -21,7 +22,7 @@ interface Coupon {
 }
 
 export default function CouponAdmin() {
-    const { getToken } = useAuth();
+    const { getToken, loading: authLoading } = useAuth();
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -40,6 +41,7 @@ export default function CouponAdmin() {
         discountValue: 0,
         minPurchaseAmount: 0,
         maxDiscountAmount: null as number | null,
+        coinsRequired: 0,
         expiryDate: '',
         usageLimit: 1000,
         usagePerUser: 1,
@@ -48,11 +50,14 @@ export default function CouponAdmin() {
     });
 
     useEffect(() => {
-        fetchCoupons();
-    }, [page, statusFilter, categoryFilter, searchTerm]);
+        if (!authLoading) {
+            fetchCoupons();
+        }
+    }, [page, statusFilter, categoryFilter, searchTerm, authLoading]);
 
     const fetchCoupons = async () => {
         try {
+            if (authLoading) return;
             setLoading(true);
             const token = await getToken();
             const params = new URLSearchParams({
@@ -145,6 +150,7 @@ export default function CouponAdmin() {
             discountValue: coupon.discountValue,
             minPurchaseAmount: coupon.minPurchaseAmount || 0,
             maxDiscountAmount: coupon.maxDiscountAmount || null,
+            coinsRequired: coupon.coinsRequired || 0,
             expiryDate: new Date(coupon.expiryDate).toISOString().split('T')[0],
             usageLimit: coupon.usageLimit,
             usagePerUser: coupon.usagePerUser,
@@ -164,6 +170,7 @@ export default function CouponAdmin() {
             discountValue: 0,
             minPurchaseAmount: 0,
             maxDiscountAmount: null,
+            coinsRequired: 0,
             expiryDate: '',
             usageLimit: 1000,
             usagePerUser: 1,
@@ -500,6 +507,18 @@ export default function CouponAdmin() {
                                         placeholder="Optional"
                                     />
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Joy Points Required (0 = Free)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={formData.coinsRequired}
+                                    onChange={(e) => setFormData({ ...formData, coinsRequired: parseInt(e.target.value) || 0 })}
+                                    className="w-full px-4 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-orange-500 focus:outline-none"
+                                    placeholder="0"
+                                />
                             </div>
 
                             <div className="grid grid-cols-3 gap-4">
