@@ -20,6 +20,8 @@ interface Event {
   totalSeats?: number;
   availableSeats?: number;
   imageUrl?: string;
+  gallery?: string[];
+  postEventDescription?: string;
 }
 
 interface AddEventFormProps {
@@ -44,6 +46,8 @@ export default function AddEventForm({ onSuccess, onCancel, editEvent }: AddEven
     totalSeats: 0,
     availableSeats: 0,
     imageUrl: "",
+    gallery: [],
+    postEventDescription: "",
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -69,6 +73,8 @@ export default function AddEventForm({ onSuccess, onCancel, editEvent }: AddEven
         totalSeats: editEvent.totalSeats || 0,
         availableSeats: editEvent.availableSeats || 0,
         imageUrl: editEvent.imageUrl || "",
+        gallery: editEvent.gallery || [],
+        postEventDescription: editEvent.postEventDescription || "",
       });
       if (editEvent.imageUrl) {
         setImagePreview(editEvent.imageUrl);
@@ -107,8 +113,8 @@ export default function AddEventForm({ onSuccess, onCancel, editEvent }: AddEven
         type === "number"
           ? Number(value)
           : type === "checkbox"
-          ? (e.target as HTMLInputElement).checked
-          : value,
+            ? (e.target as HTMLInputElement).checked
+            : value,
     });
   };
 
@@ -116,7 +122,7 @@ export default function AddEventForm({ onSuccess, onCancel, editEvent }: AddEven
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", "ml_default"); // Replace with your Cloudinary preset
-    
+
     try {
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/dwvb2cgmq/image/upload`, // Replace with your cloud name
@@ -125,7 +131,7 @@ export default function AddEventForm({ onSuccess, onCancel, editEvent }: AddEven
           body: formData,
         }
       );
-      
+
       const data = await response.json();
       return data.secure_url;
     } catch (error) {
@@ -377,6 +383,97 @@ export default function AddEventForm({ onSuccess, onCancel, editEvent }: AddEven
         />
       </div>
 
+      <div className="form-group">
+        <label>Post-Event Description (For Gallery Page)</label>
+        <textarea
+          name="postEventDescription"
+          value={formData.postEventDescription || ""}
+          onChange={handleInputChange}
+          placeholder="Recap of the event, winners, highlights, etc."
+          style={{ minHeight: "150px" }}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Event Gallery Images</label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
+          {formData.gallery?.map((url, index) => (
+            <div key={index} style={{ position: "relative", width: "100px", height: "100px" }}>
+              <img
+                src={url}
+                alt={`Gallery ${index}`}
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const newGallery = [...(formData.gallery || [])];
+                  newGallery.splice(index, 1);
+                  setFormData({ ...formData, gallery: newGallery });
+                }}
+                style={{
+                  position: "absolute",
+                  top: "-5px",
+                  right: "-5px",
+                  background: "red",
+                  color: "white",
+                  borderRadius: "50%",
+                  width: "20px",
+                  height: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "12px"
+                }}
+              >
+                X
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="image-upload-container"
+          style={{ width: "100px", height: "100px", minHeight: "100px" }}
+          onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.multiple = true;
+            input.onchange = async (e) => {
+              const files = (e.target as HTMLInputElement).files;
+              if (files && files.length > 0) {
+                setLoading(true);
+                try {
+                  const newUrls: string[] = [];
+                  for (let i = 0; i < files.length; i++) {
+                    const url = await uploadImage(files[i]);
+                    newUrls.push(url);
+                  }
+                  setFormData(prev => ({
+                    ...prev,
+                    gallery: [...(prev.gallery || []), ...newUrls]
+                  }));
+                } catch (error) {
+                  console.error("Gallery upload failed", error);
+                  alert("Failed to upload some images");
+                } finally {
+                  setLoading(false);
+                }
+              }
+            };
+            input.click();
+          }}
+        >
+          <div className="upload-placeholder" style={{ padding: "0" }}>
+            <FaUpload className="upload-icon" style={{ fontSize: "1.5rem", marginBottom: "5px" }} />
+            <span style={{ fontSize: "0.7rem" }}>Add Photos</span>
+          </div>
+        </div>
+      </div>
+
       <div className="form-actions">
         <button type="submit" className="btn-submit" disabled={loading}>
           {loading ? "Saving..." : editEvent ? "Update Event" : "Create Event"}
@@ -385,6 +482,6 @@ export default function AddEventForm({ onSuccess, onCancel, editEvent }: AddEven
           Cancel
         </button>
       </div>
-    </form>
+    </form >
   );
 }
