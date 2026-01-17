@@ -1,16 +1,21 @@
 // app/api/wallet/transactions/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { verifyIdToken } from "@/lib/firebase-admin";
-import { connectDb } from "@/lib/mongodb";
+import connectDb from "@/lib/mongodb";
 import { User, Transaction } from "@/models/User";
 
 // GET - Fetch user's transaction history
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     await connectDb();
 
-    const authHeader = request.headers.get("Authorization");
+    const authHeader = request.headers.get("authorization");
+    console.log("Transaction API Debug: Auth Header exists?", !!authHeader);
+
     if (!authHeader?.startsWith("Bearer ")) {
+      console.log("Transaction API Debug: Invalid Auth Header format");
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 },
@@ -41,7 +46,27 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build query
-    const query: any = { userId: user._id };
+    // Build query
+    let query: any = {};
+    try {
+      const userIds = [
+        user.firebaseUid,
+        user._id?.toString()
+      ].filter(Boolean);
+
+      console.log("Transaction API Debug: searching for User IDs:", userIds);
+
+      query = {
+        userId: {
+          $in: userIds
+        }
+      };
+    } catch (err: any) {
+      console.error("Transaction API Debug: Error building query", err);
+      // Fallback to just firebaseUid if something goes wrong with _id
+      query = { userId: user.firebaseUid };
+    }
+
     if (type && type !== "all") {
       query.type = type;
     }

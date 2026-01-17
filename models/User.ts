@@ -12,7 +12,6 @@ export interface IUser extends Document {
   level: number;
   streak: number;
   lastLogin?: Date; // ← ADD THIS
-  lastDailyClaim?: Date; // New field to track daily reward separately
   lastActivity?: Date;
   achievements: Array<{
     achievementId: string;
@@ -109,9 +108,6 @@ const userSchema = new Schema<IUser>(
     lastActivity: {
       type: Date,
       default: Date.now,
-    },
-    lastDailyClaim: {
-      type: Date,
     },
     achievements: [
       {
@@ -360,7 +356,7 @@ userSchema.methods.hasLikedReply = function (replyId: string): boolean {
 
 // Transaction Schema
 export interface ITransaction extends Document {
-  userId: Types.ObjectId;
+  userId: string;
   type:
   | "purchase"
   | "event"
@@ -389,8 +385,7 @@ export interface ITransaction extends Document {
 const transactionSchema = new Schema<ITransaction>(
   {
     userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+      type: String, // Firebase UID is a string
       required: true,
       index: true,
     },

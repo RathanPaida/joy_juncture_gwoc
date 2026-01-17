@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
         totalSpent: totalSpent,
         totalEarned: totalEarned,
         transactions: transactions.length,
+        transactionHistory: transactions.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       },
     });
   } catch (error: any) {
