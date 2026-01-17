@@ -13,6 +13,8 @@ import Link from "next/link";
 import { Package, LayoutDashboard, Plus } from "lucide-react";
 import AdminNavbar from "@/app/components/admin/navbar";
 
+import AdminGuard from "@/app/components/admin/AdminGuard";
+
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
@@ -20,9 +22,11 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <AuthProvider>
-      {/* Main Content */}
-      <AdminNavbar />
-      {children}
+      <AdminGuard>
+        {/* Main Content */}
+        <AdminNavbar />
+        {children}
+      </AdminGuard>
     </AuthProvider>
   );
 }

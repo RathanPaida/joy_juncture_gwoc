@@ -30,8 +30,14 @@ import "./admin-navbar.css";
 
 const adminMenuItems = [
   {
-    title: "Public",
+    title: "Dashboard",
     icon: <LayoutDashboard size={20} />,
+    path: "/admin/dashboard",
+    color: "#8b5cf6",
+  },
+  {
+    title: "Public Site",
+    icon: <ChevronRight size={20} />,
     path: "/home",
     color: "#ff6600",
   },
