@@ -1,4 +1,5 @@
 // app/api/user/me/route.ts
+export const dynamic = 'force-dynamic';
 import { NextRequest } from "next/server";
 import { getAuth } from "firebase-admin/auth";
 import connectDB from "@/lib/mongodb";
