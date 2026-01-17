@@ -1,361 +1,408 @@
-/* Memory Game - Orange & Black Theme */
+/* Memory Game - Enhanced Orange & Black Theme */
 
 /* Base styles */
 .memory-game-container {
-    padding: 1rem;
-    max-width: 80rem;
-    margin: 0 auto;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-    min-height: 100vh;
-  }
-  
-  /* Loading Screen */
-  .memory-loading-screen {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-  }
-  
-  .memory-loading-message {
-    font-size: 1.5rem;
-    color: #ff6600;
-    font-weight: 600;
-  }
-  
-  /* User Info */
-  .memory-user-info {
-    margin-bottom: 1.5rem;
-  }
-  
-  .memory-user-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #000000;
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-    box-shadow: 0 8px 25px rgba(255, 102, 0, 0.2);
-    border: 1px solid #333333;
-  }
-  
-  .memory-game-title {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 0.25rem;
-  }
-  
-  .memory-welcome-message {
-    color: #cccccc;
-    font-size: 0.95rem;
-  }
-  
-  .memory-username {
-    font-weight: 600;
-    color: #ff6600;
-  }
-  
-  .memory-user-coins {
-    text-align: right;
-  }
-  
-  .memory-coins-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #ffaa00;
-    margin-bottom: 0.125rem;
-  }
-  
-  .memory-coins-label {
-    font-size: 0.875rem;
-    color: #999999;
-  }
-  
-  /* Stats Grid */
-  .memory-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .memory-stat-card {
-    background: #000000;
-    padding: 1rem;
-    border-radius: 0.75rem;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border: 1px solid #333333;
-    transition: all 0.3s ease;
-  }
-  
-  .memory-stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(255, 102, 0, 0.3);
-    border-color: #ff6600;
-  }
-  
-  .memory-stat-icon-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 0.5rem;
-    color: #ff6600;
-  }
-  
-  .memory-stat-icon {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-  
-  .memory-stat-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 0.25rem;
-  }
-  
-  .memory-stat-label {
-    font-size: 0.75rem;
-    color: #999999;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  /* Game Board */
+  padding: 1rem;
+  max-width: 80rem;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.memory-game-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(255, 102, 0, 0.12) 0%, transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(255, 136, 0, 0.09) 0%, transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Loading Screen */
+.memory-loading-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+}
+
+.memory-loading-message {
+  font-size: 1.5rem;
+  color: #ff6600;
+  font-weight: 600;
+}
+
+/* User Info */
+.memory-user-info {
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.memory-user-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: radial-gradient(circle at top left, rgba(255, 102, 0, 0.18), #000000);
+  border-radius: 0.9rem;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(255, 102, 0, 0.25);
+  border: 1px solid #333333;
+  position: relative;
+  overflow: hidden;
+}
+
+.memory-user-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(255, 102, 0, 0.06));
+  pointer-events: none;
+}
+
+.memory-game-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.3rem;
+}
+
+.memory-welcome-message {
+  color: #cccccc;
+  font-size: 0.95rem;
+}
+
+.memory-username {
+  font-weight: 600;
+  color: #ff6600;
+}
+
+.memory-user-coins {
+  text-align: right;
+}
+
+.memory-coins-value {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #ffaa00;
+  margin-bottom: 0.125rem;
+}
+
+.memory-coins-label {
+  font-size: 0.875rem;
+  color: #999999;
+}
+
+/* Stats Grid */
+.memory-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.memory-stat-card {
+  background: radial-gradient(circle at top, rgba(255, 102, 0, 0.16), #050505);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  border: 1px solid #333333;
+  transition: all 0.3s ease;
+}
+
+.memory-stat-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 8px 22px rgba(255, 102, 0, 0.35);
+  border-color: #ff6600;
+}
+
+.memory-stat-icon-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  color: #ff6600;
+}
+
+.memory-stat-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.memory-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+}
+
+.memory-stat-label {
+  font-size: 0.75rem;
+  color: #bbbbbb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Game Board */
+.memory-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  max-width: 36rem;
+  margin: 0 auto 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 48rem) {
   .memory-board {
-    display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
-    max-width: 36rem;
-    margin: 0 auto 2rem;
+    gap: 1rem;
   }
-  
-  @media (min-width: 48rem) {
-    .memory-board {
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-    }
-  }
-  
-  .memory-card {
-    aspect-ratio: 3/4;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid #333333;
-    background: #000000;
-    padding: 0;
-    position: relative;
-  }
-  
-  .memory-card:hover:not(:disabled) {
-    transform: scale(1.05);
-    border-color: #ff6600;
-    box-shadow: 0 0 15px rgba(255, 102, 0, 0.5);
-  }
-  
-  .memory-card:disabled {
-    cursor: default;
-  }
-  
-  .memory-card-open {
-    border-color: #4caf50;
-    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
-  }
-  
-  .memory-card-game-over:disabled {
-    opacity: 0.8;
-  }
-  
-  .memory-card-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  
-  /* Card flip animation */
-  .memory-card {
-    perspective: 1000px;
-  }
-  
-  .memory-card img {
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
-  }
-  
-  .memory-card-open img {
-    transform: rotateY(180deg);
-  }
-  
-  /* Game Over Message */
-  .memory-game-over {
-    margin: 1.5rem auto 2rem;
-    max-width: 36rem;
-  }
-  
-  .memory-completion-card {
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 30, 30, 0.9));
-    border-radius: 1rem;
-    padding: 1.5rem;
-    border: 2px solid #ff6600;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(255, 102, 0, 0.3);
-  }
-  
-  .memory-completion-title {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 0.5rem;
-  }
-  
-  .memory-completion-text {
-    color: #cccccc;
-    margin-bottom: 1rem;
-    font-size: 1rem;
-  }
-  
-  .memory-coins-earned {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #ffaa00, #ffcc00);
-    color: #000000;
-    font-size: 1.125rem;
-    font-weight: 700;
-    padding: 0.5rem 1.5rem;
-    border-radius: 2rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .memory-total-coins {
-    font-size: 0.875rem;
-    color: #999999;
-    margin-bottom: 1.5rem;
-  }
-  
-  .memory-total-coins-value {
-    font-weight: 700;
-    color: #ffaa00;
-  }
-  
-  /* Controls */
-  .memory-controls {
-    display: flex;
-    justify-content: center;
-    margin-top: 2rem;
-  }
-  
-  .memory-button {
-    background: linear-gradient(135deg, #ff6600, #ff8533);
-    color: #000000;
-    border: none;
-    padding: 0.875rem 2.5rem;
-    border-radius: 0.75rem;
-    font-size: 1.125rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4);
-  }
-  
-  .memory-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(255, 102, 0, 0.6);
-    background: linear-gradient(135deg, #ff8533, #ffa64d);
-  }
-  
-  .memory-button:active {
-    transform: translateY(-1px);
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 48rem) {
-    .memory-board {
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem;
-    }
-    
-    .memory-user-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-    
-    .memory-user-coins {
-      text-align: left;
-    }
-    
-    .memory-stats-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-  
-  @media (max-width: 30rem) {
-    .memory-board {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .memory-stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .memory-game-title {
-      font-size: 1.5rem;
-    }
-    
-    .memory-completion-title {
-      font-size: 1.5rem;
-    }
-  }
-  
-  /* Card back pattern */
-  .memory-card:not(.memory-card-open)::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, #ff6600 25%, #000000 25%, #000000 50%, #ff6600 50%, #ff6600 75%, #000000 75%, #000000);
-    background-size: 20px 20px;
-    border-radius: 0.75rem;
-    opacity: 0.8;
-  }
-  
-  /* Game status indicator */
-  .memory-game-status {
-    text-align: center;
-    color: #ff6600;
-    margin: 1rem 0;
-    font-weight: 600;
-    font-size: 1.125rem;
-  }
-  
-  /* Score animation */
-  @keyframes scorePop {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(1); opacity: 0; }
-  }
-  
-  .score-animation {
-    position: absolute;
-    color: #ffaa00;
-    font-weight: 700;
-    font-size: 1.5rem;
-    animation: scorePop 1s ease-out forwards;
-    pointer-events: none;
-  }
-  /* ============================================
-   LOCKED GAME SCREEN STYLES
-   Add these to both memory-game.css and jigsaw-puzzle-game.css
-   ============================================ */
+}
+
+/* Card base */
+.memory-card {
+  aspect-ratio: 3/4;
+  border-radius: 0.9rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid #333333;
+  background: #000000;
+  padding: 0;
+  position: relative;
+  perspective: 1000px;
+}
+
+.memory-card:hover:not(:disabled) {
+  transform: scale(1.05);
+  border-color: #ff6600;
+  box-shadow: 0 0 18px rgba(255, 102, 0, 0.6);
+}
+
+.memory-card:disabled {
+  cursor: default;
+}
+
+.memory-card-open {
+  border-color: #4caf50;
+  box-shadow: 0 0 18px rgba(76, 175, 80, 0.6);
+}
+
+.memory-card-game-over:disabled {
+  opacity: 0.8;
+}
+
+/* Card flip animation */
+.memory-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.memory-card-open img {
+  transform: rotateY(180deg);
+}
+
+/* Card back pattern - orange/black */
+.memory-card:not(.memory-card-open)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    45deg,
+    #ff6600 25%,
+    #000000 25%,
+    #000000 50%,
+    #ff6600 50%,
+    #ff6600 75%,
+    #000000 75%,
+    #000000
+  );
+  background-size: 20px 20px;
+  border-radius: 0.9rem;
+  opacity: 0.85;
+}
+
+/* Game Over Message */
+.memory-game-over {
+  margin: 1.5rem auto 2rem;
+  max-width: 36rem;
+}
+
+.memory-completion-card {
+  background: radial-gradient(circle at top, rgba(255, 102, 0, 0.18), #050505);
+  border-radius: 1rem;
+  padding: 1.75rem 1.5rem;
+  border: 2px solid #ff6600;
+  text-align: center;
+  box-shadow: 0 12px 36px rgba(255, 102, 0, 0.35);
+}
+
+.memory-completion-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.memory-completion-text {
+  color: #cccccc;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.memory-coins-earned {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ffaa00, #ffcc00);
+  color: #000000;
+  font-size: 1.125rem;
+  font-weight: 700;
+  padding: 0.5rem 1.5rem;
+  border-radius: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.memory-total-coins {
+  font-size: 0.875rem;
+  color: #999999;
+  margin-bottom: 1.5rem;
+}
+
+.memory-total-coins-value {
+  font-weight: 700;
+  color: #ffaa00;
+}
+
+/* Controls */
+.memory-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.memory-button {
+  background: linear-gradient(135deg, #ff6600, #ff8533);
+  color: #000000;
+  border: none;
+  padding: 0.875rem 2.5rem;
+  border-radius: 0.9rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 6px 20px rgba(255, 102, 0, 0.45);
+  position: relative;
+  overflow: hidden;
+}
+
+.memory-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.16), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.memory-button:hover::after {
+  opacity: 1;
+}
+
+.memory-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgba(255, 102, 0, 0.65);
+  background: linear-gradient(135deg, #ff8533, #ffa64d);
+}
+
+.memory-button:active {
+  transform: translateY(-1px);
+}
+
+/* Game message styles - ORANGE/BLACK VARIANT */
+.memory-game-message {
+  margin: 20px auto;
+  max-width: 800px;
+}
+
+.memory-message-card {
+  padding: 15px 20px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  border: 1px solid #333333;
+}
+
+/* Success, error, info with dark base */
+.memory-message-card.success {
+  background-color: rgba(22, 101, 52, 0.35);
+  color: #bbf7d0;
+  border-color: #22c55e;
+}
+
+.memory-message-card.error {
+  background-color: rgba(127, 29, 29, 0.4);
+  color: #fecaca;
+  border-color: #f97373;
+}
+
+.memory-message-card.info {
+  background-color: rgba(30, 64, 175, 0.4);
+  color: #bfdbfe;
+  border-color: #60a5fa;
+}
+
+/* Game status indicator - orange alert style */
+.memory-game-status {
+  background-color: rgba(249, 115, 22, 0.14);
+  border: 1px solid #f97316;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 15px 0;
+  text-align: center;
+  color: #fed7aa;
+  font-weight: 500;
+}
+
+/* Score animation */
+@keyframes scorePop {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.score-animation {
+  position: absolute;
+  color: #ffaa00;
+  font-weight: 700;
+  font-size: 1.5rem;
+  animation: scorePop 1s ease-out forwards;
+  pointer-events: none;
+}
+
+/* Already Played / Locked Screen - ORANGE/BLACK MATCHED */
 
 /* Memory Game - Already Played Screen */
 .memory-already-played {
@@ -367,21 +414,32 @@
 }
 
 .memory-locked-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: radial-gradient(circle at top, rgba(255, 102, 0, 0.22), #020202);
   border-radius: 20px;
   padding: 3rem 2rem;
   max-width: 500px;
   text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(255, 102, 0, 0.4);
   animation: fadeInScale 0.5s ease-out;
+  border: 2px solid #ff6600;
+  position: relative;
+  overflow: hidden;
+}
+
+.memory-locked-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.05));
+  pointer-events: none;
 }
 
 .memory-lock-icon {
   width: 80px;
   height: 80px;
-  color: #ffffff;
+  color: #ffcc80;
   margin: 0 auto 1.5rem;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .memory-locked-title {
@@ -392,23 +450,24 @@
 }
 
 .memory-locked-message {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.05rem;
+  color: #f5f5f5;
   margin-bottom: 2rem;
   line-height: 1.6;
 }
 
 .memory-next-play {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 102, 0, 0.12);
   border-radius: 12px;
   padding: 1.5rem;
   margin: 2rem 0;
-  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 153, 0, 0.6);
+  backdrop-filter: blur(8px);
 }
 
 .memory-next-play-label {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffddb0;
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 0.5rem;
@@ -424,7 +483,7 @@
 
 .memory-locked-hint {
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffe4c4;
   margin-bottom: 1.5rem;
   font-style: italic;
 }
@@ -432,114 +491,23 @@
 .memory-next-play-info {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .memory-next-play-info p {
-  color: rgba(255, 255, 255, 0.9);
+  color: #ffe4c4;
   margin: 0.5rem 0;
   font-size: 1rem;
 }
 
 .memory-next-play-hint {
-  font-size: 1.2rem !important;
+  font-size: 1.1rem !important;
   font-weight: 600;
   color: #ffd700;
   font-style: italic;
 }
 
-/* Puzzle Game - Already Played Screen */
-.puzzle-already-played {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  padding: 2rem;
-}
-
-.puzzle-locked-card {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  border-radius: 20px;
-  padding: 3rem 2rem;
-  max-width: 500px;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: fadeInScale 0.5s ease-out;
-}
-
-.puzzle-lock-icon {
-  width: 80px;
-  height: 80px;
-  color: #ffffff;
-  margin: 0 auto 1.5rem;
-  opacity: 0.9;
-}
-
-.puzzle-locked-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 1rem;
-}
-
-.puzzle-locked-message {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 2rem;
-  line-height: 1.6;
-}
-
-.puzzle-next-play {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin: 2rem 0;
-  backdrop-filter: blur(10px);
-}
-
-.puzzle-next-play-label {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.8);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-}
-
-.puzzle-next-play-time {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #ffffff;
-  font-family: 'Courier New', monospace;
-}
-
-.puzzle-locked-hint {
-  font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 1.5rem;
-  font-style: italic;
-}
-
-.puzzle-next-play-info {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.puzzle-next-play-info p {
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0.5rem 0;
-  font-size: 1rem;
-}
-
-.puzzle-next-play-hint {
-  font-size: 1.2rem !important;
-  font-weight: 600;
-  color: #ffd700;
-  font-style: italic;
-}
-
-/* Animation */
+/* Shared locked animation */
 @keyframes fadeInScale {
   from {
     opacity: 0;
@@ -552,69 +520,54 @@
 }
 
 /* Responsive Design */
-@media (max-width: 640px) {
-  .memory-locked-card,
-  .puzzle-locked-card {
+@media (max-width: 48rem) {
+  .memory-board {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .memory-user-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .memory-user-coins {
+    text-align: left;
+  }
+  
+  .memory-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 30rem) {
+  .memory-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .memory-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .memory-game-title {
+    font-size: 1.5rem;
+  }
+  
+  .memory-completion-title {
+    font-size: 1.5rem;
+  }
+  
+  .memory-locked-card {
     padding: 2rem 1.5rem;
   }
-
-  .memory-lock-icon,
-  .puzzle-lock-icon {
+  
+  .memory-lock-icon {
     width: 60px;
     height: 60px;
   }
-
-  .memory-locked-title,
-  .puzzle-locked-title {
+  
+  .memory-next-play-time {
     font-size: 1.5rem;
   }
-
-  .memory-next-play-time,
-  .puzzle-next-play-time {
-    font-size: 1.5rem;
-  }
-}
-/* Game message styles */
-.memory-game-message {
-  margin: 20px auto;
-  max-width: 800px;
-}
-
-.memory-message-card {
-  padding: 15px 20px;
-  border-radius: 12px;
-  text-align: center;
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.memory-message-card.success {
-  background-color: #d1fae5;
-  color: #065f46;
-  border: 2px solid #10b981;
-}
-
-.memory-message-card.error {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 2px solid #ef4444;
-}
-
-.memory-message-card.info {
-  background-color: #dbeafe;
-  color: #1e40af;
-  border: 2px solid #3b82f6;
-}
-
-.memory-game-status {
-  background-color: #fef3c7;
-  border: 2px solid #f59e0b;
-  border-radius: 10px;
-  padding: 12px;
-  margin: 15px 0;
-  text-align: center;
-  color: #92400e;
-  font-weight: 500;
 }

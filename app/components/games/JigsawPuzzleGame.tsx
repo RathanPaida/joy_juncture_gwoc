@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Timer,
-  RefreshCw,
   Trophy,
   Eye,
   EyeOff,
@@ -12,9 +11,8 @@ import {
   Zap,
   Move,
   Check,
-  X,
+  X as XIcon,
   Coins,
-  Lock,
   Grid,
   AlertCircle,
   Gamepad2
@@ -48,12 +46,10 @@ interface Game {
 }
 
 interface PuzzlePiece {
-  id: number;
-  correctRow: number;
-  correctCol: number;
+  /** fixed index 0..TOTAL_PIECES-1, used for sprite math */
+  index: number;
   isPlaced: boolean;
   isCorrect: boolean;
-  imageUrl: string;
 }
 
 const JIGSAW_GAME_ID = "jigsaw-puzzle";
@@ -68,96 +64,90 @@ const TIME_LIMIT = 420;
 export default function JigsawPuzzleGame() {
   const router = useRouter();
   const { user: authUser, loading: authLoading } = useAuth();
+
   const [user, setUser] = useState<User | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
+
   const [puzzlePieces, setPuzzlePieces] = useState<PuzzlePiece[]>([]);
   const [gridState, setGridState] = useState<(PuzzlePiece | null)[][]>([]);
-  const [placedPieces, setPlacedPieces] = useState<number>(0);
-  const [time, setTime] = useState<number>(0);
-  const [moves, setMoves] = useState<number>(0);
-  const [gameStarted, setGameStarted] = useState<boolean>(false);
-  const [gameCompleted, setGameCompleted] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [earnedCoins, setEarnedCoins] = useState<number>(0);
-  const [showPreview, setShowPreview] = useState<boolean>(true);
-  const [showGrid, setShowGrid] = useState<boolean>(true);
-  const [hintsUsed, setHintsUsed] = useState<number>(0);
+  const [placedPieces, setPlacedPieces] = useState(0);
+  const [time, setTime] = useState(0);
+  const [moves, setMoves] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameCompleted, setGameCompleted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [earnedCoins, setEarnedCoins] = useState(0);
+  const [showPreview, setShowPreview] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
+  const [hintsUsed, setHintsUsed] = useState(0);
   const [selectedPiece, setSelectedPiece] = useState<PuzzlePiece | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState<string>("");
-  const [canPlay, setCanPlay] = useState<boolean>(true);
-  const [nextPlayTime, setNextPlayTime] = useState<string>("");
-  const [gameMessage, setGameMessage] = useState<string>("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [canPlay, setCanPlay] = useState(true);
+  const [nextPlayTime, setNextPlayTime] = useState("");
+  const [gameMessage, setGameMessage] = useState("");
 
-  const gridRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const gamesFetched = useRef<boolean>(false);
+  const gamesFetched = useRef(false);
 
-  const hasPlayedToday = (user: User | null, gameId: string): boolean => {
-    if (!user || !user.gamesPlayed) return false;
-
+  const hasPlayedToday = (u: User | null, gameId: string): boolean => {
+    if (!u || !u.gamesPlayed) return false;
     const now = new Date();
     const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
-    // Check ALL records for this game, not just the first one found
-    return user.gamesPlayed.some((game) => {
+    return u.gamesPlayed.some((game) => {
       if (game.gameId !== gameId) return false;
-
       const playedDate = new Date(game.playedAt);
-      const playedUTC = new Date(Date.UTC(
-        playedDate.getUTCFullYear(),
-        playedDate.getUTCMonth(),
-        playedDate.getUTCDate()
-      ));
-
+      const playedUTC = new Date(
+        Date.UTC(
+          playedDate.getUTCFullYear(),
+          playedDate.getUTCMonth(),
+          playedDate.getUTCDate()
+        )
+      );
       return playedUTC.getTime() === todayUTC.getTime();
     });
   };
 
-  const getNextPlayTime = (user: User | null, gameId: string): string => {
-    if (!user || !user.gamesPlayed) return "Play Now";
-
-    // Find the LATEST play record for this game
-    const gameRecords = user.gamesPlayed
-      .filter((game) => game.gameId === gameId)
-      .sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
-
+  const getNextPlayTime = (u: User | null, gameId: string): string => {
+    if (!u || !u.gamesPlayed) return "Play Now";
+    const gameRecords = u.gamesPlayed
+      .filter((g) => g.gameId === gameId)
+      .sort(
+        (a, b) =>
+          new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
+      );
     if (gameRecords.length === 0) return "Play Now";
 
-    const lastPlayed = gameRecords[0];
-    const playedDate = new Date(lastPlayed.playedAt);
-    const playedUTC = new Date(Date.UTC(
-      playedDate.getUTCFullYear(),
-      playedDate.getUTCMonth(),
-      playedDate.getUTCDate()
-    ));
+    const lastPlayed = new Date(gameRecords[0].playedAt);
+    const playedUTC = new Date(
+      Date.UTC(
+        lastPlayed.getUTCFullYear(),
+        lastPlayed.getUTCMonth(),
+        lastPlayed.getUTCDate()
+      )
+    );
+    const todayUTC = new Date(
+      Date.UTC(
+        new Date().getUTCFullYear(),
+        new Date().getUTCMonth(),
+        new Date().getUTCDate()
+      )
+    );
 
-    const todayUTC = new Date(Date.UTC(
-      new Date().getUTCFullYear(),
-      new Date().getUTCMonth(),
-      new Date().getUTCDate()
-    ));
-
-    // If played today (or in future??), calculate time until tomorrow
     if (playedUTC.getTime() >= todayUTC.getTime()) {
       const tomorrowUTC = new Date(playedUTC);
       tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
-
       const nowUTC = new Date();
       const diff = tomorrowUTC.getTime() - nowUTC.getTime();
-
       if (diff <= 0) return "Play Now";
-
       const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-      if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-      } else {
-        return `${minutes}m`;
-      }
+      const minutes = Math.floor(
+        (diff % (1000 * 60 * 60)) / (1000 * 60)
+      );
+      if (hours > 0) return `${hours}h ${minutes}m`;
+      return `${minutes}m`;
     }
-
     return "Play Now";
   };
 
@@ -167,8 +157,8 @@ export default function JigsawPuzzleGame() {
       const currentUser = auth.currentUser;
       if (!currentUser) return null;
       return await currentUser.getIdToken();
-    } catch (error) {
-      console.error("Error getting ID token:", error);
+    } catch (e) {
+      console.error("Error getting ID token:", e);
       return null;
     }
   };
@@ -177,17 +167,47 @@ export default function JigsawPuzzleGame() {
     try {
       const token = await getIdToken();
       if (!token) return null;
-
       const res = await fetch("/api/user/me", {
         headers: { Authorization: `Bearer ${token}` }
       });
-
       if (!res.ok) return null;
       const data = await res.json();
       return data.success ? data.user : null;
-    } catch (error) {
-      console.error("Error fetching user:", error);
+    } catch (e) {
+      console.error("Error fetching user:", e);
       return null;
+    }
+  }, []);
+
+  const fetchGames = useCallback(async () => {
+    if (gamesFetched.current) return;
+    try {
+      const response = await fetch("/api/game-images");
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.success && data.data && data.data.length > 0) {
+        const formattedGames: Game[] = data.data.map((g: any) => ({
+          id: g._id?.toString() || Math.random().toString(36).slice(2),
+          name: g.name || "Unnamed Image",
+          imageUrl:
+            g.imageUrl ||
+            "https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=600&h=400&fit=crop",
+          category: [g.category || "general"],
+          players: "1",
+          duration: "5-15 min"
+        }));
+        setGames(formattedGames);
+        gamesFetched.current = true;
+        if (formattedGames.length > 0) {
+          const randomGame =
+            formattedGames[
+              Math.floor(Math.random() * formattedGames.length)
+            ];
+          setCurrentGame(randomGame);
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching game images:", e);
     }
   }, []);
 
@@ -197,36 +217,27 @@ export default function JigsawPuzzleGame() {
       router.push("/login");
       return;
     }
-
-    const initUser = async () => {
+    const init = async () => {
       const userData = await fetchUserData();
-      if (userData) {
-        console.log("User data loaded");
-
-        setUser(userData);
-        const playedToday = hasPlayedToday(userData, JIGSAW_GAME_ID);
-
-        setCanPlay(!playedToday);
-
-        if (playedToday) {
-          const nextTime = getNextPlayTime(userData, JIGSAW_GAME_ID);
-          setNextPlayTime(nextTime);
-          setGameMessage("🚫 You have already played Jigsaw Puzzle today!");
-        }
-
-        // Fetch games after user data is loaded
-        if (!gamesFetched.current && !playedToday) {
-          fetchGames();
-        }
-
-        setLoading(false);
-      } else {
+      if (!userData) {
         router.push("/login");
+        return;
       }
+      setUser(userData);
+      const playedToday = hasPlayedToday(userData, JIGSAW_GAME_ID);
+      setCanPlay(!playedToday);
+      if (playedToday) {
+        const nextTime = getNextPlayTime(userData, JIGSAW_GAME_ID);
+        setNextPlayTime(nextTime);
+        setGameMessage("🚫 You have already played Jigsaw Puzzle today!");
+      }
+      if (!gamesFetched.current && !playedToday) {
+        fetchGames();
+      }
+      setLoading(false);
     };
-
-    initUser();
-  }, [authUser, authLoading, router, fetchUserData]);
+    init();
+  }, [authUser, authLoading, router, fetchUserData, fetchGames]);
 
   useEffect(() => {
     if (!canPlay) {
@@ -237,86 +248,45 @@ export default function JigsawPuzzleGame() {
     }
   }, [canPlay, user]);
 
-  // Only showing the updated fetchGames function - replace in your jigsaw-puzzle-game.tsx
+  /** fixed sprite math helpers */
 
-const fetchGames = async () => {
-  if (gamesFetched.current) return;
+  const getRowFromIndex = (index: number) => Math.floor(index / COLS);
+  const getColFromIndex = (index: number) => index % COLS;
 
-  try {
-    console.log("Fetching game images...");
-    // CHANGED: Using new game-images endpoint instead of games/public
-    const response = await fetch('/api/game-images');
-    if (!response.ok) return;
-
-    const data = await response.json();
-    if (data.success && data.data && data.data.length > 0) {
-      const formattedGames = data.data.map((gameImage: any) => ({
-        id: gameImage._id?.toString() || Math.random().toString(36).substr(2, 9),
-        name: gameImage.name || 'Unnamed Image',
-        imageUrl: gameImage.imageUrl || 'https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=600&h=400&fit=crop',
-        category: [gameImage.category || 'general'],
-        players: '1',
-        duration: '5-15 min'
-      }));
-
-      setGames(formattedGames);
-      gamesFetched.current = true;
-
-      if (formattedGames.length > 0) {
-        const randomGame = formattedGames[Math.floor(Math.random() * formattedGames.length)];
-        setCurrentGame(randomGame);
-        console.log("Set current game:", randomGame.name);
-      }
-    }
-  } catch (err) {
-    console.error('Error fetching game images:', err);
-  }
-};
-
-  const getPieceBackgroundPosition = (row: number, col: number): string => {
-    const xPercent = (col / (COLS - 1)) * 100;
-    const yPercent = (row / (ROWS - 1)) * 100;
+  const getPieceBackgroundPosition = (index: number): string => {
+    const row = getRowFromIndex(index);
+    const col = getColFromIndex(index);
+    const xPercent = (col * 100) / (COLS - 1);
+    const yPercent = (row * 100) / (ROWS - 1);
     return `${xPercent}% ${yPercent}%`;
   };
 
-  const getPieceBackgroundSize = (): string => {
-    return `${COLS * 100}% ${ROWS * 100}%`;
-  };
+  const getPieceBackgroundSize = (): string =>
+    `${COLS * 100}% ${ROWS * 100}%`;
 
-  const shufflePieces = (pieces: PuzzlePiece[]): PuzzlePiece[] => {
-    const shuffled = [...pieces];
-    for (let i = shuffled.length - 1; i > 0; i--) {
+  const shufflePieces = (indices: number[]): PuzzlePiece[] => {
+    const arr = indices.map((i) => ({
+      index: i,
+      isPlaced: false,
+      isCorrect: false
+    }));
+    for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return shuffled;
+    return arr;
   };
 
   const initializeGame = useCallback(() => {
-    if (!currentGame || !canPlay) {
-      console.log("Cannot initialize game - missing:", { currentGame, canPlay });
-      return;
-    }
+    if (!currentGame || !canPlay) return;
 
-    console.log("Initializing game with:", currentGame.name);
+    const initialGrid: (PuzzlePiece | null)[][] = Array.from(
+      { length: ROWS },
+      () => Array.from({ length: COLS }, () => null)
+    );
 
-    const pieces: PuzzlePiece[] = [];
-    for (let row = 0; row < ROWS; row++) {
-      for (let col = 0; col < COLS; col++) {
-        const id = row * COLS + col;
-        pieces.push({
-          id,
-          correctRow: row,
-          correctCol: col,
-          isPlaced: false,
-          isCorrect: false,
-          imageUrl: currentGame.imageUrl,
-        });
-      }
-    }
-
-    const initialGrid = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
-    const shuffledPieces = shufflePieces([...pieces]);
+    const indices = Array.from({ length: TOTAL_PIECES }, (_, i) => i);
+    const shuffledPieces = shufflePieces(indices);
 
     setPuzzlePieces(shuffledPieces);
     setGridState(initialGrid);
@@ -330,15 +300,11 @@ const fetchGames = async () => {
     setFeedbackMessage("");
     setEarnedCoins(0);
 
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
+    if (timerRef.current) clearInterval(timerRef.current);
   }, [currentGame, canPlay]);
 
-  // Initialize game when currentGame is set and user can play
   useEffect(() => {
     if (currentGame && canPlay && puzzlePieces.length === 0) {
-      console.log("Auto-initializing game on mount");
       initializeGame();
     }
   }, [currentGame, canPlay, puzzlePieces.length, initializeGame]);
@@ -346,16 +312,13 @@ const fetchGames = async () => {
   useEffect(() => {
     if (gameStarted && !gameCompleted && canPlay) {
       timerRef.current = setInterval(() => {
-        setTime(prev => prev + 1);
+        setTime((prev) => prev + 1);
       }, 1000);
     } else if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [gameStarted, gameCompleted, canPlay]);
 
@@ -367,33 +330,36 @@ const fetchGames = async () => {
 
   const handleGridCellClick = (row: number, col: number) => {
     if (!selectedPiece || gameCompleted || !canPlay) return;
-
     if (gridState[row][col]) {
       setFeedbackMessage("This position is already taken!");
       setTimeout(() => setFeedbackMessage(""), 2000);
       return;
     }
 
-    const isCorrect = selectedPiece.correctRow === row && selectedPiece.correctCol === col;
+    const correctRow = getRowFromIndex(selectedPiece.index);
+    const correctCol = getColFromIndex(selectedPiece.index);
+    const isCorrect = correctRow === row && correctCol === col;
 
-    const newGridState = [...gridState];
-    newGridState[row][col] = {
+    const newGrid = gridState.map((r) => r.slice());
+    newGrid[row][col] = {
       ...selectedPiece,
       isPlaced: true,
-      isCorrect: isCorrect
+      isCorrect
     };
-    setGridState(newGridState);
+    setGridState(newGrid);
 
-    setPuzzlePieces(prev => prev.map(p =>
-      p.id === selectedPiece.id
-        ? { ...p, isPlaced: true, isCorrect: isCorrect }
-        : p
-    ));
+    setPuzzlePieces((prev) =>
+      prev.map((p) =>
+        p.index === selectedPiece.index
+          ? { ...p, isPlaced: true, isCorrect }
+          : p
+      )
+    );
 
-    setMoves(prev => prev + 1);
+    setMoves((prev) => prev + 1);
 
     if (isCorrect) {
-      setPlacedPieces(prev => prev + 1);
+      setPlacedPieces((prev) => prev + 1);
       setFeedbackMessage("✅ Correct placement!");
       setTimeout(() => setFeedbackMessage(""), 1500);
     } else {
@@ -401,19 +367,20 @@ const fetchGames = async () => {
       setTimeout(() => setFeedbackMessage(""), 1500);
 
       setTimeout(() => {
-        setGridState(prev => {
-          const updatedGrid = [...prev];
-          if (updatedGrid[row][col]?.id === selectedPiece.id) {
-            updatedGrid[row][col] = null;
+        setGridState((prev) => {
+          const updated = prev.map((r) => r.slice());
+          if (updated[row][col]?.index === selectedPiece.index) {
+            updated[row][col] = null;
           }
-          return updatedGrid;
+          return updated;
         });
-
-        setPuzzlePieces(prev => prev.map(p =>
-          p.id === selectedPiece.id
-            ? { ...p, isPlaced: false, isCorrect: false }
-            : p
-        ));
+        setPuzzlePieces((prev) =>
+          prev.map((p) =>
+            p.index === selectedPiece.index
+              ? { ...p, isPlaced: false, isCorrect: false }
+              : p
+          )
+        );
       }, 1500);
     }
 
@@ -422,14 +389,18 @@ const fetchGames = async () => {
 
   const useHint = () => {
     if (hintsUsed >= HINT_COUNT || gameCompleted || !canPlay) return;
+    const unplaced = puzzlePieces.find((p) => !p.isPlaced);
+    if (!unplaced) return;
+    setSelectedPiece(unplaced);
+    setHintsUsed((prev) => prev + 1);
 
-    const unplacedPiece = puzzlePieces.find(p => !p.isPlaced);
-    if (!unplacedPiece) return;
-
-    setSelectedPiece(unplacedPiece);
-    setHintsUsed(prev => prev + 1);
-
-    setFeedbackMessage(`💡 Hint: Piece ${unplacedPiece.id + 1} belongs at row ${unplacedPiece.correctRow + 1}, column ${unplacedPiece.correctCol + 1}`);
+    const r = getRowFromIndex(unplaced.index);
+    const c = getColFromIndex(unplaced.index);
+    setFeedbackMessage(
+      `💡 Hint: Piece ${unplaced.index + 1} belongs at row ${r + 1}, column ${
+        c + 1
+      }`
+    );
     setTimeout(() => setFeedbackMessage(""), 3000);
   };
 
@@ -438,30 +409,34 @@ const fetchGames = async () => {
     const optimalMoves = TOTAL_PIECES;
     const movesPenalty = Math.max(0, (moves - optimalMoves) * 2);
     const hintPenalty = hintsUsed * 10;
-    const totalCoins = Math.max(10, BASE_COINS + timeBonus - movesPenalty - hintPenalty);
-    return totalCoins;
+    return Math.max(10, BASE_COINS + timeBonus - movesPenalty - hintPenalty);
   };
 
-  const finishGame = async () => {
+  const finishGame = useCallback(async () => {
     setGameCompleted(true);
     const coins = calculateCoins();
     setEarnedCoins(coins);
 
     if (!user) {
-      console.error("❌ No user found when finishing game");
+      console.error("No user when finishing game");
       return;
     }
 
     try {
       const token = await getIdToken();
       if (!token) {
-        setGameMessage("❌ Failed to save your progress. Please check your connection.");
+        setGameMessage(
+          "❌ Failed to save your progress. Please check your connection."
+        );
         return;
       }
 
-      const score = Math.max(0, 1000 - Math.floor(time / 10) - (moves * 2) - (hintsUsed * 100));
+      const score = Math.max(
+        0,
+        1000 - Math.floor(time / 10) - moves * 2 - hintsUsed * 100
+      );
 
-      const markPlayedResponse = await fetch("/api/user/markGamePlayed", {
+      const res = await fetch("/api/user/markGamePlayed", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -471,19 +446,23 @@ const fetchGames = async () => {
           userId: user._id,
           gameId: JIGSAW_GAME_ID,
           gameName: JIGSAW_GAME_NAME,
-          score: score,
+          score,
           pointsEarned: coins
         })
       });
 
-      const responseData = await markPlayedResponse.json();
+      const data = await res.json();
 
-      if (!markPlayedResponse.ok) {
-        if (responseData.error?.includes("Game already played") ||
-          responseData.error?.includes("once per day")) {
-          setGameMessage("🚫 You have already played this game today! Come back tomorrow.");
+      if (!res.ok) {
+        if (
+          data.error?.includes("Game already played") ||
+          data.error?.includes("once per day")
+        ) {
+          setGameMessage(
+            "🚫 You have already played this game today! Come back tomorrow."
+          );
           setCanPlay(false);
-          const tempUser = {
+          const tempUser: User = {
             ...user,
             gamesPlayed: [
               ...(user.gamesPlayed || []),
@@ -491,7 +470,7 @@ const fetchGames = async () => {
                 gameId: JIGSAW_GAME_ID,
                 gameName: JIGSAW_GAME_NAME,
                 playedAt: new Date(),
-                score: score,
+                score,
                 pointsEarned: coins,
                 completed: true
               }
@@ -500,62 +479,63 @@ const fetchGames = async () => {
           setNextPlayTime(getNextPlayTime(tempUser, JIGSAW_GAME_ID));
           return;
         }
-        setGameMessage("❌ Failed to save your game progress. Please try again.");
+        setGameMessage(
+          "❌ Failed to save your game progress. Please try again."
+        );
         return;
       }
 
-      if (responseData.success) {
-        // Update local state immediately
+      if (data.success) {
         const newGameRecord = {
           gameId: JIGSAW_GAME_ID,
           gameName: JIGSAW_GAME_NAME,
           playedAt: new Date(),
-          score: score,
+          score,
           pointsEarned: coins,
           completed: true
         };
 
-        const updatedUser = user ? {
+        const updatedUser: User = {
           ...user,
-          userPoints: responseData.totalPoints || user.userPoints,
+          userPoints: data.totalPoints || user.userPoints,
           gamesPlayed: [...(user.gamesPlayed || []), newGameRecord]
-        } : null;
+        };
 
-        if (updatedUser) {
-          setUser(updatedUser);
-          setNextPlayTime(getNextPlayTime(updatedUser, JIGSAW_GAME_ID));
-        }
-
+        setUser(updatedUser);
+        setNextPlayTime(getNextPlayTime(updatedUser, JIGSAW_GAME_ID));
         setCanPlay(false);
-        setGameMessage(`🎉 Congratulations! You earned ${coins} coins! Come back tomorrow to play again.`);
+        setGameMessage(
+          `🎉 Congratulations! You earned ${coins} coins! Come back tomorrow to play again.`
+        );
       }
-
-    } catch (error) {
-      console.error("❌ Exception during game completion:", error);
-      setGameMessage("❌ An error occurred while saving your progress. Please try again.");
+    } catch (e) {
+      console.error("Exception during game completion:", e);
+      setGameMessage(
+        "❌ An error occurred while saving your progress. Please try again."
+      );
     }
-  };
+  }, [user, time, moves, hintsUsed]);
 
   useEffect(() => {
-    if (placedPieces === TOTAL_PIECES && TOTAL_PIECES > 0 && !gameCompleted && canPlay) {
+    if (
+      placedPieces === TOTAL_PIECES &&
+      TOTAL_PIECES > 0 &&
+      !gameCompleted &&
+      canPlay
+    ) {
       finishGame();
     }
-  }, [placedPieces, gameCompleted, canPlay]);
+  }, [placedPieces, gameCompleted, canPlay, finishGame]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
-  const nextPuzzle = () => {
-    if (games.length > 0) {
-      const currentIndex = games.findIndex(g => g.id === currentGame?.id);
-      const nextIndex = (currentIndex + 1) % games.length;
-      setCurrentGame(games[nextIndex]);
-      // Don't auto-initialize here, let the useEffect handle it
-    }
-  };
+  /* AUTH / LOADING STATES */
 
   if (authLoading) {
     return (
@@ -594,13 +574,16 @@ const fetchGames = async () => {
                     Jigsaw Puzzle Challenge
                   </h1>
                   <p className="puzzle-welcome-message">
-                    Welcome, <span className="puzzle-username">{user.name}</span>!
+                    Welcome,{" "}
+                    <span className="puzzle-username">{user.name}</span>!
                   </p>
                 </div>
                 <div className="puzzle-user-coins">
                   <div className="puzzle-coins-display">
                     <Coins className="puzzle-coins-icon" />
-                    <span className="puzzle-coins-value">{user.userPoints}</span>
+                    <span className="puzzle-coins-value">
+                      {user.userPoints}
+                    </span>
                   </div>
                   <div className="puzzle-coins-label">Total Coins</div>
                 </div>
@@ -611,13 +594,18 @@ const fetchGames = async () => {
           <div className="puzzle-already-played">
             <div className="puzzle-locked-card">
               <AlertCircle className="puzzle-lock-icon" />
-              <h2 className="puzzle-locked-title">Game Already Played Today</h2>
+              <h2 className="puzzle-locked-title">
+                Game Already Played Today
+              </h2>
               <p className="puzzle-locked-message">
-                {gameMessage || "🚫 You have already played Jigsaw Puzzle today!"}
+                {gameMessage ||
+                  "🚫 You have already played Jigsaw Puzzle today!"}
               </p>
               <div className="puzzle-next-play-info">
                 <p className="puzzle-next-play-label">Next available in:</p>
-                <div className="puzzle-next-play-time">{nextPlayTime || "Calculating..."}</div>
+                <div className="puzzle-next-play-time">
+                  {nextPlayTime || "Calculating..."}
+                </div>
               </div>
               <p className="puzzle-locked-hint">
                 Come back tomorrow for another challenge!
@@ -656,13 +644,17 @@ const fetchGames = async () => {
                   Jigsaw Puzzle Challenge
                 </h1>
                 <p className="puzzle-welcome-message">
-                  Welcome, <span className="puzzle-username">{user.name}</span>! Assemble the puzzle to earn coins.
+                  Welcome,{" "}
+                  <span className="puzzle-username">{user.name}</span>!
+                  Assemble the puzzle to earn coins.
                 </p>
               </div>
               <div className="puzzle-user-coins">
                 <div className="puzzle-coins-display">
                   <Coins className="puzzle-coins-icon" />
-                  <span className="puzzle-coins-value">{user.userPoints}</span>
+                  <span className="puzzle-coins-value">
+                    {user.userPoints}
+                  </span>
                 </div>
                 <div className="puzzle-coins-label">Total Coins</div>
               </div>
@@ -693,7 +685,9 @@ const fetchGames = async () => {
                 <Trophy className="puzzle-stat-icon" />
                 <span className="puzzle-stat-label">Pieces</span>
               </div>
-              <div className="puzzle-stat-value">{placedPieces}/{TOTAL_PIECES}</div>
+              <div className="puzzle-stat-value">
+                {placedPieces}/{TOTAL_PIECES}
+              </div>
             </div>
 
             <div className="puzzle-stat-card puzzle-stat-hints">
@@ -701,22 +695,37 @@ const fetchGames = async () => {
                 <HelpCircle className="puzzle-stat-icon" />
                 <span className="puzzle-stat-label">Hints</span>
               </div>
-              <div className="puzzle-stat-value">{HINT_COUNT - hintsUsed}</div>
+              <div className="puzzle-stat-value">
+                {HINT_COUNT - hintsUsed}
+              </div>
             </div>
           </div>
 
           {feedbackMessage && (
-            <div className={`puzzle-feedback-message ${feedbackMessage.includes("✅") ? "puzzle-feedback-success" :
-              feedbackMessage.includes("❌") ? "puzzle-feedback-error" :
-                "puzzle-feedback-hint"
-              }`}>
+            <div
+              className={`puzzle-feedback-message ${
+                feedbackMessage.includes("✅")
+                  ? "puzzle-feedback-success"
+                  : feedbackMessage.includes("❌")
+                  ? "puzzle-feedback-error"
+                  : "puzzle-feedback-hint"
+              }`}
+            >
               {feedbackMessage}
             </div>
           )}
 
           {gameMessage && (
             <div className="puzzle-game-message">
-              <div className={`puzzle-message-card ${gameMessage.includes("🎉") ? 'success' : gameMessage.includes("🚫") ? 'error' : 'info'}`}>
+              <div
+                className={`puzzle-message-card ${
+                  gameMessage.includes("🎉")
+                    ? "success"
+                    : gameMessage.includes("🚫")
+                    ? "error"
+                    : "info"
+                }`}
+              >
                 {gameMessage}
               </div>
             </div>
@@ -725,21 +734,7 @@ const fetchGames = async () => {
 
         <div className="puzzle-controls-container">
           <div className="puzzle-controls-group">
-            <button
-              onClick={initializeGame}
-              className="puzzle-button puzzle-button-restart"
-            >
-              <RefreshCw className="puzzle-button-icon" />
-              New Puzzle
-            </button>
-
-            <button
-              onClick={nextPuzzle}
-              className="puzzle-button puzzle-button-secondary"
-            >
-              Next Puzzle
-            </button>
-
+            {/* New Puzzle & Next Puzzle removed as requested */}
             <button
               onClick={useHint}
               disabled={hintsUsed >= HINT_COUNT || gameCompleted}
@@ -753,8 +748,12 @@ const fetchGames = async () => {
               onClick={() => setShowPreview(!showPreview)}
               className="puzzle-button puzzle-button-secondary"
             >
-              {showPreview ? <EyeOff className="puzzle-button-icon" /> : <Eye className="puzzle-button-icon" />}
-              {showPreview ? 'Hide' : 'Show'} Preview
+              {showPreview ? (
+                <EyeOff className="puzzle-button-icon" />
+              ) : (
+                <Eye className="puzzle-button-icon" />
+              )}
+              {showPreview ? "Hide" : "Show"} Preview
             </button>
 
             <button
@@ -762,7 +761,7 @@ const fetchGames = async () => {
               className="puzzle-button puzzle-button-secondary"
             >
               <Grid className="puzzle-button-icon" />
-              {showGrid ? 'Hide' : 'Show'} Grid
+              {showGrid ? "Hide" : "Show"} Grid
             </button>
           </div>
         </div>
@@ -772,54 +771,59 @@ const fetchGames = async () => {
             <div className="puzzle-board-card">
               <div className="puzzle-board-header">
                 <h2 className="puzzle-board-title">
-                  {currentGame?.name || 'Jigsaw Puzzle'}
+                  {currentGame?.name || "Jigsaw Puzzle"}
                 </h2>
                 {selectedPiece && (
                   <div className="puzzle-selected-indicator">
                     <Move className="puzzle-selected-icon" />
-                    Piece #{selectedPiece.id + 1} selected
+                    Piece #{selectedPiece.index + 1} selected
                   </div>
                 )}
               </div>
 
-              <div
-                ref={gridRef}
-                className="puzzle-grid-container"
-              >
-                <div className="puzzle-grid" style={{
-                  gridTemplateRows: `repeat(${ROWS}, 1fr)`,
-                  gridTemplateColumns: `repeat(${COLS}, 1fr)`
-                }}>
-                  {Array.from({ length: ROWS }).map((_, rowIndex) => (
+              <div ref={gridRef} className="puzzle-grid-container">
+                <div
+                  className="puzzle-grid"
+                  style={{
+                    gridTemplateRows: `repeat(${ROWS}, 1fr)`,
+                    gridTemplateColumns: `repeat(${COLS}, 1fr)`
+                  }}
+                >
+                  {Array.from({ length: ROWS }).map((_, rowIndex) =>
                     Array.from({ length: COLS }).map((_, colIndex) => {
                       const pieceInCell = gridState[rowIndex]?.[colIndex];
-
                       return (
                         <div
                           key={`${rowIndex}-${colIndex}`}
-                          onClick={() => handleGridCellClick(rowIndex, colIndex)}
-                          className={`puzzle-grid-cell ${showGrid ? 'puzzle-grid-show' : ''} ${pieceInCell ? (
-                            pieceInCell.isCorrect ? 'puzzle-cell-correct' : 'puzzle-cell-wrong'
-                          ) : 'puzzle-cell-empty'
-                            }`}
+                          onClick={() =>
+                            handleGridCellClick(rowIndex, colIndex)
+                          }
+                          className={`puzzle-grid-cell ${
+                            showGrid ? "puzzle-grid-show" : ""
+                          } ${
+                            pieceInCell
+                              ? pieceInCell.isCorrect
+                                ? "puzzle-cell-correct"
+                                : "puzzle-cell-wrong"
+                              : "puzzle-cell-empty"
+                          }`}
                         >
                           {pieceInCell && (
                             <div
                               className="puzzle-piece-visual"
                               style={{
-                                backgroundImage: `url(${pieceInCell.imageUrl})`,
+                                backgroundImage: `url(${currentGame.imageUrl})`,
                                 backgroundSize: getPieceBackgroundSize(),
                                 backgroundPosition: getPieceBackgroundPosition(
-                                  pieceInCell.correctRow,
-                                  pieceInCell.correctCol
-                                ),
+                                  pieceInCell.index
+                                )
                               }}
                             >
                               <div className="puzzle-piece-status">
                                 {pieceInCell.isCorrect ? (
                                   <Check className="puzzle-status-icon puzzle-status-correct" />
                                 ) : (
-                                  <X className="puzzle-status-icon puzzle-status-wrong" />
+                                  <XIcon className="puzzle-status-icon puzzle-status-wrong" />
                                 )}
                               </div>
                             </div>
@@ -827,14 +831,16 @@ const fetchGames = async () => {
                         </div>
                       );
                     })
-                  ))}
+                  )}
                 </div>
 
                 {gameCompleted && (
                   <div className="puzzle-completion-overlay">
                     <div className="puzzle-completion-card">
                       <div className="puzzle-completion-emoji">🎉</div>
-                      <h3 className="puzzle-completion-title">Puzzle Complete!</h3>
+                      <h3 className="puzzle-completion-title">
+                        Puzzle Complete!
+                      </h3>
                       <p className="puzzle-completion-text">
                         Time: {formatTime(time)} • Moves: {moves}
                       </p>
@@ -842,7 +848,10 @@ const fetchGames = async () => {
                         +{earnedCoins} coins earned!
                       </div>
                       <div className="puzzle-total-coins">
-                        Total coins: <span className="puzzle-total-coins-value">{user.userPoints}</span>
+                        Total coins:{" "}
+                        <span className="puzzle-total-coins-value">
+                          {user.userPoints}
+                        </span>
                       </div>
 
                       {gameMessage && (
@@ -853,7 +862,10 @@ const fetchGames = async () => {
 
                       <div className="puzzle-next-play-info">
                         <p>Come back tomorrow for a new puzzle!</p>
-                        <p className="puzzle-next-play-hint">Next play available: {nextPlayTime || "Calculating..."}</p>
+                        <p className="puzzle-next-play-hint">
+                          Next play available:{" "}
+                          {nextPlayTime || "Calculating..."}
+                        </p>
                       </div>
                       <button
                         onClick={() => router.push("/zone")}
@@ -870,7 +882,10 @@ const fetchGames = async () => {
               {!gameStarted && (
                 <div className="puzzle-instructions">
                   <p className="puzzle-instructions-text">
-                    💡 <strong>How to play:</strong> Click a piece from the side tray, then click on an empty grid cell to place it. Correct pieces stay, wrong pieces disappear. Complete all {TOTAL_PIECES} pieces to win!
+                    💡 <strong>How to play:</strong> Click a piece from the
+                    side tray, then click on an empty grid cell to place it.
+                    Correct pieces stay, wrong pieces disappear. Complete all{" "}
+                    {TOTAL_PIECES} pieces to win!
                   </p>
                 </div>
               )}
@@ -899,25 +914,29 @@ const fetchGames = async () => {
 
             <div className="puzzle-pieces-tray">
               <h3 className="puzzle-side-title">
-                Puzzle Pieces ({puzzlePieces.filter(p => !p.isPlaced).length} remaining)
+                Puzzle Pieces (
+                {puzzlePieces.filter((p) => !p.isPlaced).length} remaining)
               </h3>
               <div className="puzzle-pieces-grid">
                 {puzzlePieces
-                  .filter(piece => !piece.isPlaced)
-                  .map(piece => (
+                  .filter((piece) => !piece.isPlaced)
+                  .map((piece) => (
                     <button
-                      key={piece.id}
+                      key={piece.index}
                       onClick={() => handlePieceSelect(piece)}
-                      className={`puzzle-piece-thumbnail ${selectedPiece?.id === piece.id ? 'puzzle-piece-selected' : ''}`}
+                      className={`puzzle-piece-thumbnail ${
+                        selectedPiece?.index === piece.index
+                          ? "puzzle-piece-selected"
+                          : ""
+                      }`}
                       style={{
-                        backgroundImage: `url(${piece.imageUrl})`,
+                        backgroundImage: `url(${currentGame.imageUrl})`,
                         backgroundSize: getPieceBackgroundSize(),
                         backgroundPosition: getPieceBackgroundPosition(
-                          piece.correctRow,
-                          piece.correctCol
-                        ),
+                          piece.index
+                        )
                       }}
-                      title={`Piece ${piece.id + 1}`}
+                      title={`Piece ${piece.index + 1}`}
                     />
                   ))}
               </div>

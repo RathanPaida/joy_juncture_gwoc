@@ -1,25 +1,54 @@
-/* Jigsaw Puzzle Game - Orange & Black Theme - FIXED */
+/* Jigsaw Puzzle Game - Enhanced Orange & Black Theme with Dynamic Gradients */
 
-/* Base styles */
+/* Base styles - ENHANCED */
 .puzzle-game-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
   padding: 1rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.puzzle-game-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255, 102, 0, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 136, 0, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .puzzle-game-wrapper {
+  position: relative;
+  z-index: 1;
   max-width: 90rem;
   margin: 0 auto;
 }
 
-/* Loading Screen */
+/* Loading Screen - ENHANCED */
 .puzzle-loading-screen {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  position: relative;
+}
+
+.puzzle-loading-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255, 102, 0, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 136, 0, 0.08) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 .puzzle-loading-message {
@@ -28,7 +57,7 @@
   font-weight: 600;
 }
 
-/* Already Played Screen */
+/* Already Played Screen - ENHANCED */
 .puzzle-already-played {
   display: flex;
   justify-content: center;
@@ -45,6 +74,16 @@
   max-width: 500px;
   width: 100%;
   box-shadow: 0 20px 40px rgba(255, 102, 0, 0.3);
+  position: relative;
+}
+
+.puzzle-locked-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 102, 0, 0.05) 0%, transparent 70%);
+  border-radius: 1.5rem;
+  pointer-events: none;
 }
 
 .puzzle-lock-icon {
@@ -63,8 +102,8 @@
 
 .puzzle-locked-message {
   color: #cccccc;
-  font-size: 1rem;
-  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
   line-height: 1.6;
 }
 
@@ -94,7 +133,7 @@
   margin-bottom: 2rem;
 }
 
-/* Game Message */
+/* Game Message - ENHANCED */
 .puzzle-game-message {
   margin-bottom: 1.5rem;
 }
@@ -105,12 +144,30 @@
   text-align: center;
   font-weight: 500;
   border: 1px solid;
+  position: relative;
+  overflow: hidden;
+}
+
+.puzzle-message-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transition: left 0.5s;
+}
+
+.puzzle-message-card:hover::before {
+  left: 100%;
 }
 
 .puzzle-message-card.success {
   background: rgba(76, 175, 80, 0.1);
   color: #4caf50;
-  border-color: rgba(76, 175, 80, 0.3);
+  border-color: rgba(76,
+ 175, 80, 0.3);
 }
 
 .puzzle-message-card.error {
@@ -125,23 +182,35 @@
   border-color: rgba(33, 150, 243, 0.3);
 }
 
-/* Header */
+/* Header - ENHANCED */
 .puzzle-game-header {
   margin-bottom: 1.5rem;
 }
 
 .puzzle-header-card {
-  background: #000000;
+  background: radial-gradient(circle at top left, rgba(255, 102, 0, 0.2), transparent 55%), #000000;
   border-radius: 1rem;
   box-shadow: 0 10px 30px rgba(255, 102, 0, 0.2);
   padding: 1.5rem;
   border: 1px solid #333333;
+  position: relative;
+  overflow: hidden;
+}
+
+.puzzle-header-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(255, 102, 0, 0.05));
+  pointer-events: none;
 }
 
 .puzzle-header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .puzzle-game-title {
@@ -199,7 +268,7 @@
   color: #999999;
 }
 
-/* Stats Container */
+/* Stats Container - ENHANCED */
 .puzzle-stats-container {
   background: #000000;
   border-radius: 1rem;
@@ -217,7 +286,7 @@
 }
 
 .puzzle-stat-card {
-  background: #1a1a1a;
+  background: radial-gradient(circle at top, rgba(255, 102, 0, 0.18), #1a1a1a);
   padding: 1rem;
   border-radius: 0.75rem;
   text-align: center;
@@ -226,8 +295,8 @@
 }
 
 .puzzle-stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 8px 20px rgba(255, 102, 0, 0.35);
   border-color: #ff6600;
 }
 
@@ -247,7 +316,7 @@
 
 .puzzle-stat-label {
   font-size: 0.875rem;
-  color: #999999;
+  color: #bbbbbb;
 }
 
 .puzzle-stat-value {
@@ -256,11 +325,12 @@
   color: #ffffff;
 }
 
-/* Specific stat card colors */
-.puzzle-stat-time { border-top: 3px solid #ff6600; }
-.puzzle-stat-moves { border-top: 3px solid #ff6600; }
-.puzzle-stat-pieces { border-top: 3px solid #ff6600; }
-.puzzle-stat-hints { border-top: 3px solid #ff6600; }
+.puzzle-stat-time,
+.puzzle-stat-moves,
+.puzzle-stat-pieces,
+.puzzle-stat-hints {
+  border-top: 3px solid #ff6600;
+}
 
 /* Feedback Message */
 .puzzle-feedback-message {
@@ -297,7 +367,7 @@
   border: 1px solid rgba(33, 150, 243, 0.4);
 }
 
-/* Controls */
+/* Controls - ENHANCED */
 .puzzle-controls-container {
   display: flex;
   flex-wrap: wrap;
@@ -324,10 +394,25 @@
   border-radius: 0.5rem;
   font-weight: 600;
   font-size: 0.95rem;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   cursor: pointer;
   border: none;
   outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.puzzle-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.14), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.puzzle-button:hover::after {
+  opacity: 1;
 }
 
 .puzzle-button-icon {
@@ -442,10 +527,10 @@
   height: 1rem;
 }
 
-/* Puzzle Grid - FIXED */
+/* Puzzle Grid - ENHANCED */
 .puzzle-grid-container {
   position: relative;
-  background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+  background: radial-gradient(circle at center, #1a1a1a, #050505);
   border-radius: 0.75rem;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -454,6 +539,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.puzzle-grid-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 102, 0, 0.08), transparent 60%);
+  pointer-events: none;
 }
 
 .puzzle-grid {
@@ -539,21 +633,6 @@
   border: 1px solid rgba(255, 102, 0, 0.3);
   border-radius: 0.5rem;
   color: #ff6600;
-}
-
-.puzzle-next-play-info {
-  margin: 1rem 0;
-  padding: 0.75rem;
-  background: rgba(68, 68, 68, 0.2);
-  border-radius: 0.5rem;
-  color: #cccccc;
-  font-size: 0.875rem;
-}
-
-.puzzle-next-play-hint {
-  color: #ff6600;
-  font-weight: 500;
-  margin-top: 0.5rem;
 }
 
 /* Completion Overlay */
@@ -735,6 +814,32 @@
   border-top: 1px solid #333333;
 }
 
+/* Action buttons section */
+.puzzle-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Next play info centered variant */
+.puzzle-next-play-info {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.puzzle-next-play-info .puzzle-next-play-label {
+  font-size: 0.875rem;
+  color: #999999;
+  margin-bottom: 0.5rem;
+}
+
+.puzzle-next-play-info .puzzle-next-play-time {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ff6600;
+}
+
 /* Responsive Design */
 @media (max-width: 48rem) {
   .puzzle-header-content {
@@ -788,69 +893,4 @@
   .puzzle-grid-container {
     min-height: 400px;
   }
-}
-/* Add to your CSS file */
-
-.puzzle-action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-.puzzle-next-play-info {
-  margin: 1.5rem 0;
-  text-align: center;
-}
-
-.puzzle-next-play-info .puzzle-next-play-label {
-  font-size: 0.875rem;
-  color: #999999;
-  margin-bottom: 0.5rem;
-}
-
-.puzzle-next-play-info .puzzle-next-play-time {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #ff6600;
-}
-
-/* Simplified locked card */
-.puzzle-locked-card {
-  background: #000000;
-  border: 2px solid #ff6600;
-  border-radius: 1.5rem;
-  padding: 3rem 2rem;
-  text-align: center;
-  max-width: 500px;
-  width: 100%;
-  box-shadow: 0 20px 40px rgba(255, 102, 0, 0.3);
-}
-
-.puzzle-lock-icon {
-  width: 4rem;
-  height: 4rem;
-  color: #ff6600;
-  margin: 0 auto 1.5rem;
-}
-
-.puzzle-locked-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 1rem;
-}
-
-.puzzle-locked-message {
-  color: #cccccc;
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  line-height: 1.6;
-}
-
-.puzzle-locked-hint {
-  color: #999999;
-  font-size: 0.875rem;
-  margin-top: 1.5rem;
-  font-style: italic;
 }
