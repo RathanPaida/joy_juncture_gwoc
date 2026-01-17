@@ -1,4 +1,3 @@
-// app/cart/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -47,13 +46,13 @@ export default function CartPage() {
   const [availableRewards, setAvailableRewards] = useState<any[]>([]);
   const [userPoints, setUserPoints] = useState(0);
 
-  // Restored missing states
   const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState("");
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoType, setPromoType] = useState<"fixed" | "percentage">("fixed");
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]); // For compatibility with older logic
 
   useEffect(() => {
     if (!authLoading) {
@@ -77,7 +76,6 @@ export default function CartPage() {
       });
       if (walletRes.ok) {
         const data = await walletRes.json();
-        console.log("XXX CART WALLET DATA:", data);
         setUserCoupons(data.wallet.coupons || []);
         setUserPoints(data.wallet.points || 0);
       }
@@ -88,6 +86,18 @@ export default function CartPage() {
         const data = await rewardsRes.json();
         setAvailableRewards(data.rewards || []);
       }
+
+      // Fetch Profile Coupons (Legacy/Redeemed check)
+      const profileRes = await fetch("/api/user/profile", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (profileRes.ok) {
+        const pData = await profileRes.json();
+        // Merge or use these if needed. Currently userCoupons from wallet is primary.
+        const redeemed = pData.profile.redeemedCoupons?.filter((c: any) => c.status === 'available') || [];
+        setAvailableCoupons(redeemed);
+      }
+
     } catch (error) {
       console.error("Error fetching wallet/rewards:", error);
     }
@@ -173,43 +183,41 @@ export default function CartPage() {
     }
   };
 
-  const applyPromoCode = async (codeToUse?: string) => {
-    const code = codeToUse || promoCode;
-    if (!code?.trim()) return;
+  const applyPromoCode = async (codeOverride?: string) => {
+    const codeToApply = codeOverride || promoCode;
+    if (!codeToApply?.trim()) return;
 
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const currentUser = auth.currentUser;
+      const token = currentUser ? await currentUser.getIdToken() : '';
 
+      // Validate Promo
       const res = await fetch("/api/promo/validate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code: codeToApply }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setPromoApplied(true);
-        // data.discount is the VALUE (e.g. 50 flat). 
-        // Need to check discountType.
-        // Assuming current logic was percentage, but new logic is likely fixed.
-        // For compatibility:
-        if (data.type === 'fixed') {
-          // Store fixed amount in promoDiscount, but current calculation logic handles it as % ?
-          // Line 168: (subtotal * promoDiscount) / 100
-          // I need to change calculateSummary too!
-          setPromoDiscount(data.discount); // This will break if treated as %.
-          // I'll add a state `discountType`
+        if (codeOverride) setPromoCode(codeOverride);
+
+        // Handle Discount Logic
+        if (data.type === 'percentage') {
+          setPromoType('percentage');
+          setPromoDiscount(data.discount || 0);
         } else {
-          setPromoDiscount(data.discount || 10);
+          setPromoType('fixed');
+          setPromoDiscount(data.discount || 0);
         }
 
-        // HACK: I will store type in a new state or just reuse logic.
-        // Let's optimize calculate logic below implicitly.
       } else {
-        alert("Invalid promo code");
+        const err = await res.json();
+        alert(err.error || "Invalid promo code");
       }
     } catch (error) {
       console.error("Error applying promo:", error);
@@ -474,6 +482,27 @@ export default function CartPage() {
                   </div>
                 </div>
               )}
+
+              {/* Available Coupons from Profile (Compatibility) */}
+              {availableCoupons.length > 0 && !promoApplied && (
+                <div className="available-coupons mt-4 pt-4 border-t border-white/10">
+                  <p className="text-sm text-zinc-400 mb-2">Redeemed Coupons:</p>
+                  {availableCoupons.map((coupon, idx) => (
+                    <div key={idx} className="flex justify-between items-center bg-zinc-900/50 p-2 rounded mb-2 border border-white/5">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-orange-400 text-sm">{coupon.code}</span>
+                        <span className="text-[10px] text-zinc-500">{coupon.name}</span>
+                      </div>
+                      <button
+                        onClick={() => applyPromoCode(coupon.code)}
+                        className="bg-orange-500 text-black text-xs font-bold px-2 py-1 rounded"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Rewards Redemption Section */}
@@ -509,7 +538,6 @@ export default function CartPage() {
                           <button
                             onClick={() => {
                               setPromoCode(redeemedCoupon.code);
-                              // Optionally auto-apply logic could go here
                             }}
                             className="text-xs px-2 py-1 rounded font-mono font-bold bg-zinc-800 text-orange-500 border border-zinc-700 hover:bg-zinc-700 flex items-center gap-1"
                             title="Click to use code"

@@ -1,10 +1,9 @@
-// app/checkout/page.tsx - FIXED CART CLEARING
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { auth } from "@/lib/firebase"; // Import Firebase auth directly
+import { auth } from "@/lib/firebase";
 import {
   CreditCard,
   Truck,
@@ -15,8 +14,6 @@ import {
   Home,
   Building,
   ArrowLeft,
-  ShieldCheck,
-  Lock,
   CheckCircle2,
 } from "lucide-react";
 import "./checkout.css";
@@ -50,6 +47,7 @@ declare global {
 export default function CheckoutPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -70,10 +68,15 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const [errors, setErrors] = useState<Partial<ShippingAddress>>({});
 
-  const searchParams = useSearchParams();
+  // Merged Coupon/Promo Logic
+  // Supporting both 'promo' and 'coupon' params for backward compatibility
   const [promoCode, setPromoCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isPromoApplied, setIsPromoApplied] = useState(false);
+
+  // Pincode Logic
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
+  const [calculatedShipping, setCalculatedShipping] = useState<number | null>(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -86,12 +89,9 @@ export default function CheckoutPage() {
     }
   }, [user, authLoading]);
 
-  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
-  const [calculatedShipping, setCalculatedShipping] = useState<number | null>(null);
-
-  // Validate promo code from URL
+  // Handle URL Params for Promos/Coupons
   useEffect(() => {
-    const code = searchParams.get('promo');
+    const code = searchParams.get('promo') || searchParams.get('coupon');
     if (code && !isPromoApplied) {
       validatePromo(code);
     }
@@ -101,7 +101,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     const fetchPincodeDetails = async () => {
       const pin = shippingAddress.pincode;
-
       // Only fetch if 6 digits
       if (!pin || pin.length !== 6) return;
 
@@ -150,9 +149,12 @@ export default function CheckoutPage() {
     return () => clearTimeout(timer);
   }, [shippingAddress.pincode]);
 
+
   const validatePromo = async (code: string) => {
     try {
       const token = await auth.currentUser?.getIdToken();
+      // Try promo endpoint first, then coupon endpoint if needed, or unified endpoint.
+      // Assuming /api/promo/validate is the new standard.
       const res = await fetch("/api/promo/validate", {
         method: "POST",
         headers: {
@@ -166,16 +168,10 @@ export default function CheckoutPage() {
         const data = await res.json();
         setPromoCode(code);
 
-        // Calculate potential discount based on cart items
-        // Note: Actual calculation happens in calculateTotals based on these state values
-        // We just need to determine the value here to set state
-
         let discount = 0;
         const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
         if (data.type === 'percentage') {
-          // For percentage, store the % value or calculate absolute immediately?
-          // Let's store absolute amount for simplicity in calculateTotals
           discount = (subtotal * data.discount) / 100;
         } else {
           discount = data.discount;
@@ -186,6 +182,10 @@ export default function CheckoutPage() {
         setDiscountAmount(discount);
         setIsPromoApplied(true);
         console.log("✅ Promo applied:", code, "Discount:", discount);
+      } else {
+        // Fallback validation for older coupon system if promo validation fails?
+        // For now assuming one system.
+        console.warn("Promo validation failed");
       }
     } catch (error) {
       console.error("Error validating promo:", error);
@@ -199,21 +199,12 @@ export default function CheckoutPage() {
     document.body.appendChild(script);
   };
 
-  // Helper function to get fresh token
   const getFreshToken = async (): Promise<string | null> => {
     try {
       const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.error("❌ No current user");
-        return null;
-      }
-
-      // Force refresh to get a fresh token
-      const token = await currentUser.getIdToken(true);
-      console.log("✅ Got fresh token, length:", token.length);
-      return token;
+      if (!currentUser) return null;
+      return await currentUser.getIdToken(true);
     } catch (error) {
-      console.error("❌ Error getting token:", error);
       return null;
     }
   };
@@ -224,7 +215,6 @@ export default function CheckoutPage() {
         router.push("/login?redirect=/checkout");
         return;
       }
-
       const token = await getFreshToken();
       if (!token) {
         router.push("/login?redirect=/checkout");
@@ -232,9 +222,7 @@ export default function CheckoutPage() {
       }
 
       const res = await fetch("/api/cart", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
@@ -246,16 +234,10 @@ export default function CheckoutPage() {
         setCartItems(data.items || []);
 
         if (user.displayName) {
-          setShippingAddress((prev) => ({
-            ...prev,
-            fullName: user.displayName || "",
-          }));
+          setShippingAddress((prev) => ({ ...prev, fullName: user.displayName || "" }));
         }
         if (user.email) {
-          setShippingAddress((prev) => ({
-            ...prev,
-            email: user.email || "",
-          }));
+          setShippingAddress((prev) => ({ ...prev, email: user.email || "" }));
         }
       }
     } catch (error) {
@@ -280,35 +262,26 @@ export default function CheckoutPage() {
       shipping = subtotal > 500 ? 0 : 50;
     }
 
-    // Apply discount BEFORE tax? Depends on local laws. Usually Tax is on discounted price.
     const taxableAmount = Math.max(0, subtotal - discountAmount);
-
     const tax = taxableAmount * 0.18;
     const total = taxableAmount + shipping + tax;
 
-    console.log("💰 Totals calculated:", { subtotal, shipping, tax, total });
     return { subtotal, shipping, tax, total, discount: discountAmount };
   };
 
   const validateAddress = (): boolean => {
     const newErrors: Partial<ShippingAddress> = {};
 
-    if (!shippingAddress.fullName.trim())
-      newErrors.fullName = "Name is required";
+    if (!shippingAddress.fullName.trim()) newErrors.fullName = "Name is required";
     if (!shippingAddress.email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(shippingAddress.email))
-      newErrors.email = "Invalid email";
+    else if (!/\S+@\S+\.\S+/.test(shippingAddress.email)) newErrors.email = "Invalid email";
     if (!shippingAddress.phone.trim()) newErrors.phone = "Phone is required";
-    else if (!/^\d{10}$/.test(shippingAddress.phone))
-      newErrors.phone = "Invalid phone number";
-    if (!shippingAddress.address.trim())
-      newErrors.address = "Address is required";
+    else if (!/^\d{10}$/.test(shippingAddress.phone)) newErrors.phone = "Invalid phone number";
+    if (!shippingAddress.address.trim()) newErrors.address = "Address is required";
     if (!shippingAddress.city.trim()) newErrors.city = "City is required";
     if (!shippingAddress.state.trim()) newErrors.state = "State is required";
-    if (!shippingAddress.pincode.trim())
-      newErrors.pincode = "Pincode is required";
-    else if (!/^\d{6}$/.test(shippingAddress.pincode))
-      newErrors.pincode = "Invalid pincode";
+    if (!shippingAddress.pincode.trim()) newErrors.pincode = "Pincode is required";
+    else if (!/^\d{6}$/.test(shippingAddress.pincode)) newErrors.pincode = "Invalid pincode";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -332,7 +305,6 @@ export default function CheckoutPage() {
     setProcessing(true);
     try {
       if (!user) return;
-
       const token = await getFreshToken();
       if (!token) {
         alert("Please login again");
@@ -353,7 +325,7 @@ export default function CheckoutPage() {
           shippingAddress,
           promoCode: isPromoApplied ? promoCode : null,
           discountAmount: isPromoApplied ? discountAmount : 0,
-          shippingFee: calculateTotals().shipping // Explicitly send the calculated shipping fee
+          shippingFee: calculateTotals().shipping
         }),
       });
 
@@ -404,14 +376,8 @@ export default function CheckoutPage() {
   const verifyPayment = async (paymentResponse: any, order: any) => {
     try {
       if (!user) return;
-
       const token = await getFreshToken();
-      if (!token) {
-        alert("Authentication failed. Please login again.");
-        return;
-      }
-
-      console.log("🔍 Verifying payment...");
+      if (!token) return;
 
       const verifyRes = await fetch("/api/payment/verify", {
         method: "POST",
@@ -423,20 +389,11 @@ export default function CheckoutPage() {
           razorpay_payment_id: paymentResponse.razorpay_payment_id,
           razorpay_order_id: paymentResponse.razorpay_order_id,
           razorpay_signature: paymentResponse.razorpay_signature,
-          type: "product", // Specify product payment type
+          type: "product",
         }),
       });
 
       if (verifyRes.ok) {
-        const data = await verifyRes.json();
-        console.log("✅ Payment verified:", data);
-        console.log("✅ Cart cleared by server:", data.cartCleared);
-
-        // Redirect to success page with order info
-        const orderIds = data.orderIds?.join(',') || '';
-        const joyPoints = data.joyPointsEarned || 0;
-        const count = data.ordersUpdated || 1;
-
         router.push(`/order-succes`);
       } else {
         const errorData = await verifyRes.json();
@@ -444,9 +401,7 @@ export default function CheckoutPage() {
       }
     } catch (error: any) {
       console.error("Payment verification failed:", error);
-      alert(
-        error.message || "Payment verification failed. Please contact support.",
-      );
+      alert(error.message || "Payment verification failed.");
     } finally {
       setProcessing(false);
     }
@@ -456,16 +411,10 @@ export default function CheckoutPage() {
     setProcessing(true);
     try {
       if (!user) return;
-
       const token = await getFreshToken();
-      if (!token) {
-        alert("Authentication failed. Please login again.");
-        return;
-      }
+      if (!token) return;
 
       const totals = calculateTotals();
-
-      console.log("📦 Placing COD order...");
 
       const orderRes = await fetch("/api/orders/create", {
         method: "POST",
@@ -484,15 +433,6 @@ export default function CheckoutPage() {
       });
 
       if (orderRes.ok) {
-        const data = await orderRes.json();
-        console.log("✅ Order created:", data);
-        console.log("✅ Cart cleared by server:", data.cartCleared);
-
-        // Redirect to success page with order info
-        const orderIds = data.orderIds?.join(',') || '';
-        const joyPoints = data.joyPointsEarned || 0;
-        const count = data.ordersCreated || 1;
-
         router.push(`/order-succes`);
       } else {
         const errorData = await orderRes.json();
@@ -500,11 +440,12 @@ export default function CheckoutPage() {
       }
     } catch (error: any) {
       console.error("Order creation failed:", error);
-      alert(error.message || "Failed to place order. Please try again.");
+      alert(error.message || "Failed to place order.");
     } finally {
       setProcessing(false);
     }
   };
+
 
   if (authLoading || loading) {
     return (
@@ -732,10 +673,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <button
-                className="continue-btn"
-                onClick={handleContinueToPayment}
-              >
+              <button className="btn-primary" onClick={handleContinueToPayment}>
                 Continue to Payment
               </button>
             </div>
@@ -746,110 +684,97 @@ export default function CheckoutPage() {
                 <h2>Payment Method</h2>
               </div>
 
-              <div className="payment-methods">
-                <label
+              <div className="payment-options">
+                <div
                   className={`payment-option ${paymentMethod === "razorpay" ? "selected" : ""}`}
-                  style={paymentMethod === "razorpay" ? { borderColor: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.1)' } : {}}
+                  onClick={() => setPaymentMethod("razorpay")}
                 >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="razorpay"
-                    checked={paymentMethod === "razorpay"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  />
-                  <div className="payment-option-content">
-                    <CreditCard size={24} />
-                    <div>
-                      <h3>Credit/Debit Card, UPI, Wallet</h3>
-                      <p>Pay securely via Razorpay</p>
-                    </div>
+                  <div className="radio-circle">
+                    {paymentMethod === "razorpay" && <div className="inner-circle"></div>}
                   </div>
-                  <CheckCircle2 className="check-icon" size={24} />
-                </label>
+                  <div className="option-content">
+                    <span className="option-title">Pay Online (Razorpay)</span>
+                    <span className="option-desc">Cards, UPI, NetBanking, Wallets</span>
+                  </div>
+                </div>
 
-                <label
+                <div
                   className={`payment-option ${paymentMethod === "cod" ? "selected" : ""}`}
+                  onClick={() => setPaymentMethod("cod")}
                 >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="cod"
-                    checked={paymentMethod === "cod"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  />
-                  <div className="payment-option-content">
-                    <Truck size={24} />
-                    <div>
-                      <h3>Cash on Delivery</h3>
-                      <p>Pay when you receive your order</p>
-                    </div>
+                  <div className="radio-circle">
+                    {paymentMethod === "cod" && <div className="inner-circle"></div>}
                   </div>
-                  <CheckCircle2 className="check-icon" size={24} />
-                </label>
+                  <div className="option-content">
+                    <span className="option-title">Cash on Delivery</span>
+                    <span className="option-desc">Pay when you receive the order</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="secure-payment">
-                <Lock size={18} />
-                <span>Your payment information is secure and encrypted</span>
+              <div className="address-summary">
+                <h3>Delivering To:</h3>
+                <p>
+                  <strong>{shippingAddress.fullName}</strong>
+                </p>
+                <p>{shippingAddress.address}</p>
+                <p>
+                  {shippingAddress.city}, {shippingAddress.state} -{" "}
+                  {shippingAddress.pincode}
+                </p>
+                <p>Phone: {shippingAddress.phone}</p>
+                <button className="edit-address-btn" onClick={() => setStep(1)}>
+                  Edit Address
+                </button>
               </div>
 
-              <div className="checkout-actions">
-                <button className="back-to-shipping" onClick={() => setStep(1)}>
-                  Back to Shipping
-                </button>
-                <button
-                  className="place-order-btn"
-                  onClick={handlePlaceOrder}
-                  disabled={processing}
-                >
-                  {processing ? (
-                    <>
-                      <div className="spinner-small"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck size={20} />
-                      Place Order - ₹{total.toLocaleString()}
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                className="btn-primary pay-btn"
+                onClick={handlePlaceOrder}
+                disabled={processing}
+              >
+                {processing ? (
+                  <>
+                    <div className="spinner-small"></div> Processing...
+                  </>
+                ) : (
+                  <>
+                    {paymentMethod === "cod" ? "Place Order" : "Pay Now"} ₹
+                    {total.toLocaleString()}
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>
 
         <div className="checkout-sidebar">
-          <div className="summary-card">
-            <h3>Order Summary</h3>
-
-            <div className="cart-items-summary">
+          <div className="order-summary">
+            <h2>Order Summary</h2>
+            <div className="summary-items">
               {cartItems.map((item) => (
                 <div key={item._id} className="summary-item">
-                  <img src={item.productImage} alt={item.productName} />
-                  <div className="summary-item-details">
-                    <p>{item.productName}</p>
-                    <span>Qty: {item.quantity}</span>
+                  <div className="item-info">
+                    <span className="item-name">
+                      {item.productName} <span className="item-qty">x{item.quantity}</span>
+                    </span>
+                    <span className="item-price">
+                      ₹{(item.price * item.quantity).toLocaleString()}
+                    </span>
                   </div>
-                  <span className="summary-item-price">
-                    ₹{(item.price * item.quantity).toLocaleString()}
-                  </span>
                 </div>
               ))}
             </div>
 
-            <div className="summary-divider"></div>
-
-            <div className="summary-rows">
+            <div className="summary-totals">
               <div className="summary-row">
                 <span>Subtotal</span>
                 <span>₹{subtotal.toLocaleString()}</span>
               </div>
 
-              {discountAmount > 0 && (
-                <div className="summary-row" style={{ color: '#22c55e' }}>
-                  <span>Discount</span>
+              {isPromoApplied && (
+                <div className="summary-row discount">
+                  <span>Discount ({promoCode})</span>
                   <span>-₹{discountAmount.toLocaleString()}</span>
                 </div>
               )}
@@ -858,29 +783,19 @@ export default function CheckoutPage() {
                 <span>Shipping</span>
                 <span>{shipping === 0 ? "FREE" : `₹${shipping}`}</span>
               </div>
-
               <div className="summary-row">
                 <span>Tax (18% GST)</span>
                 <span>₹{tax.toLocaleString()}</span>
               </div>
-
-              <div className="summary-divider"></div>
-
-              <div className="summary-row total">
+              <div className="summary-total">
                 <span>Total</span>
                 <span>₹{total.toLocaleString()}</span>
               </div>
             </div>
-          </div>
 
-          <div className="trust-badges">
-            <div className="trust-badge">
-              <ShieldCheck size={20} />
+            <div className="summary-security">
+              <CheckCircle2 size={16} className="text-green-500" />
               <span>Secure Checkout</span>
-            </div>
-            <div className="trust-badge">
-              <Truck size={20} />
-              <span>Fast Delivery</span>
             </div>
           </div>
         </div>

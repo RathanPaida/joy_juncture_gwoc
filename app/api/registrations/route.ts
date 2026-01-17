@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
+import { sendEmail } from '@/lib/mail';
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
     // Check if event exists and has available seats
     const event = await eventsCollection.findOne({ _id: new ObjectId(eventId) });
-    
+
     if (!event) {
       return NextResponse.json(
         { error: 'Event not found' },
@@ -49,7 +50,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate unique verification code
     const verificationCode = crypto.randomBytes(16).toString('hex');
     const qrData = `${eventId}-${userId}-${verificationCode}`;
 
@@ -69,6 +69,26 @@ export async function POST(request: Request) {
     };
 
     const result = await registrationsCollection.insertOne(registration);
+
+    // Send confirmation email
+    await sendEmail({
+      to: userEmail,
+      subject: `Registration Confirmed: ${event.name}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #FF6B35;">Registration Verified!</h1>
+          <p>Hi ${userName},</p>
+          <p>You have successfully registered for <strong>${event.name}</strong>.</p>
+          <p><strong>Amount Paid:</strong> ₹${amount}</p>
+          <p>Please keep this for your records. Your unique verification code is:</p>
+          <div style="background: #f4f4f4; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.2em;">
+            ${verificationCode}
+          </div>
+          <p>See you there!</p>
+          <p>- Team Joy Juncture</p>
+        </div>
+      `
+    });
 
     return NextResponse.json({
       success: true,

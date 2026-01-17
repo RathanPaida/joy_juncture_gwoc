@@ -17,11 +17,13 @@ export default function RefreshOnNavigation() {
 
         // Only refresh if the path has changed since the last tracking
         if (currentPath !== lastPathRef.current) {
-            console.log(`🔄 Navigation detected (Safe): ${currentPath}. Refreshing data...`);
+            console.log(`🔄 Navigation detected (Hard Refresh): ${currentPath}`);
             lastPathRef.current = currentPath;
-            router.refresh();
+
+            // Force a hard reload to fix CSS/Layout issues
+            window.location.reload();
         }
-    }, [pathname, searchParams, router]);
+    }, [pathname, searchParams]);
 
     return null;
 }

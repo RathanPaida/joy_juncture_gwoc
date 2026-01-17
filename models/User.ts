@@ -24,11 +24,16 @@ export interface IUser extends Document {
     rewardId: string;
     code: string;
     name: string;
+    description: string;
     discountType: "percentage" | "fixed";
     discountValue: number;
+    discountAmount?: number; // Legacy support or alias
+    limitAmount?: number; // Legacy?
     minOrderAmount: number;
-    isUsed: boolean;
+    status: 'available' | 'used';
+    isUsed: boolean; // Computed or redundant with status
     redeemedAt: Date;
+    usedAt?: Date;
     expiryDate?: Date;
   }>;
   walletBalance: number;
@@ -41,7 +46,7 @@ export interface IUser extends Document {
   likedBlogs: string[];
   bookmarkedBlogs: string[];
 
-  // Community-related fields (NEW)
+  // Community-related fields
   likedDiscussions: string[];
   likedReplies: string[];
   discussionsCreated: string[];
@@ -65,7 +70,7 @@ export interface IUser extends Document {
   totalLikesReceived: number;
   totalRepliesReceived: number;
 
-  // Game-related fields (NEW)
+  // Game-related fields
   gamesPlayed: Array<{
     gameId: string;
     gameName: string;
@@ -77,8 +82,7 @@ export interface IUser extends Document {
   totalGamesPlayed: number;
   totalGamePoints: number;
 
-  // In your user model or where you define user schema
-snakeHighScores?: {
+  snakeHighScores?: {
     easy: number;
     medium: number;
     hard: number;
@@ -167,14 +171,22 @@ const userSchema = new Schema<IUser>(
           rewardId: String,
           code: String,
           name: String,
+          description: String,
           discountType: {
             type: String,
             default: "fixed",
+            enum: ["percentage", "fixed"],
           },
           discountValue: Number,
+          discountAmount: Number, // Alias mainly
           minOrderAmount: {
             type: Number,
             default: 0,
+          },
+          status: {
+            type: String,
+            enum: ['available', 'used'],
+            default: 'available'
           },
           isUsed: {
             type: Boolean,
@@ -184,6 +196,7 @@ const userSchema = new Schema<IUser>(
             type: Date,
             default: Date.now,
           },
+          usedAt: Date,
           expiryDate: Date,
         },
       ],
@@ -218,7 +231,7 @@ const userSchema = new Schema<IUser>(
       default: [],
     },
 
-    // Community-related fields (NEW)
+    // Community-related fields
     likedDiscussions: {
       type: [String],
       default: [],
@@ -298,7 +311,7 @@ const userSchema = new Schema<IUser>(
       min: 0,
     },
 
-    // Game-related fields (NEW)
+    // Game-related fields
     gamesPlayed: [
       {
         gameId: {
@@ -349,10 +362,7 @@ const userSchema = new Schema<IUser>(
         hard: 0,
       }),
     },
-    
   },
-  
-
   {
     timestamps: true,
   }
@@ -389,6 +399,7 @@ userSchema.pre("save", function (this: IUser, next) {
     const basePoints = this.totalPoints - oldCommunity - (this.totalGamePoints || 0);
     this.totalPoints = basePoints + oldCommunity + this.totalGamePoints;
   }
+
 });
 
 // Virtual for total community contributions
@@ -400,17 +411,17 @@ userSchema.virtual("totalContributions").get(function (this: IUser) {
 userSchema.methods.hasPlayedGame = function (gameId: string): boolean {
   const now = new Date();
   const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  
+
   return this.gamesPlayed.some((game: { gameId: string; playedAt: Date }) => {
     if (game.gameId !== gameId) return false;
-    
+
     const playedDate = new Date(game.playedAt);
     const playedUTC = new Date(Date.UTC(
-      playedDate.getUTCFullYear(), 
-      playedDate.getUTCMonth(), 
+      playedDate.getUTCFullYear(),
+      playedDate.getUTCMonth(),
       playedDate.getUTCDate()
     ));
-    
+
     return playedUTC.getTime() === todayUTC.getTime();
   });
 };

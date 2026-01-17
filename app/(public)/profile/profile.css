@@ -33,7 +33,7 @@
   content: '';
   position: fixed;
   inset: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.05) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(251, 146, 60, 0.03) 0%, transparent 50%);
   pointer-events: none;
@@ -64,7 +64,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-container p,
@@ -93,7 +95,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: 
+  background:
     radial-gradient(circle at 50% 50%, rgba(249, 115, 22, 0.08) 0%, transparent 70%);
 }
 
@@ -133,14 +135,14 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  box-shadow: 
+  box-shadow:
     0 0 0 3px rgba(249, 115, 22, 0.3),
     0 20px 40px rgba(0, 0, 0, 0.5);
   transition: all 0.4s ease;
 }
 
 .profile-page-avatar:hover {
-  box-shadow: 
+  box-shadow:
     0 0 0 3px var(--primary),
     0 0 40px var(--primary-glow),
     0 20px 40px rgba(0, 0, 0, 0.5);
@@ -339,7 +341,7 @@
 .stat-card:hover {
   border-color: var(--primary);
   transform: translateY(-6px);
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.3),
     0 0 30px rgba(249, 115, 22, 0.15);
 }
@@ -356,12 +358,29 @@
   position: relative;
 }
 
-.stat-icon.wallet { background: linear-gradient(135deg, #22c55e, #4ade80); }
-.stat-icon.events { background: linear-gradient(135deg, var(--primary), var(--primary-light)); }
-.stat-icon.products { background: linear-gradient(135deg, #a855f7, #c084fc); }
-.stat-icon.blogs { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
-.stat-icon.points-icon { background: linear-gradient(135deg, #eab308, #facc15); }
-.stat-icon.streak-icon { background: linear-gradient(135deg, var(--primary), var(--primary-light)); }
+.stat-icon.wallet {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+}
+
+.stat-icon.events {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
+
+.stat-icon.products {
+  background: linear-gradient(135deg, #a855f7, #c084fc);
+}
+
+.stat-icon.blogs {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+}
+
+.stat-icon.points-icon {
+  background: linear-gradient(135deg, #eab308, #facc15);
+}
+
+.stat-icon.streak-icon {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
 
 .stat-content h3 {
   font-size: 0.8rem;
@@ -632,7 +651,7 @@
 .product-card:hover {
   border-color: var(--border-accent);
   transform: translateY(-8px);
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.3),
     0 0 30px rgba(249, 115, 22, 0.1);
 }
@@ -746,7 +765,7 @@
   color: var(--text-primary);
 }
 
-.blog-content > p {
+.blog-content>p {
   color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 1rem;
@@ -832,6 +851,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -930,4 +950,157 @@
   .stat-value {
     font-size: 1.5rem;
   }
+}
+
+/* ==========================================================================
+   ADDED: Wallet History Tab Styles
+   ========================================================================== */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 2rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.filter-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.filter-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.transaction-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.transaction-card:hover {
+  transform: translateX(4px);
+  border-color: var(--border-accent);
+}
+
+.transaction-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+}
+
+.transaction-icon.purchase {
+  background: rgba(249, 115, 22, 0.2);
+  color: var(--primary);
+}
+
+.transaction-icon.event {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--info);
+}
+
+.transaction-icon.game {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
+
+.transaction-icon.bonus {
+  background: rgba(234, 179, 8, 0.2);
+  color: var(--warning);
+}
+
+.transaction-icon.redeem {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+}
+
+.transaction-icon.daily_login {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: black;
+}
+
+.transaction-info {
+  flex-grow: 1;
+}
+
+.transaction-info h3 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem 0;
+  font-weight: 600;
+}
+
+.transaction-date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.transaction-amount {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.transaction-amount.positive {
+  color: var(--success);
+}
+
+.transaction-amount.negative {
+  color: var(--danger);
+}
+
+/* Coupon Card Refinements */
+.coupon-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.coupon-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(249, 115, 22, 0.15);
+  border-color: var(--primary) !important;
 }

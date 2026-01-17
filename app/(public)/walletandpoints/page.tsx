@@ -97,15 +97,7 @@ interface WalletUser {
   lastActivity: string;
   lastLogin?: string;
   achievements: any[];
-  redeemedCoupons: {
-    rewardId: string;
-    code: string;
-    name: string;
-    discountType: "percentage" | "fixed";
-    discountValue: number;
-    redeemedAt: string;
-    isUsed: boolean;
-  }[];
+  redeemedCoupons?: any[];
 }
 
 const WalletPointsPage: React.FC = () => {
@@ -121,12 +113,15 @@ const WalletPointsPage: React.FC = () => {
   const [userName, setUserName] = useState<string>("");
 
   // Dynamic Data
-
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [pointsCriteria, setPointsCriteria] = useState<PointsCriteria[]>([]);
 
-
+  // Transaction filters
+  const [transactionFilter, setTransactionFilter] = useState<string>("all");
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [totalTransactionPages, setTotalTransactionPages] = useState(1);
 
   // Daily login
   const [canClaimDaily, setCanClaimDaily] = useState(true);
@@ -140,6 +135,9 @@ const WalletPointsPage: React.FC = () => {
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [redeeming, setRedeeming] = useState<boolean>(false);
 
+  // Coupon Redemption State
+  const [redeemableCoupons, setRedeemableCoupons] = useState<any[]>([]);
+
   const categories = [
     { id: "all", name: "All Rewards", color: "#FF8C00" },
     { id: "discount", name: "Discounts", color: "#4ECDC4" },
@@ -148,7 +146,17 @@ const WalletPointsPage: React.FC = () => {
     { id: "premium", name: "Premium Access", color: "#3498DB" },
   ];
 
-
+  const transactionTypes = [
+    { id: "all", name: "All Transactions", icon: <FaHistory /> },
+    { id: "purchase", name: "Purchases", icon: <FaShoppingCart /> },
+    { id: "event", name: "Events", icon: <FaCalendarAlt /> },
+    { id: "game", name: "Games", icon: <FaGamepad /> },
+    { id: "daily_login", name: "Daily Login", icon: <FaFire /> },
+    { id: "referral", name: "Referrals", icon: <FaUsers /> },
+    { id: "bonus", name: "Bonuses", icon: <FaStar /> },
+    { id: "achievement", name: "Achievements", icon: <FaTrophy /> },
+    { id: "redeem", name: "Redemptions", icon: <FaGift /> },
+  ];
 
   // Level helper functions
   const getLevelProgressDisplay = () => {
@@ -229,7 +237,33 @@ const WalletPointsPage: React.FC = () => {
     }
   };
 
+  const fetchTransactions = async (
+    page: number = 1,
+    filter: string = "all",
+  ) => {
+    try {
+      const token = await getFirebaseToken();
 
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: "20",
+        ...(filter !== "all" && { type: filter }),
+      });
+
+      const response = await fetch(`/api/wallet/transactions?${queryParams}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data.transactions || []);
+        setTotalTransactionPages(data.pagination?.pages || 1);
+        console.log("✅ Loaded transactions:", data.transactions?.length);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching transactions:", error);
+    }
+  };
 
   const fetchWalletData = async () => {
     if (!user) {
@@ -271,7 +305,8 @@ const WalletPointsPage: React.FC = () => {
         throw new Error("Failed to load wallet data");
       }
 
-
+      // Fetch transactions
+      await fetchTransactions(transactionPage, transactionFilter);
 
       // Check daily reward status
       await checkDailyRewardStatus();
@@ -311,6 +346,25 @@ const WalletPointsPage: React.FC = () => {
         ).filter((c: PointsCriteria) => c.isActive !== false);
         setPointsCriteria(activeCriteria);
       }
+
+
+      // NEW: Fetch Redeemable Coupons
+      const couponsRes = await fetch("/api/coupons?status=active", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log("Coupons API Status:", couponsRes.status);
+
+      if (couponsRes.ok) {
+        const cData = await couponsRes.json();
+        console.log("Coupons Data:", cData);
+        // Show ALL coupons for debugging
+        const rCoupons = cData.coupons || [];
+        console.log("Redeemable Coupons:", rCoupons);
+        setRedeemableCoupons(rCoupons);
+      } else {
+        console.error("Coupons API Failed");
+      }
     } catch (err: any) {
       console.error("❌ Error fetching wallet data:", err);
       setError(
@@ -336,38 +390,19 @@ const WalletPointsPage: React.FC = () => {
       }
 
       const data = await response.json();
+
       console.log("Daily reward status:", data);
 
-      // Safety check: local storage override
-      const localLastClaim = localStorage.getItem("lastDailyClaim");
-      const today = new Date().toDateString();
-      const localClaimedToday = localLastClaim === today;
+      setCanClaimDaily(data.canClaim);
+      setStreak(data.currentStreak || 0);
 
-      if (localClaimedToday) {
-        setCanClaimDaily(false);
-        // Ensure countdown is set if data didn't provide it (because API might think it's claimable)
-        if (!data.nextClaimAt) {
-          const now = new Date();
-          const tomorrow = new Date(now);
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          tomorrow.setHours(0, 0, 0, 0);
-          setNextClaimDate(tomorrow);
-        } else {
-          setNextClaimDate(new Date(data.nextClaimAt));
-        }
-      } else {
-        // If local storage doesn't block it, use API status
-        setCanClaimDaily(data.canClaim);
-        setStreak(data.currentStreak || 0);
-
-        if (!data.canClaim && data.nextClaimAt) {
-          const nextClaim = new Date(data.nextClaimAt);
-          setNextClaimDate(nextClaim);
-          updateCountdown(nextClaim);
-        } else if (data.canClaim) {
-          setTimeUntilNextClaim("");
-          setNextClaimDate(null);
-        }
+      if (!data.canClaim && data.nextClaimAt) {
+        const nextClaim = new Date(data.nextClaimAt);
+        setNextClaimDate(nextClaim);
+        updateCountdown(nextClaim);
+      } else if (data.canClaim) {
+        setTimeUntilNextClaim("");
+        setNextClaimDate(null);
       }
     } catch (error) {
       console.error("Daily reward status error:", error);
@@ -447,9 +482,6 @@ const WalletPointsPage: React.FC = () => {
 
         alert(message);
 
-        // Save to local storage for persistence across refreshes
-        localStorage.setItem("lastDailyClaim", new Date().toDateString());
-
         await fetchWalletData();
       } else {
         setCanClaimDaily(false);
@@ -471,8 +503,6 @@ const WalletPointsPage: React.FC = () => {
   };
 
   const updateUserData = (walletData: any) => {
-    console.log("XXX WALLET DATA RECEIVED:", walletData);
-    console.log("XXX USER REDEEMED COUPONS:", walletData.user?.redeemedCoupons);
     setWalletUser(walletData.user);
     setUserPoints(walletData.user?.totalPoints || 0);
     setLevel(walletData.user?.level || 1);
@@ -495,29 +525,19 @@ const WalletPointsPage: React.FC = () => {
     }
   }, [user, authLoading]);
 
-
-
-  // Check local storage on mount
   useEffect(() => {
-    const localLastClaim = localStorage.getItem("lastDailyClaim");
-    if (localLastClaim) {
-      const today = new Date().toDateString();
-      if (localLastClaim === today) {
-        setCanClaimDaily(false);
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-        setNextClaimDate(tomorrow);
-      }
+    if (user) {
+      fetchTransactions(transactionPage, transactionFilter);
     }
-  }, []);
+  }, [transactionPage, transactionFilter]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
+
     if (!canClaimDaily && nextClaimDate) {
       interval = updateCountdown(nextClaimDate);
     }
+
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -568,7 +588,7 @@ const WalletPointsPage: React.FC = () => {
       fetchWalletData();
 
       alert(
-        `🎉 Success! You've redeemed ${selectedReward.name}.\n\nYOUR CODE: ${data.couponCode}\n\nYour new balance is ${data.newBalance} points.`,
+        `🎉 Success! You've redeemed ${selectedReward.name}. Your new balance is ${data.newBalance} points.`,
       );
 
       setTimeout(() => {
@@ -578,6 +598,39 @@ const WalletPointsPage: React.FC = () => {
       alert(`Redemption failed: ${err.message}`);
     } finally {
       setRedeeming(false);
+    }
+  };
+
+  const handleRedeemCoupon = async (coupon: any) => {
+    if (userPoints < coupon.coinsRequired) {
+      alert(`Insufficient points! You need ${coupon.coinsRequired - userPoints} more points.`);
+      return;
+    }
+
+    if (!confirm(`Redeem "${coupon.name}" for ${coupon.coinsRequired} points?`)) return;
+
+    try {
+      const token = await getFirebaseToken();
+      const res = await fetch("/api/wallet/redeem-coupon", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ couponId: coupon._id })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`🎉 Success! Coupon Code: ${data.coupon.code}\n\nCopied to clipboard!`);
+        navigator.clipboard.writeText(data.coupon.code);
+        fetchWalletData(); // Refresh points
+      } else {
+        alert(data.error || "Redemption failed");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
     }
   };
 
@@ -602,7 +655,37 @@ const WalletPointsPage: React.FC = () => {
     return iconMap[iconName] || <FaStar />;
   };
 
+  const getRedeemedCoupon = (rewardId: string) => {
+    return walletUser?.redeemedCoupons?.find(c => c.rewardId === rewardId);
+  };
 
+  const getTransactionIcon = (type: string) => {
+    const iconMap: { [key: string]: React.ReactNode } = {
+      purchase: <FaShoppingCart />,
+      event: <FaCalendarAlt />,
+      game: <FaGamepad />,
+      daily_login: <FaFire />,
+      referral: <FaUsers />,
+      bonus: <FaStar />,
+      achievement: <FaTrophy />,
+      redeem: <FaGift />,
+    };
+    return iconMap[type] || <FaCoins />;
+  };
+
+  const getTransactionColor = (type: string) => {
+    const colorMap: { [key: string]: string } = {
+      purchase: "#FF8C00",
+      event: "#4ECDC4",
+      game: "#FFCC00",
+      daily_login: "#E74C3C",
+      referral: "#9B59B6",
+      bonus: "#3498DB",
+      achievement: "#2ECC71",
+      redeem: "#E74C3C",
+    };
+    return colorMap[type] || "#2ECC71";
+  };
 
   const getCriteriaIcon = (type: string) => {
     const lowerType = type.toLowerCase();
@@ -794,7 +877,7 @@ const WalletPointsPage: React.FC = () => {
                 </div>
                 {canClaimDaily ? (
                   <button
-                    className="claim-daily-btn available"
+                    className="claim-daily-btn"
                     onClick={claimDailyReward}
                     disabled={claimingDaily}
                   >
@@ -823,66 +906,6 @@ const WalletPointsPage: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* My Redeemed Coupons - Filtered to show only unused */}
-      {walletUser?.redeemedCoupons && walletUser.redeemedCoupons.filter(c => !c.isUsed).length > 0 && (
-        <section className="redeemed-rewards mt-8">
-          <div className="container">
-            <div className="section-header">
-              <h2>
-                My <span className="highlight">Rewards & Coupons</span>
-              </h2>
-              <p className="section-subtitle">
-                Exclusive discounts you have unlocked
-              </p>
-            </div>
-
-            <div className="rewards-grid">
-              {walletUser.redeemedCoupons.filter(c => !c.isUsed).map((coupon, idx) => (
-                <div key={idx} className="reward-card" style={{ borderColor: '#FF8C00' }}>
-                  <div
-                    className="reward-icon"
-                    style={{ backgroundColor: "#FF8C00" }}
-                  >
-                    <FaGift />
-                  </div>
-                  <div className="reward-content">
-                    <div className="reward-header">
-                      <h4>{coupon.name}</h4>
-                      <span className="stock-badge available" style={{ background: '#4CAF50' }}>Active</span>
-                    </div>
-
-                    <div className="bg-zinc-900 p-3 rounded-lg my-2 border border-dashed border-zinc-700 flex justify-between items-center group cursor-pointer hover:border-orange-500 transition-colors"
-                      onClick={() => {
-                        navigator.clipboard.writeText(coupon.code);
-                        alert("Coupon code copied!");
-                      }}
-                    >
-                      <span className="font-mono font-bold text-xl text-orange-500 tracking-wider">{coupon.code}</span>
-                      <FaCheck className="text-zinc-600 group-hover:text-orange-500" size={14} />
-                    </div>
-
-                    <div className="reward-footer">
-                      <span className="reward-points text-white">
-                        {coupon.discountType === "percentage" ? `${coupon.discountValue}% Off` : `₹${coupon.discountValue} Off`}
-                      </span>
-                      <button
-                        className="redeem-btn available"
-                        onClick={() => {
-                          navigator.clipboard.writeText(coupon.code);
-                          window.location.href = `/cart`;
-                        }}
-                      >
-                        Use Now
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* How to Earn Points */}
       <section className="earn-points">
@@ -936,7 +959,7 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Available Rewards */}
+      {/* Available Rewards
       <section className="rewards-section">
         <div className="container">
           <div className="section-header">
@@ -976,80 +999,64 @@ const WalletPointsPage: React.FC = () => {
             </div>
           ) : (
             <div className="rewards-grid">
-              {filteredRewards.map((reward) => (
-                <div key={reward._id} className="reward-card">
-                  <div
-                    className="reward-icon"
-                    style={{ backgroundColor: reward.color || "#FF8C00" }}
-                  >
-                    {renderIcon(reward.icon)}
-                  </div>
-                  <div className="reward-content">
-                    <div className="reward-header">
-                      <h4>{reward.name}</h4>
-                      {reward.stock > 0 && reward.stock < 10 && (
-                        <span className="stock-badge">
-                          Only {reward.stock} left!
-                        </span>
-                      )}
-                      {reward.stock <= 0 && (
-                        <span className="stock-badge out-of-stock">
-                          Out of Stock
-                        </span>
-                      )}
+              {filteredRewards.map((reward) => {
+                const redeemedCoupon = getRedeemedCoupon(reward._id);
+                const isRedeemed = !!redeemedCoupon;
+
+                return (
+                  <div key={reward._id} className="reward-card">
+                    <div
+                      className="reward-icon"
+                      style={{ backgroundColor: reward.color || "#FF8C00" }}
+                    >
+                      {renderIcon(reward.icon)}
                     </div>
-                    <p className="reward-desc">{reward.description}</p>
-                    <div className="reward-footer">
-                      <span className="reward-points">
-                        <FaCoins /> {reward.points} points
-                      </span>
-                      {(() => {
-                        const redeemedCoupon = walletUser?.redeemedCoupons?.find((c: any) => String(c.rewardId) === String(reward._id));
+                    <div className="reward-content">
+                      <div className="reward-header">
+                        <h4>{reward.name}</h4>
+                        {reward.stock > 0 && reward.stock < 10 && (
+                          <span className="stock-badge">
+                            Only {reward.stock} left!
+                          </span>
+                        )}
+                        {reward.stock <= 0 && (
+                          <span className="stock-badge out-of-stock">
+                            Out of Stock
+                          </span>
+                        )}
+                      </div>
+                      <p className="reward-desc">{reward.description}</p>
 
-                        if (redeemedCoupon) {
-                          // Check if used
-                          if (redeemedCoupon.isUsed) {
-                            return (
-                              <div className="flex flex-col items-center gap-2 w-full mt-2">
-                                <div className="w-full bg-zinc-800 py-2 rounded border border-zinc-700 text-center font-mono opacity-50 cursor-not-allowed">
-                                  <span className="text-xs text-zinc-500 font-sans font-normal uppercase tracking-wider block">Code:</span>
-                                  <span className="line-through text-zinc-400">{redeemedCoupon.code}</span>
-                                </div>
-                                <button
-                                  className="w-full py-2 rounded font-bold bg-zinc-700 text-zinc-400 cursor-default"
-                                  disabled
-                                >
-                                  Used
-                                </button>
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <div className="flex flex-col items-center gap-2 w-full mt-2">
-                              <div
-                                className="w-full bg-zinc-900 py-2 rounded border border-dashed border-orange-500 text-center font-mono font-bold text-orange-500 cursor-pointer hover:bg-zinc-800 transition-colors flex justify-center items-center gap-2"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(redeemedCoupon.code);
-                                  alert("Code copied!");
-                                }}
-                                title="Click to copy"
-                              >
-                                <span className="text-xs text-zinc-400 font-sans font-normal uppercase tracking-wider">Code:</span>
-                                {redeemedCoupon.code}
-                                <FaCheck size={12} />
-                              </div>
-                              <button
-                                className="w-full py-2 rounded font-bold bg-green-500 text-white cursor-default shadow-lg"
-                                disabled
-                              >
-                                Redeemed
-                              </button>
-                            </div>
-                          );
-                        }
-
-                        return (
+                      {isRedeemed ? (
+                        <div className="redeemed-info" style={{
+                          background: '#f0fdf4',
+                          padding: '10px',
+                          borderRadius: '6px',
+                          border: '1px dashed #22c55e',
+                          margin: '10px 0'
+                        }}>
+                          <p style={{ color: '#166534', fontSize: '0.9em', marginBottom: '5px' }}>
+                            <FaCheck /> Redeemed! Code:
+                          </p>
+                          <p style={{
+                            fontFamily: 'monospace',
+                            fontSize: '1.2em',
+                            fontWeight: 'bold',
+                            color: '#15803d',
+                            textAlign: 'center',
+                            letterSpacing: '1px'
+                          }}>
+                            {redeemedCoupon?.code}
+                          </p>
+                          <p style={{ fontSize: '0.8em', color: '#666', marginTop: '5px' }}>
+                            Status: {redeemedCoupon?.status === 'used' ? 'Used' : 'Available'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="reward-footer">
+                          <span className="reward-points">
+                            <FaCoins /> {reward.points} points
+                          </span>
                           <button
                             className={`redeem-btn ${userPoints >= reward.points && reward.stock > 0
                               ? "available"
@@ -1066,16 +1073,32 @@ const WalletPointsPage: React.FC = () => {
                                 ? "Out of Stock"
                                 : "Need More Points"}
                           </button>
-                        );
-                      })()}
+                        </div>
+                      )}
+
+                      {isRedeemed && (
+                        <button
+                          className="redeem-btn"
+                          disabled
+                          style={{
+                            background: '#e5e7eb',
+                            color: '#6b7280',
+                            cursor: 'not-allowed',
+                            width: '100%',
+                            marginTop: '5px'
+                          }}
+                        >
+                          Already Redeemed
+                        </button>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
-      </section>
+      </section> */}
 
       {/* Achievements
       <section className="achievements-section">
@@ -1150,7 +1173,264 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section> */}
 
+      {/* NEW: Exclusive Coupons Section */}
+      {/* Exclusive Coupons Section */}
+      <section className="rewards-section" style={{ marginBottom: '2rem' }}>
+        <div className="container">
+          <div className="section-header">
+            <h2>Exclusive <span className="highlight">Coupons</span></h2>
+            <p>Redeem your points for special discounts!</p>
+          </div>
 
+          {redeemableCoupons.length === 0 ? (
+            <div className="empty-state" style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+              <div style={{ fontSize: '40px', marginBottom: '10px' }}>🏷️</div>
+              <p>No exclusive coupons available at the moment.</p>
+            </div>
+          ) : (
+            <div className="rewards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+              {redeemableCoupons.map((coupon) => {
+                const isRedeemed = walletUser?.redeemedCoupons?.some((rc: any) => rc.rewardId === coupon._id);
+                const userUsage = isRedeemed ? walletUser?.redeemedCoupons?.find((rc: any) => rc.rewardId === coupon._id) : null;
+
+                return (
+                  <div key={coupon._id} className="reward-card" style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '15px'
+                  }}>
+                    <div className="reward-icon" style={{
+                      backgroundColor: "#FF6B6B",
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px'
+                    }}>
+                      <FaGift />
+                    </div>
+                    <div className="reward-content">
+                      <h4 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '5px' }}>{coupon.name}</h4>
+                      <p className="description" style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '15px' }}>{coupon.description}</p>
+                      <div className="cost-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="points" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#FFCC00', fontWeight: 'bold' }}>
+                          <FaCoins /> {coupon.coinsRequired}
+                        </div>
+                        {isRedeemed ? (
+                          <div className="redeemed-info">
+                            <span className="code-badge"
+                              onClick={() => {
+                                navigator.clipboard.writeText(userUsage.code);
+                                alert("Code copied!");
+                              }}
+                              style={{
+                                background: '#2ECC71',
+                                color: '#fff',
+                                padding: '5px 10px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                userSelect: 'none'
+                              }}
+                            >
+                              {userUsage.code} (Copy)
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            className="redeem-btn"
+                            onClick={() => handleRedeemCoupon(coupon)}
+                            disabled={userPoints < coupon.coinsRequired}
+                            style={{
+                              background: userPoints < coupon.coinsRequired ? '#555' : '#FF6B6B',
+                              color: '#fff',
+                              border: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '8px',
+                              cursor: userPoints < coupon.coinsRequired ? 'not-allowed' : 'pointer',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            Redeem
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Transaction History */}
+      <section className="transactions-section">
+        <div className="container">
+          <div className="section-header">
+            <h2>
+              Points <span className="highlight">History</span>
+            </h2>
+            <p className="section-subtitle">Track all your point activities</p>
+          </div>
+
+          <div className="transaction-filters">
+            <FaFilter className="filter-icon" />
+            <div className="filter-buttons">
+              {transactionTypes.map((type) => (
+                <button
+                  key={type.id}
+                  className={`filter-btn ${transactionFilter === type.id ? "active" : ""}`}
+                  onClick={() => {
+                    setTransactionFilter(type.id);
+                    setTransactionPage(1);
+                  }}
+                >
+                  {type.icon}
+                  <span>{type.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {transactions.length === 0 ? (
+            <div className="empty-state">
+              <FaHistory className="empty-icon" />
+              <p>
+                {transactionFilter === "all"
+                  ? "No transactions yet. Start earning points!"
+                  : `No ${transactionFilter} transactions found.`}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="transactions-list">
+                {transactions.map((transaction) => (
+                  <div key={transaction._id} className="transaction-item">
+                    <div
+                      className="transaction-icon-wrapper"
+                      style={{
+                        backgroundColor: getTransactionColor(transaction.type),
+                      }}
+                    >
+                      {getTransactionIcon(transaction.type)}
+                    </div>
+
+                    <div className="transaction-details">
+                      <h4 className="transaction-description">
+                        {transaction.description}
+                      </h4>
+                      <div className="transaction-meta">
+                        <span
+                          className="transaction-type-badge"
+                          style={{
+                            backgroundColor: `${getTransactionColor(transaction.type)}20`,
+                            color: getTransactionColor(transaction.type),
+                          }}
+                        >
+                          {transaction.type.replace("_", " ")}
+                        </span>
+                        <span className="transaction-date">
+                          {new Date(transaction.createdAt).toLocaleString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </span>
+                      </div>
+
+                      {transaction.metadata &&
+                        Object.keys(transaction.metadata).length > 0 && (
+                          <div className="transaction-metadata">
+                            {transaction.metadata.streak && (
+                              <span className="meta-tag">
+                                <FaFire /> Streak: {transaction.metadata.streak}{" "}
+                                days
+                              </span>
+                            )}
+                            {transaction.metadata.eventName && (
+                              <span className="meta-tag">
+                                <FaCalendarAlt />{" "}
+                                {transaction.metadata.eventName}
+                              </span>
+                            )}
+                            {transaction.metadata.gameName && (
+                              <span className="meta-tag">
+                                <FaGamepad /> {transaction.metadata.gameName}
+                              </span>
+                            )}
+                            {transaction.metadata.productName && (
+                              <span className="meta-tag">
+                                <FaShoppingCart />{" "}
+                                {transaction.metadata.productName}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                    </div>
+
+                    <div className="transaction-amount">
+                      <span
+                        className={`amount ${transaction.amount > 0 ? "positive" : "negative"}`}
+                      >
+                        {transaction.amount > 0 ? "+" : ""}
+                        {transaction.amount}
+                      </span>
+                      <span className="amount-label">points</span>
+                      {transaction.balance !== undefined && (
+                        <span className="balance-info">
+                          Balance: {transaction.balance}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {totalTransactionPages > 1 && (
+                <div className="pagination">
+                  <button
+                    className="pagination-btn"
+                    onClick={() =>
+                      setTransactionPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={transactionPage === 1}
+                  >
+                    Previous
+                  </button>
+
+                  <div className="page-info">
+                    Page {transactionPage} of {totalTransactionPages}
+                  </div>
+
+                  <button
+                    className="pagination-btn"
+                    onClick={() =>
+                      setTransactionPage((prev) =>
+                        Math.min(totalTransactionPages, prev + 1),
+                      )
+                    }
+                    disabled={transactionPage === totalTransactionPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
 
       {/* Redemption Modal */}
       {showRedeemModal && selectedReward && (
@@ -1211,7 +1491,6 @@ const WalletPointsPage: React.FC = () => {
                   disabled={redeeming}
                   style={{ backgroundColor: selectedReward.color || "#FF8C00" }}
                 >
-                  {redeeming ? "Processing..." : "Confirm Redemption"}
                 </button>
               </div>
             </div>

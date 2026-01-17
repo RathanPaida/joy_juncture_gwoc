@@ -1,4 +1,3 @@
-// app/admin/wallet/page.tsx - COMPLETE FIXED VERSION
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -20,6 +19,7 @@ import {
   FaExclamationCircle,
   FaSpinner,
   FaHistory,
+  FaTicketAlt,
 } from "react-icons/fa";
 import "./admin-wallet.css";
 
@@ -557,9 +557,18 @@ const AdminWalletPage: React.FC = () => {
             Logged in as: {user.email || "Unknown User"}
           </p>
         </div>
-        <button className="btn-primary" onClick={fetchAllData}>
-          🔄 Refresh Data
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            className="btn-primary"
+            onClick={() => router.push('/admin/coupons')}
+            style={{ backgroundColor: '#2563eb' }}
+          >
+            <FaTicketAlt /> Manage Coupons
+          </button>
+          <button className="btn-primary" onClick={fetchAllData}>
+            🔄 Refresh Data
+          </button>
+        </div>
       </div>
 
       <div className="admin-tabs">

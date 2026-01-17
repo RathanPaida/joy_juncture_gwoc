@@ -1,9 +1,10 @@
-// app/api/payment/create-order/route.ts - ADD PAYMENT METHOD
+// app/api/payment/create-order/route.ts - CONFLICTS RESOLVED
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import connectDb from "@/lib/mongodb";
 import { Order } from "@/models/Order";
 import { User } from "@/models/User";
+import { Coupon } from "@/models/Coupon"; // Keep coupon model just in case of server-side validation
 import { verifyIdToken } from "@/lib/firebase-admin";
 
 const razorpay = new Razorpay({
@@ -38,7 +39,16 @@ export async function POST(request: NextRequest) {
 
     const firebaseUid = decodedToken.uid;
 
-    const { amount, cartItems, shippingAddress, promoCode, discountAmount, shippingFee } = await request.json();
+    // Unified Parameter Extraction: Support both styles (shippingFee/couponCode)
+    const {
+      amount,
+      cartItems,
+      shippingAddress,
+      shippingFee,
+      promoCode,
+      couponCode, // Some clients might send this
+      discountAmount: clientDiscount
+    } = await request.json();
 
     if (!amount || !cartItems || !shippingAddress || !cartItems.length) {
       return NextResponse.json(
@@ -80,14 +90,12 @@ export async function POST(request: NextRequest) {
 
     // Calculate totals
     const subtotal = cartItems.reduce(
-      (sum: number, item: any) => sum + item.price * item.quantity,
+      (sum: number, item: any) => sum + item.price * (item.quantity || 1),
       0,
     );
 
-    // Use provided shipping fee from frontend (validated by Pincode API there)
-    // or fallback to default logic
-    // Use provided shipping fee from frontend (validated by Pincode API there)
-    // or fallback to default logic
+    // Shipping Logic: Prioritize Frontend calculated shipping (Pincode based)
+    // Fallback to basic rule if not provided
     let shipping = 0;
     if (typeof shippingFee === 'number') {
       shipping = shippingFee;
@@ -95,11 +103,41 @@ export async function POST(request: NextRequest) {
       shipping = subtotal > 500 ? 0 : 50;
     }
 
-    const tax = subtotal * 0.18; // Note: Tax should ideally be on (subtotal - discount) but keeping existing logic for now
-    const total = subtotal + shipping + tax;
+    // Discount Logic
+    let finalDiscount = 0;
+
+    // If client sends a validated discount amount, use it as primary but validate cap
+    if (typeof clientDiscount === 'number') {
+      finalDiscount = clientDiscount;
+    }
+    // Otherwise check for server-side coupon validation
+    else if (couponCode) {
+      // Legacy: Check coupon model if code exists
+      try {
+        const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
+        if (coupon && coupon.isValid() && coupon.canUserUse(firebaseUid)) {
+          if (subtotal >= (coupon.minPurchaseAmount || 0)) {
+            finalDiscount = coupon.calculateDiscount(subtotal);
+          }
+        }
+      } catch (err) {
+        console.log("Coupon check failed, ignoring:", err);
+      }
+    }
+
+    // Ensure discount doesn't exceed reasonable limits
+    if (finalDiscount > subtotal) finalDiscount = subtotal;
+
+    // Calculate Tax & Total
+    // Ensure negative values are impossible
+    const taxQueryBase = Math.max(0, subtotal - finalDiscount);
+    const tax = taxQueryBase * 0.18;
+    const calculatedTotal = Math.max(0, subtotal + shipping + tax - finalDiscount);
 
     // Create orders
     const orders = [];
+    const usedCode = promoCode || couponCode || null;
+
     for (const item of cartItems) {
       const orderData = {
         userId: user._id.toString(),
@@ -112,11 +150,11 @@ export async function POST(request: NextRequest) {
         totalAmount: item.price * (item.quantity || 1),
         purchaseDate: new Date(),
         status: "processing",
-        paymentMethod: "razorpay", // Added required field
+        paymentMethod: "razorpay",
         shippingAddress: shippingAddress,
         trackingNumber: null,
-        promoCode: promoCode || null,
-        discountAmount: discountAmount || 0,
+        promoCode: usedCode,
+        discountAmount: finalDiscount,
       };
 
       const order = await Order.create(orderData);
@@ -124,8 +162,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Razorpay order
+    // Use the calculated total, but ensure it matches client expectation roughly? 
+    // Razorpay requires integer paise
+    const amountInPaise = Math.round(calculatedTotal * 100);
+
     const options = {
-      amount: Math.round(total * 100),
+      amount: amountInPaise > 0 ? amountInPaise : 100, // Min 1 rupee if free?
       currency: "INR",
       receipt: `receipt_${orders[0]._id}`,
       notes: {

@@ -38,12 +38,24 @@ interface UserProfile {
   photoURL?: string;
   phoneNumber?: string;
   role: string;
-  totalPoints: number; // ADDED
-  walletBalance: number; // ADDED
-  level: number; // ADDED
-  streak: number; // ADDED
+  totalPoints: number;
+  walletBalance: number;
+  level: number;
+  streak: number;
   createdAt: string;
   lastLogin?: string;
+  redeemedCoupons?: Array<{
+    rewardId: string;
+    code: string;
+    name: string;
+    description: string;
+    discountType: "percentage" | "fixed";
+    discountValue: number;
+    discountAmount: number;
+    status: 'available' | 'used';
+    redeemedAt: string;
+    usedAt?: string;
+  }>;
 }
 
 interface RegisteredEvent {
@@ -115,7 +127,7 @@ export default function ProfilePage() {
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
-  const [coupons, setCoupons] = useState<any[]>([]); // ADDED STATE
+  const [coupons, setCoupons] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -140,7 +152,6 @@ export default function ProfilePage() {
 
       const token = await currentUser.getIdToken();
 
-      // Fetch all profile data in parallel
       const [profileRes, eventsRes, productsRes, blogsRes, walletRes, transactionsRes] = await Promise.all([
         fetch('/api/user/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -165,6 +176,8 @@ export default function ProfilePage() {
       if (profileRes.ok) {
         const data = await profileRes.json();
         setProfile(data.profile);
+        // Use profile's redeemed coupons if wallet API doesn't provide them nicely
+        // But logic below prioritizes wallet API's coupons
       }
 
       if (eventsRes.ok) {
@@ -185,9 +198,10 @@ export default function ProfilePage() {
       if (walletRes.ok) {
         const data = await walletRes.json();
         setWalletInfo(data.wallet);
-        // Filter out used coupons
-        const activeCoupons = (data.wallet.coupons || []).filter((c: any) => !c.isUsed);
-        setCoupons(activeCoupons);
+        // Prioritize wallet API coupons if available, otherwise fallback to profile
+        // Filter mainly available ones or show all with status
+        const allCoupons = data.wallet.coupons || [];
+        setCoupons(allCoupons);
       }
 
       if (transactionsRes.ok) {
@@ -273,7 +287,6 @@ export default function ProfilePage() {
                   year: 'numeric'
                 })}
               </span>
-              {/* ADDED: Show level and points */}
               <span className="profile-level">
                 <Trophy size={14} />
                 Level {profile.level || 1}
@@ -313,18 +326,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ADDED: Total Points Card
-        <div className="stat-card points">
-          <div className="stat-icon points-icon">
-            <Coins size={24} />
-          </div>
-          <div className="stat-content">
-            <h3>Total Points</h3>
-            <p className="stat-value"></p>
-            <span className="stat-label">Joy Points earned</span>
-          </div>
-        </div> */}
-
         <div className="stat-card">
           <div className="stat-icon events">
             <Trophy size={24} />
@@ -358,7 +359,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ADDED: Streak Card */}
         <div className="stat-card streak">
           <div className="stat-icon streak-icon">
             <Star size={24} />
@@ -611,9 +611,9 @@ export default function ProfilePage() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                {coupons.map((coupon, idx) => (
-                  <div key={idx} className="coupon-card" style={{
+              <div className="coupons-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                {coupons.map((coupon, index) => (
+                  <div key={index} className="coupon-card" style={{
                     background: '#1a1a1a',
                     borderRadius: '12px',
                     padding: '20px',
@@ -621,29 +621,35 @@ export default function ProfilePage() {
                     position: 'relative',
                     overflow: 'hidden'
                   }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#FF8C00' }}></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                      <h3 style={{ margin: 0, color: '#fff' }}>{coupon.name}</h3>
-                      <span style={{
-                        background: 'rgba(76, 175, 80, 0.2)',
-                        color: '#4CAF50',
+                    <div className="coupon-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                      <span className={`coupon-status ${coupon.status}`} style={{
                         padding: '4px 8px',
                         borderRadius: '4px',
                         fontSize: '12px',
-                        fontWeight: 'bold'
-                      }}>Active</span>
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        background: coupon.status === 'available' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: coupon.status === 'available' ? '#22c55e' : '#ef4444'
+                      }}>
+                        {coupon.status}
+                      </span>
+                      <Gift size={20} color="#fca311" />
                     </div>
 
-                    <div style={{
+                    <h3 style={{ margin: '0 0 10px 0', color: '#fff', fontSize: '18px' }}>{coupon.name}</h3>
+                    <p style={{ color: '#888', fontSize: '14px', marginBottom: '20px' }}>{coupon.description}</p>
+
+                    <div className="coupon-code-box" style={{
                       background: '#000',
                       padding: '12px',
                       borderRadius: '8px',
+                      textAlign: 'center',
                       border: '1px dashed #444',
+                      marginBottom: '15px',
+                      cursor: 'pointer',
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '15px',
-                      cursor: 'pointer'
+                      alignItems: 'center'
                     }}
                       onClick={() => {
                         navigator.clipboard.writeText(coupon.code);
@@ -651,27 +657,46 @@ export default function ProfilePage() {
                       }}
                       title="Click to copy"
                     >
-                      <span style={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', color: '#FF8C00', letterSpacing: '1px' }}>{coupon.code}</span>
+                      <span style={{
+                        color: '#fca311',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        letterSpacing: '1px',
+                        fontFamily: 'monospace'
+                      }}>
+                        {coupon.code}
+                      </span>
                       <Edit size={14} color="#666" />
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#aaa', fontSize: '14px' }}>
-                        {coupon.discountType === 'percentage' ? `${coupon.discountValue}% Off` : `₹${coupon.discountValue} Off`}
-                      </span>
-                      <button style={{
-                        background: 'transparent',
-                        color: '#FF8C00',
-                        border: '1px solid #FF8C00',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '13px'
-                      }}
-                        onClick={() => router.push('/cart')}
-                      >
-                        Use Now
-                      </button>
+                    <div className="coupon-actions" style={{ display: 'flex', gap: '10px' }}>
+                      {coupon.status === 'available' && (
+                        <button style={{
+                          flex: 1,
+                          background: 'transparent',
+                          color: '#fca311',
+                          border: '1px solid #fca311',
+                          padding: '8px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          transition: 'all 0.2s'
+                        }}
+                          onClick={() => router.push('/cart')}
+                        >
+                          Use Now
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="coupon-footer" style={{
+                      marginTop: '15px',
+                      paddingTop: '15px',
+                      borderTop: '1px solid #333',
+                      fontSize: '12px',
+                      color: '#666'
+                    }}>
+                      Redeemed on {new Date(coupon.redeemedAt).toLocaleDateString()}
                     </div>
                   </div>
                 ))}
@@ -683,7 +708,6 @@ export default function ProfilePage() {
         {/* History Tab */}
         {activeTab === 'history' && (
           <div className="history-list">
-
             <div className="filter-controls" style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {[
                 { id: 'all', label: 'All Transactions', icon: <Wallet size={16} /> },
@@ -721,56 +745,45 @@ export default function ProfilePage() {
               ))}
             </div>
 
-            {transactions
-              .filter(t => filterType === 'all' || t.type === filterType)
-              .length === 0 ? (
-              <div className="empty-state">
-                <Wallet className="empty-icon" />
-                <h3>No History Found</h3>
-                <p>No transactions found for this category</p>
-              </div>
-            ) : (
-              transactions
+            <div className="transactions-list">
+              {transactions
                 .filter(t => filterType === 'all' || t.type === filterType)
-                .map((t) => (
-                  <div key={t._id} className="transaction-card" style={{
-                    background: '#1a1a1a',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    marginBottom: '12px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderLeft: `4px solid ${t.type === 'purchase' || t.type === 'redeem' ? '#ef4444' : '#22c55e'
-                      }`
-                  }}>
-                    <div className="t-info">
-                      <div className="t-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                        <span className="t-type" style={{
-                          textTransform: 'capitalize',
-                          fontSize: '12px',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          background: '#333',
-                          color: '#bbb'
-                        }}>{t.type}</span>
-                        <span className="t-date" style={{ fontSize: '12px', color: '#666' }}>
-                          {new Date(t.createdAt).toLocaleDateString()} • {new Date(t.createdAt).toLocaleTimeString()}
+                .length === 0 ? (
+                <div className="empty-state">
+                  <Wallet className="empty-icon" />
+                  <h3>No Transactions</h3>
+                  <p>No transactions found for this category</p>
+                </div>
+              ) : (
+                transactions
+                  .filter(t => filterType === 'all' || t.type === filterType)
+                  .map((transaction) => (
+                    <div key={transaction._id} className="transaction-card">
+                      <div className={`transaction-icon ${transaction.type}`}>
+                        {transaction.type === 'purchase' && <ShoppingBag size={20} />}
+                        {transaction.type === 'event' && <Trophy size={20} />}
+                        {transaction.type === 'game' && <Gamepad2 size={20} />}
+                        {transaction.type === 'bonus' && <Star size={20} />}
+                        {transaction.type === 'redeem' && <Gift size={20} />}
+                        {transaction.type === 'daily_login' && <Flame size={20} />}
+                        {(!['purchase', 'event', 'game', 'bonus', 'redeem', 'daily_login'].includes(transaction.type)) && <Wallet size={20} />}
+                      </div>
+
+                      <div className="transaction-info">
+                        <h3>{transaction.description}</h3>
+                        <span className="transaction-date">
+                          {new Date(transaction.createdAt).toLocaleString()}
                         </span>
                       </div>
-                      <h4 style={{ margin: 0, fontSize: '16px', color: '#fff' }}>{t.description}</h4>
-                    </div>
 
-                    <div className="t-amount" style={{
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                      color: t.amount >= 0 ? '#22c55e' : '#ef4444'
-                    }}>
-                      {t.amount > 0 ? '+' : ''}{t.amount}
+                      <div className={`transaction-amount ${transaction.type === 'redeem' || transaction.type === 'purchase' ? 'negative' : 'positive'}`}>
+                        {transaction.type === 'redeem' || transaction.type === 'purchase' ? '-' : '+'}
+                        {transaction.amount} pts
+                      </div>
                     </div>
-                  </div>
-                ))
-            )}
+                  ))
+              )}
+            </div>
           </div>
         )}
       </div>

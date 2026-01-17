@@ -1,4 +1,4 @@
-// app/api/wallet/redeem/route.ts
+// app/api/wallet/redeem/route.ts - CONFLICTS RESOLVED
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { verifyIdToken } from "@/lib/firebase-admin";
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Generate Coupon Code
-        const couponCode = `JJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const couponCode = `JJ-${reward.category.substring(0, 3).toUpperCase()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
         let discountType: "fixed" | "percentage" = "fixed";
         let discountValue = 0;
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Update User: Deduct points and Add Coupon atomically
-        // Using findOneAndUpdate without transaction for better compatibility
+        // Using findOneAndUpdate without transaction for better compatibility with non-replica set clusters (like simplified MongoDB Atlas free tier)
         const updatedUser = await User.findOneAndUpdate(
             { firebaseUid: userId },
             {
@@ -140,10 +140,14 @@ export async function POST(req: NextRequest) {
                         rewardId: reward._id,
                         code: couponCode,
                         name: reward.name,
+                        description: reward.description,
                         discountType: discountType,
                         discountValue: discountValue,
+                        // Compatibility fields
+                        discountAmount: discountValue,
                         minOrderAmount: 0,
                         isUsed: false,
+                        status: 'available',
                         redeemedAt: new Date(),
                         expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days validity
                     }
@@ -166,7 +170,7 @@ export async function POST(req: NextRequest) {
         // Create transaction record
         try {
             await Transaction.create({
-                userId: user._id,
+                userId: user._id, // Use _id for internal linkage if preferred, or ensure firebaseUid is consistent
                 type: "redeem",
                 amount: -reward.points,
                 description: `Redeemed: ${reward.name}`,
