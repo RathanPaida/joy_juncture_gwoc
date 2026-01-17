@@ -7,10 +7,10 @@
 .settings-category-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #f97316;
+    color: var(--primary-orange);
     margin-bottom: 20px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .settings-grid {
@@ -20,8 +20,8 @@
 }
 
 .setting-card {
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid #333;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 24px;
     position: relative;
@@ -30,7 +30,7 @@
 
 .setting-card:hover {
     border-color: #555;
-    background: rgba(30, 41, 59, 0.7);
+    background: var(--bg-surface);
 }
 
 .setting-header {
@@ -58,8 +58,8 @@
 
 .setting-input {
     width: 100%;
-    background: #0f0f0f;
-    border: 1px solid #333;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
     color: #fff;
     padding: 10px 12px;
     border-radius: 8px;
@@ -68,7 +68,7 @@
 }
 
 .setting-input:focus {
-    border-color: #f97316;
+    border-color: var(--primary-orange);
 }
 
 /* Toggle Switch */
@@ -81,7 +81,7 @@
 .toggle-switch {
     width: 48px;
     height: 26px;
-    background: #333;
+    background: var(--border-color);
     border-radius: 20px;
     position: relative;
     cursor: pointer;
@@ -90,7 +90,7 @@
 }
 
 .toggle-switch.active {
-    background: #f97316;
+    background: var(--primary-orange);
 }
 
 .toggle-thumb {

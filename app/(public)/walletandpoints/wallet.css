@@ -2,49 +2,51 @@
 
 /* ===== VARIABLES ===== */
 :root {
-  /* Primary Orange Palette */
-  --primary: #FF6600;
-  --primary-light: #FF8533;
-  --primary-dark: #CC5200;
-  --primary-glow: rgba(255, 102, 0, 0.4);
-  
-  /* Cyan/Teal Accents */
-  --accent: #00D9FF;
-  --accent-light: #33E0FF;
-  --accent-dark: #00A8CC;
-  --accent-glow: rgba(0, 217, 255, 0.3);
-  
-  /* Dark Theme */
-  --dark-bg: #0A0A0A;
-  --dark-card: #141414;
-  --dark-card-elevated: #1A1A1A;
-  --dark-border: #2A2A2A;
-  --dark-border-light: #333333;
-  
+  /* Primary Orange Palette - Mapped to Globals */
+  --primary: var(--primary-orange);
+  --primary-light: var(--primary-orange-light);
+  --primary-dark: var(--primary-orange-hover);
+  --primary-glow: var(--primary-glow);
+
+  /* Converted Accents to Orange/White to match "Single Orange" theme */
+  --accent: var(--primary-orange);
+  --accent-light: #ffffff;
+  /* Use white for high contrast accent against orange */
+  --accent-dark: var(--primary-orange-hover);
+  --accent-glow: rgba(249, 115, 22, 0.3);
+
+  /* Dark Theme - Mapped */
+  --dark-bg: var(--bg-black);
+  --dark-card: var(--bg-card);
+  --dark-card-elevated: var(--bg-surface);
+  --dark-border: var(--border-color);
+  --dark-border-light: #444444;
+
   /* Text Colors */
   --text-primary: #FFFFFF;
   --text-secondary: #B3B3B3;
   --text-muted: #808080;
   --text-dim: #666666;
-  
+
   /* Status Colors */
-  --success: #00FF88;
-  --warning: #FFB800;
-  --danger: #FF3366;
-  --info: #00D9FF;
-  
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #FF6600 0%, #FF8533 100%);
-  --gradient-accent: linear-gradient(135deg, #00D9FF 0%, #33E0FF 100%);
-  --gradient-radial: radial-gradient(circle at center, rgba(255, 102, 0, 0.15) 0%, transparent 70%);
-  
+  --success: var(--primary-orange);
+  /* Unify success to theme or keep checkmark color? Let's keep distinct but maybe mute */
+  --warning: #fb923c;
+  --danger: #ef4444;
+  --info: var(--primary-orange);
+
+  /* Gradients - Unified to Orange */
+  --gradient-primary: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-hover) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--primary-orange-light) 0%, var(--primary-orange) 100%);
+  --gradient-radial: radial-gradient(circle at center, rgba(249, 115, 22, 0.15) 0%, transparent 70%);
+
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
   --shadow-glow: 0 0 30px var(--primary-glow);
   --shadow-accent-glow: 0 0 30px var(--accent-glow);
-  
+
   /* Border Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -69,7 +71,10 @@
 }
 
 /* ===== TYPOGRAPHY ===== */
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   font-family: "Poppins", sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -218,13 +223,22 @@ h2 .highlight {
   right: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
   animation: pulse 3s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.05); opacity: 0.8; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
 }
 
 .card-header {
@@ -275,8 +289,15 @@ h2 .highlight {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .points-amount {
@@ -363,8 +384,13 @@ h2 .highlight {
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .level-progress {
@@ -453,8 +479,13 @@ h2 .highlight {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .streak-info {
@@ -870,8 +901,13 @@ h2 .highlight {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
@@ -879,6 +915,7 @@ h2 .highlight {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1064,6 +1101,7 @@ h2 .highlight {
     transform: translateY(0) rotate(0deg);
     opacity: 1;
   }
+
   100% {
     transform: translateY(100vh) rotate(720deg);
     opacity: 0;
@@ -1198,7 +1236,7 @@ h2 .highlight {
   .wallet-cards {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
-  
+
   .achievements-grid {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
@@ -1212,12 +1250,12 @@ h2 .highlight {
   h2 {
     font-size: 1.75rem;
   }
-  
+
   .header-top {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .refresh-btn {
     width: 100%;
     justify-content: center;
@@ -1230,7 +1268,7 @@ h2 .highlight {
   .points-amount {
     font-size: 3rem;
   }
-  
+
   .level-number,
   .streak-number {
     font-size: 2.5rem;
@@ -1247,12 +1285,12 @@ h2 .highlight {
   .rewards-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .achievement-card {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .achievement-header {
     flex-direction: column;
     align-items: center;
@@ -1261,12 +1299,12 @@ h2 .highlight {
   .modal-actions {
     flex-direction: column;
   }
-  
+
   .category-filters {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .category-btn {
     width: 100%;
   }
@@ -1276,15 +1314,15 @@ h2 .highlight {
   .container {
     padding: 0 16px;
   }
-  
+
   h1 {
     font-size: 1.75rem;
   }
-  
+
   .points-amount {
     font-size: 2.5rem;
   }
-  
+
   .level-number,
   .streak-number {
     font-size: 2rem;
@@ -1293,28 +1331,28 @@ h2 .highlight {
   .earn-methods {
     grid-template-columns: 1fr;
   }
-  
+
   .wallet-card {
     padding: 24px;
   }
-  
+
   .method-card {
     padding: 20px;
   }
-  
+
   .reward-card {
     flex-direction: column;
   }
-  
+
   .reward-icon {
     margin: 0 auto;
   }
-  
+
   .reward-footer {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .redeem-btn {
     width: 100%;
   }

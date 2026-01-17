@@ -4,32 +4,45 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Maximize2 } from 'lucide-react';
 
-const GALLERY_IMAGES = [
+interface GalleryImage {
+  _id: string; // MongoDB ID
+  id?: string | number; // Fallback for static
+  url: string;
+  title: string;
+  description: string;
+}
+
+const FALLBACK_IMAGES: GalleryImage[] = [
   {
+    _id: '1',
     id: 1,
     url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200',
     title: 'Corporate Team Building',
     description: 'Fortune 500 companies choose us for unforgettable team experiences',
   },
   {
+    _id: '2',
     id: 2,
     url: 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=1200',
     title: 'Wedding Reception Games',
     description: 'Making wedding celebrations more memorable with interactive gameplay',
   },
   {
+    _id: '3',
     id: 3,
     url: 'https://images.unsplash.com/photo-1541532713592-79a0317b6b77?w=1200',
     title: 'Community Game Nights',
     description: 'Building connections through the joy of board games',
   },
   {
+    _id: '4',
     id: 4,
     url: 'https://images.unsplash.com/photo-1511882150382-421056c89033?w=1200',
     title: 'Strategy Summit',
     description: 'Where minds meet and strategies collide',
   },
   {
+    _id: '5',
     id: 5,
     url: 'https://images.unsplash.com/photo-1606503153255-59d2c78dd63f?w=1200',
     title: 'Family Game Day',
@@ -38,30 +51,51 @@ const GALLERY_IMAGES = [
 ];
 
 export default function GallerySection() {
+  const [images, setImages] = useState<GalleryImage[]>(FALLBACK_IMAGES);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedImage, setSelectedImage] = useState<typeof GALLERY_IMAGES[0] | null>(null);
+  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch Gallery Data
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const res = await fetch('/api/gallery');
+        const data = await res.json();
+        if (data.success && data.data && data.data.length > 0) {
+          setImages(data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch gallery images:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchImages();
+  }, []);
 
   // Auto-slide effect
   useEffect(() => {
     if (!isAutoPlaying || selectedImage) return;
-    
+
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % GALLERY_IMAGES.length);
+      setCurrentIndex((prev) => (prev + 1) % images.length);
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying, selectedImage]);
+  }, [isAutoPlaying, selectedImage, images.length]);
 
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % GALLERY_IMAGES.length);
+    setCurrentIndex((prev) => (prev + 1) % images.length);
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length);
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const handleImageClick = (image: typeof GALLERY_IMAGES[0]) => {
+  const handleImageClick = (image: GalleryImage) => {
     setSelectedImage(image);
     setIsAutoPlaying(false);
   };
@@ -71,61 +105,65 @@ export default function GallerySection() {
     setIsAutoPlaying(true);
   };
 
+  if (!images.length) return null;
+
   return (
     <>
       <section className="gallery-section relative overflow-hidden">
         <div className="gallery-container">
           {/* Floating Gallery Label */}
-          
 
-         
 
-          
+
+
+
           {/* Main Slider - Full Width */}
           <div className="relative w-full h-[600px] rounded-[3rem] overflow-hidden mb-8 group">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={currentIndex}
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.7, ease: 'easeInOut' }}
-                className="absolute inset-0 cursor-pointer"
-                onClick={() => handleImageClick(GALLERY_IMAGES[currentIndex])}
-              >
-                <img
-                  src={GALLERY_IMAGES[currentIndex].url}
-                  alt={GALLERY_IMAGES[currentIndex].title}
-                  className="w-full h-full object-cover"
-                />
-                
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-                
-                {/* Content Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-12">
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <div className="text-[#FF5E00] text-sm font-bold uppercase tracking-widest mb-3">
-                      Archive {String(currentIndex + 1).padStart(2, '0')} / {String(GALLERY_IMAGES.length).padStart(2, '0')}
-                    </div>
-                    <h3 className="text-5xl font-black text-white mb-3 uppercase tracking-tight">
-                      {GALLERY_IMAGES[currentIndex].title}
-                    </h3>
-                    <p className="text-xl text-gray-300 max-w-2xl">
-                      {GALLERY_IMAGES[currentIndex].description}
-                    </p>
-                  </motion.div>
-                </div>
+              {images[currentIndex] && (
+                <motion.div
+                  key={currentIndex}
+                  initial={{ opacity: 0, x: 100 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -100 }}
+                  transition={{ duration: 0.7, ease: 'easeInOut' }}
+                  className="absolute inset-0 cursor-pointer"
+                  onClick={() => handleImageClick(images[currentIndex])}
+                >
+                  <img
+                    src={images[currentIndex].url}
+                    alt={images[currentIndex].title}
+                    className="w-full h-full object-cover"
+                  />
 
-                {/* Expand Icon */}
-                <div className="absolute top-6 right-6 p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Maximize2 size={20} className="text-white" />
-                </div>
-              </motion.div>
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+
+                  {/* Content Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-12">
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <div className="text-[#FF5E00] text-sm font-bold uppercase tracking-widest mb-3">
+                        Archive {String(currentIndex + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}
+                      </div>
+                      <h3 className="text-5xl font-black text-white mb-3 uppercase tracking-tight">
+                        {images[currentIndex].title}
+                      </h3>
+                      <p className="text-xl text-gray-300 max-w-2xl">
+                        {images[currentIndex].description}
+                      </p>
+                    </motion.div>
+                  </div>
+
+                  {/* Expand Icon */}
+                  <div className="absolute top-6 right-6 p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Maximize2 size={20} className="text-white" />
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
 
             {/* Navigation Arrows */}
@@ -135,7 +173,7 @@ export default function GallerySection() {
             >
               <ChevronLeft size={24} className="text-white" />
             </button>
-            
+
             <button
               onClick={(e) => { e.stopPropagation(); nextSlide(); }}
               className="absolute right-6 top-1/2 transform -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full border border-white/20 transition-all opacity-0 group-hover:opacity-100 z-10"
@@ -145,15 +183,14 @@ export default function GallerySection() {
 
             {/* Progress Dots */}
             <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
-              {GALLERY_IMAGES.map((_, index) => (
+              {images.map((_, index) => (
                 <button
                   key={index}
                   onClick={(e) => { e.stopPropagation(); setCurrentIndex(index); }}
-                  className={`h-2 rounded-full transition-all ${
-                    index === currentIndex 
-                      ? 'w-8 bg-[#FF5E00]' 
+                  className={`h-2 rounded-full transition-all ${index === currentIndex
+                      ? 'w-8 bg-[#FF5E00]'
                       : 'w-2 bg-white/30 hover:bg-white/50'
-                  }`}
+                    }`}
                 />
               ))}
             </div>
@@ -161,20 +198,19 @@ export default function GallerySection() {
 
           {/* Thumbnail Strip */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-            {GALLERY_IMAGES.map((image, index) => (
+            {images.map((image, index) => (
               <motion.div
-                key={image.id}
+                key={image._id || image.id}
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ scale: 1.05, y: -5 }}
                 onClick={() => setCurrentIndex(index)}
-                className={`relative h-32 rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${
-                  index === currentIndex 
-                    ? 'border-[#FF5E00] shadow-lg shadow-[#FF5E00]/30' 
+                className={`relative h-32 rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${index === currentIndex
+                    ? 'border-[#FF5E00] shadow-lg shadow-[#FF5E00]/30'
                     : 'border-white/10 hover:border-white/30'
-                }`}
+                  }`}
               >
                 <img
                   src={image.url}
@@ -196,7 +232,7 @@ export default function GallerySection() {
             viewport={{ once: true }}
             className="text-center"
           >
-            <button 
+            <button
               className="gallery-btn group"
               onClick={() => window.location.href = '/blog'}
             >
@@ -263,8 +299,8 @@ export default function GallerySection() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    const prevIndex = (GALLERY_IMAGES.findIndex(img => img.id === selectedImage.id) - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length;
-                    setSelectedImage(GALLERY_IMAGES[prevIndex]);
+                    const prevIndex = (images.findIndex(img => (img._id || img.id) === (selectedImage._id || selectedImage.id)) - 1 + images.length) % images.length;
+                    setSelectedImage(images[prevIndex]);
                   }}
                   className="p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full border border-white/20 transition-all"
                 >
@@ -276,8 +312,8 @@ export default function GallerySection() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    const nextIndex = (GALLERY_IMAGES.findIndex(img => img.id === selectedImage.id) + 1) % GALLERY_IMAGES.length;
-                    setSelectedImage(GALLERY_IMAGES[nextIndex]);
+                    const nextIndex = (images.findIndex(img => (img._id || img.id) === (selectedImage._id || selectedImage.id)) + 1) % images.length;
+                    setSelectedImage(images[nextIndex]);
                   }}
                   className="p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full border border-white/20 transition-all"
                 >

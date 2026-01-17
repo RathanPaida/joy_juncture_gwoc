@@ -2,24 +2,24 @@
 
 .users-actions-bar {
     margin-bottom: 24px;
-    background: rgba(30, 41, 59, 0.5);
+    background: var(--bg-card);
     padding: 16px;
     border-radius: 12px;
-    border: 1px solid #333;
+    border: 1px solid var(--border-color);
 }
 
 .users-search-form {
     display: flex;
     align-items: center;
-    background: #0f0f0f;
-    border: 1px solid #333;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 8px 16px;
     max-width: 400px;
 }
 
 .users-search-form:focus-within {
-    border-color: #f97316;
+    border-color: var(--primary-orange);
 }
 
 .users-search-input {
@@ -37,8 +37,8 @@
 
 /* Table Styles */
 .users-table-container {
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid #333;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     overflow: hidden;
     margin-bottom: 24px;
@@ -54,14 +54,14 @@
     text-align: left;
     padding: 16px;
     background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
     color: #94a3b8;
     font-weight: 500;
 }
 
 .users-table td {
     padding: 16px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .users-table tr:hover td {
@@ -82,7 +82,7 @@
 .user-avatar-small {
     width: 32px;
     height: 32px;
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-hover) 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -114,7 +114,7 @@
 .role-badge.admin,
 .role-badge.super_admin {
     background: rgba(249, 115, 22, 0.2);
-    color: #f97316;
+    color: var(--primary-orange);
     border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
@@ -135,8 +135,8 @@
 }
 
 .pagination-btn {
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid #333;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     width: 36px;
     height: 36px;
@@ -149,8 +149,8 @@
 }
 
 .pagination-btn:hover:not(:disabled) {
-    border-color: #f97316;
-    color: #f97316;
+    border-color: var(--primary-orange);
+    color: var(--primary-orange);
 }
 
 .pagination-btn:disabled {

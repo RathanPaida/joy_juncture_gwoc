@@ -25,21 +25,22 @@ import {
   Package,
   CalendarDays,
   Car,
+  Image,
 } from "lucide-react";
 import "./admin-navbar.css";
 
 const adminMenuItems = [
   {
-    title: "Dashboard",
-    icon: <LayoutDashboard size={20} />,
-    path: "/admin/dashboard",
-    color: "#8b5cf6",
-  },
-  {
     title: "Public Site",
     icon: <ChevronRight size={20} />,
     path: "/home",
     color: "#ff6600",
+  },
+  {
+    title: "Dashboard",
+    icon: <LayoutDashboard size={20} />,
+    path: "/admin/dashboard",
+    color: "#8b5cf6",
   },
   {
     title: "Store",
@@ -57,6 +58,12 @@ const adminMenuItems = [
         label: "Card Games",
         path: "/admin/games",
         icon: <Car size={16} />,
+      },
+      {
+        id: "gallery",
+        label: "Gallery",
+        path: "/admin/gallery",
+        icon: <Image size={16} />, // Wait, I need to import Image or similar icon. Using Image from lucide-react.
       },
       {
         id: "packages",
