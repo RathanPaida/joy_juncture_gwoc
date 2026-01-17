@@ -56,10 +56,10 @@ const Footer: React.FC = () => {
                 <Link href="/games/card">Card Games</Link>
               </li>
               <li>
-                <Link href="/games/new">New Releases</Link>
+                <Link href="/store">Store</Link>
               </li>
               <li>
-                <Link href="/archives">Game Archives</Link>
+                <Link href="/games">Game Archives</Link>
               </li>
             </ul>
           </div>
@@ -74,13 +74,13 @@ const Footer: React.FC = () => {
                 <Link href="/community">Community</Link>
               </li>
               <li>
-                <Link href="/leaderboard">Leaderboard</Link>
+                <Link href="/walletandpoints">Leaderboard</Link>
               </li>
               <li>
-                <Link href="/vault">Token Vault</Link>
+                <Link href="/walletandpoints">Token Vault</Link>
               </li>
               <li>
-                <Link href="/rewards">System Rewards</Link>
+                <Link href="/walletandpoints">System Rewards</Link>
               </li>
             </ul>
           </div>
@@ -89,7 +89,7 @@ const Footer: React.FC = () => {
             <h3>SUPPORT</h3>
             <ul>
               <li>
-                <Link href="/faq">Game Guides & FAQ</Link>
+                <Link href="/about">About Us</Link>
               </li>
               <li>
                 <Link href="/shipping">Shipping & Returns</Link>
@@ -98,10 +98,10 @@ const Footer: React.FC = () => {
                 <Link href="/contact">Contact Us</Link>
               </li>
               <li>
-                <Link href="/wholesale">Wholesale</Link>
+                <Link href="/about">Wholesale</Link>
               </li>
               <li>
-                <Link href="/careers">Careers</Link>
+                <Link href="/about">Careers</Link>
               </li>
             </ul>
           </div>

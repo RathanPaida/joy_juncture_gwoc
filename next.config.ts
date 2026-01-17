@@ -23,6 +23,19 @@ const nextConfig = {
     MONGODB_URI: process.env.MONGODB_URI,
     MONGODB_DB: process.env.MONGODB_DB,
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=600',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

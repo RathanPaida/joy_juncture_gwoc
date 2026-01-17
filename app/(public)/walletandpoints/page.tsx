@@ -1077,7 +1077,7 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Achievements */}
+      {/* Achievements
       <section className="achievements-section">
         <div className="container">
           <div className="section-header">
@@ -1148,7 +1148,7 @@ const WalletPointsPage: React.FC = () => {
             )}
           </div>
         </div>
-      </section>
+      </section> */}
 
 
 
