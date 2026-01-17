@@ -61,7 +61,7 @@ export default function GallerySection() {
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const res = await fetch('/api/gallery');
+        const res = await fetch('/api/gallery?category=general');
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           setImages(data.data);
@@ -188,8 +188,8 @@ export default function GallerySection() {
                   key={index}
                   onClick={(e) => { e.stopPropagation(); setCurrentIndex(index); }}
                   className={`h-2 rounded-full transition-all ${index === currentIndex
-                      ? 'w-8 bg-[#FF5E00]'
-                      : 'w-2 bg-white/30 hover:bg-white/50'
+                    ? 'w-8 bg-[#FF5E00]'
+                    : 'w-2 bg-white/30 hover:bg-white/50'
                     }`}
                 />
               ))}
@@ -208,8 +208,8 @@ export default function GallerySection() {
                 whileHover={{ scale: 1.05, y: -5 }}
                 onClick={() => setCurrentIndex(index)}
                 className={`relative h-32 rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${index === currentIndex
-                    ? 'border-[#FF5E00] shadow-lg shadow-[#FF5E00]/30'
-                    : 'border-white/10 hover:border-white/30'
+                  ? 'border-[#FF5E00] shadow-lg shadow-[#FF5E00]/30'
+                  : 'border-white/10 hover:border-white/30'
                   }`}
               >
                 <img

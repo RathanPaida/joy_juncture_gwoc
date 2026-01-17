@@ -1,0 +1,57 @@
+
+import mongoose from "mongoose";
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+// Try to load from .env.local if .env missing
+import path from 'path';
+import fs from 'fs';
+
+const envLocalPath = path.resolve(process.cwd(), '.env.local');
+if (fs.existsSync(envLocalPath)) {
+    const envConfig = dotenv.parse(fs.readFileSync(envLocalPath));
+    for (const k in envConfig) {
+        process.env[k] = envConfig[k];
+    }
+}
+
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/joy_juncture";
+
+async function debugDB() {
+    try {
+        console.log("Connecting to:", MONGODB_URI);
+        await mongoose.connect(MONGODB_URI);
+        console.log("Connected.");
+
+        const db = mongoose.connection.db;
+        const collections = await db.listCollections().toArray();
+        const productCollection = db.collection("products");
+        const count = await productCollection.countDocuments();
+
+        const output = {
+            collections: collections.map(c => c.name),
+            productCount: count,
+            distinctGametypes: [],
+            missingGametypeDocs: 0,
+            sampleGametypes: []
+        };
+
+        if (count > 0) {
+            output.distinctGametypes = await productCollection.distinct("gametype");
+            output.missingGametypeDocs = await productCollection.countDocuments({ gametype: { $exists: false } });
+            const sample = await productCollection.find({}).limit(5).toArray();
+            output.sampleGametypes = sample.map(p => p.gametype);
+        }
+
+        fs.writeFileSync("debug_output.txt", JSON.stringify(output, null, 2));
+        console.log("Debug data written to debug_output.txt");
+
+    } catch (error) {
+        console.error("Error:", error);
+    } finally {
+        await mongoose.disconnect();
+        process.exit();
+    }
+}
+
+debugDB();

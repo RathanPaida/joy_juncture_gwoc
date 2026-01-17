@@ -19,6 +19,7 @@ import {
   Gift,
 } from "lucide-react";
 import "./cart.css";
+import DeliveryChecker from "@/app/components/DeliveryChecker";
 
 interface CartItem {
   _id: string;
@@ -240,6 +241,8 @@ export default function CartPage() {
     }
   };
 
+  const [calculatedShipping, setCalculatedShipping] = useState<number | null>(null);
+
   const calculateSummary = (): CartSummary => {
     const subtotal = cartItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -257,7 +260,17 @@ export default function CartPage() {
       if (discount > subtotal) discount = subtotal;
     }
 
-    const shipping = subtotal > 500 ? 0 : 50;
+    // Shipping Logic: 
+    // If calculatedShipping (from Pincode) is available, use it.
+    // Otherwise fallback to default logic: 
+    // Free if > 500, else 50.
+    let shipping = 0;
+    if (calculatedShipping !== null) {
+      shipping = calculatedShipping;
+    } else {
+      shipping = subtotal > 500 ? 0 : 50;
+    }
+
     const tax = (subtotal - discount) * 0.18; // 18% GST
     const total = subtotal - discount + shipping + tax;
 
@@ -288,6 +301,10 @@ export default function CartPage() {
   }
 
   const summary = calculateSummary();
+
+  const handleDeliveryCalculated = (fee: number | null, isFree: boolean) => {
+    setCalculatedShipping(isFree ? 0 : fee);
+  };
 
   return (
     <div className="cart-page">
@@ -519,6 +536,10 @@ export default function CartPage() {
 
           {/* Order Summary Sidebar */}
           <div className="cart-summary-section">
+
+            {/* Delivery Checker Component */}
+            <DeliveryChecker onDeliveryCalculated={handleDeliveryCalculated} />
+
             <div className="summary-card">
               <h2>Order Summary</h2>
 

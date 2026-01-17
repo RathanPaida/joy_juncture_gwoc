@@ -133,13 +133,28 @@ export default function CardGamesPage() {
     "Full Day",
   ];
 
-  /* ================= DEMO PHOTOS ================= */
-  const demoPhotos = [
-    "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1600&h=400&fit=crop",
+  /* ================= DEMO PHOTOS & FETCH ================= */
+  const [demoPhotos, setDemoPhotos] = useState<string[]>([
+    "https://res.cloudinary.com/dwvb2cgmq/image/upload/v1768653368/IMG_8529_rg94fh.jpg",
     "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1600&h=400&fit=crop",
     "https://images.unsplash.com/photo-1492684223066-dd23140edf6d?w=1600&h=400&fit=crop",
     "https://images.unsplash.com/photo-1511578314322-379afb476865?w=1600&h=400&fit=crop",
-  ];
+  ]);
+
+  useEffect(() => {
+    const fetchGalleryImages = async () => {
+      try {
+        const res = await fetch("/api/gallery?category=experiences");
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          setDemoPhotos(data.data.map((img: any) => img.url));
+        }
+      } catch (error) {
+        console.error("Failed to fetch gallery images:", error);
+      }
+    };
+    fetchGalleryImages();
+  }, []);
 
   /* ================= STATISTICS ================= */
   const stats = [
@@ -207,11 +222,12 @@ export default function CardGamesPage() {
 
   /* ================= CAROUSEL EFFECT ================= */
   useEffect(() => {
+    if (demoPhotos.length === 0) return;
     const timer = setInterval(() => {
       setCurrentDemo((p) => (p + 1) % demoPhotos.length);
     }, 3500);
     return () => clearInterval(timer);
-  }, []);
+  }, [demoPhotos]);
 
   /* ================= FALLBACK DATA ================= */
   const getFallbackGames = (): CardGame[] => {
@@ -2278,7 +2294,7 @@ export default function CardGamesPage() {
         </div>
       </section>
 
-      
+
     </div>
   );
 }

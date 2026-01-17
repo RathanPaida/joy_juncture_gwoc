@@ -268,7 +268,7 @@ export default function AdminProductsPage() {
               >
                 <option value="all">All Occasions</option>
                 {FILTERS.occasion.options.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
 
@@ -304,7 +304,7 @@ export default function AdminProductsPage() {
             >
               <option value="all">👥 All Players</option>
               {FILTERS.players.options.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
 
@@ -316,7 +316,7 @@ export default function AdminProductsPage() {
             >
               <option value="all">😊 All Moods</option>
               {FILTERS.mood.options.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
 

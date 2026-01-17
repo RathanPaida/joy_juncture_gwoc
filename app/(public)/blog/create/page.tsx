@@ -4,7 +4,7 @@
 import React, { useState, useRef } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Eye, Upload, X } from "lucide-react";
+import { ArrowLeft, Save, Eye, Upload, X, Trash, Plus } from "lucide-react";
 import Image from "next/image";
 import "./blog-create.css";
 
@@ -26,11 +26,16 @@ export default function CreateBlogPage() {
     category: CATEGORIES[0],
     tags: "",
   });
-  
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  // New State for Additional Images
+  const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
+  const [additionalPreviews, setAdditionalPreviews] = useState<string[]>([]);
+
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,12 +59,40 @@ export default function CreateBlogPage() {
     }
   };
 
+  const handleMultiImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      const validFiles = newFiles.filter(f => f.size <= 5 * 1024 * 1024);
+
+      if (validFiles.length < newFiles.length) {
+        alert("Some files were skipped because they exceed 5MB.");
+      }
+
+      setAdditionalFiles(prev => [...prev, ...validFiles]);
+
+      // Generate previews
+      validFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAdditionalPreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
   const removeImage = () => {
     setImageFile(null);
     setImagePreview("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalFiles(prev => prev.filter((_, i) => i !== index));
+    setAdditionalPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,7 +113,7 @@ export default function CreateBlogPage() {
 
     try {
       const token = await getToken();
-      
+
       if (!token) {
         alert("Authentication token not available. Please login again.");
         router.push("/login");
@@ -94,7 +127,7 @@ export default function CreateBlogPage() {
 
       // Create FormData for file upload
       const submitData = new FormData();
-      
+
       submitData.append('blogData', JSON.stringify({
         title: formData.title,
         excerpt: formData.excerpt,
@@ -108,6 +141,12 @@ export default function CreateBlogPage() {
       // Add image file if selected
       if (imageFile) {
         submitData.append('coverImage', imageFile);
+      }
+
+      if (additionalFiles.length > 0) {
+        additionalFiles.forEach((file) => {
+          submitData.append('images', file);
+        });
       }
 
       const response = await fetch("/api/admin/blog", {

@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
     // Admin/editor can see all blogs, viewers only see their own
     const query =
       userRole === "admin" ||
-      userRole === "super_admin" ||
-      userRole === "editor"
+        userRole === "super_admin" ||
+        userRole === "editor"
         ? {}
         : { "createdBy.userId": firebaseUid };
 
@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
     // Parse FormData for image upload
     const formData = await request.formData();
     const blogDataStr = formData.get('blogData') as string;
-    const imageFile = formData.get('coverImage') as File | null;
+    const coverImageFile = formData.get('coverImage') as File | null;
+    const additionalImages = formData.getAll('images') as File[];
 
     if (!blogDataStr) {
       return NextResponse.json(
@@ -113,25 +114,42 @@ export async function POST(request: NextRequest) {
 
     const blogData = JSON.parse(blogDataStr);
     let coverImageUrl = blogData.coverImage || '';
+    const uploadedImageUrls: string[] = [];
 
-    // Handle image upload if provided
-    if (imageFile) {
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blogs');
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blogs');
 
-      try {
-        await mkdir(uploadsDir, { recursive: true });
-      } catch (error) {
-        // Directory already exists
-      }
+    try {
+      await mkdir(uploadsDir, { recursive: true });
+    } catch (error) {
+      // Directory already exists
+    }
 
-      const bytes = await imageFile.arrayBuffer();
+    // Handle Cover Image
+    if (coverImageFile) {
+      const bytes = await coverImageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const ext = imageFile.name.split('.').pop();
-      const filename = `${generateUniqueId()}.${ext}`;
+      const ext = coverImageFile.name.split('.').pop();
+      const filename = `${generateUniqueId()}_cover.${ext}`;
       const filepath = path.join(uploadsDir, filename);
 
       await writeFile(filepath, buffer);
       coverImageUrl = `/uploads/blogs/${filename}`;
+    }
+
+    // Handle Additional Images
+    if (additionalImages && additionalImages.length > 0) {
+      for (const imgFile of additionalImages) {
+        if (imgFile instanceof File) {
+          const bytes = await imgFile.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+          const ext = imgFile.name.split('.').pop();
+          const filename = `${generateUniqueId()}_${Math.random().toString(36).substr(2, 5)}.${ext}`;
+          const filepath = path.join(uploadsDir, filename);
+
+          await writeFile(filepath, buffer);
+          uploadedImageUrls.push(`/uploads/blogs/${filename}`);
+        }
+      }
     }
 
     // Generate slug from title
@@ -147,6 +165,7 @@ export async function POST(request: NextRequest) {
     const blog = await Blog.create({
       ...blogData,
       coverImage: coverImageUrl,
+      images: uploadedImageUrls,
       slug,
       readTime,
       createdBy: {

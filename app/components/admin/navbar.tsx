@@ -60,12 +60,6 @@ const adminMenuItems = [
         icon: <Car size={16} />,
       },
       {
-        id: "gallery",
-        label: "Gallery",
-        path: "/admin/gallery",
-        icon: <Image size={16} />, // Wait, I need to import Image or similar icon. Using Image from lucide-react.
-      },
-      {
         id: "packages",
         label: "Packages",
         path: "/admin/packages",
@@ -79,6 +73,26 @@ const adminMenuItems = [
       },
     ],
     color: "#ff3300",
+  },
+  {
+    title: "Gallery",
+    icon: <Image size={20} />,
+    path: "/admin/gallery",
+    dropdown: [
+      {
+        id: "main-gallery",
+        label: "Main Gallery",
+        path: "/admin/gallery",
+        icon: <Image size={16} />,
+      },
+      {
+        id: "exp-gallery",
+        label: "Exp. Gallery",
+        path: "/admin/experiences-gallery",
+        icon: <Image size={16} />,
+      },
+    ],
+    color: "#e84393",
   },
   {
     title: "Events",

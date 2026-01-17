@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { format } from 'date-fns';
 import { useAuth } from '@/app/contexts/AuthContext';
 import './eventDetail.css';
@@ -100,7 +101,7 @@ export default function EventDetailPage() {
           await fetch('/api/payment/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({...res,type:'event'})
+            body: JSON.stringify({ ...res, type: 'event' })
           });
           router.push('/events/registered');
         },
@@ -121,7 +122,10 @@ export default function EventDetailPage() {
   return (
     <div className="event-detail-page bg-black text-white min-h-screen">
       <div className="event-hero py-20 px-10 border-b border-[#ff6b00]/30">
-        <button onClick={() => router.back()} className="text-[#ff6b00] font-bold mb-8 flex items-center gap-2 uppercase tracking-widest text-xs italic">
+        <button
+          onClick={() => router.push('/events')}
+          className="relative z-50 text-[#ff6b00] font-bold mb-8 flex items-center gap-2 uppercase tracking-widest text-xs italic border border-[#ff6b00] px-6 py-2 rounded-full hover:bg-[#ff6b00] hover:text-black transition-all"
+        >
           ← Back
         </button>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -162,8 +166,8 @@ export default function EventDetailPage() {
               <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-[#ff6b00]" style={{ width: `${(event.availableSeats / event.totalSeats) * 100}%` }} /></div>
             </div>
 
-            <button 
-              onClick={handleRegister} 
+            <button
+              onClick={handleRegister}
               disabled={registering || isRegistered || event.availableSeats <= 0}
               className="mt-8 w-full py-5 bg-[#ff6b00] text-black font-black uppercase tracking-widest text-sm hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >

@@ -4,6 +4,7 @@ export interface IGallery extends Document {
     url: string;
     title: string;
     description: string;
+    category: string;
     createdAt: Date;
 }
 
@@ -20,6 +21,11 @@ const GallerySchema: Schema<IGallery> = new Schema(
         description: {
             type: String,
             required: [true, "Please provide a description"],
+        },
+        category: {
+            type: String,
+            default: "general",
+            index: true,
         },
         createdAt: {
             type: Date,

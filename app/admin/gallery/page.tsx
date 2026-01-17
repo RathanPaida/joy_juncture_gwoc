@@ -40,7 +40,7 @@ export default function AdminGalleryPage() {
 
     const fetchGallery = async () => {
         try {
-            const res = await fetch("/api/gallery");
+            const res = await fetch("/api/gallery?category=general");
             const data = await res.json();
             if (data.success) {
                 setImages(data.data);
@@ -93,6 +93,7 @@ export default function AdminGalleryPage() {
             const formData = new FormData();
             formData.append("title", form.title);
             formData.append("description", form.description);
+            formData.append("category", "general");
             formData.append("image", selectedFile);
 
             const res = await fetch("/api/admin/gallery", {

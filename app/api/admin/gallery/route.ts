@@ -36,11 +36,20 @@ export async function POST(req: NextRequest) {
 
         const title = formData.get('title') as string;
         const description = formData.get('description') as string;
+        const category = formData.get('category') as string;
         const imageFile = formData.get('image') as File | null;
 
-        if (!title || !description || !imageFile) {
+        console.log("📸 [Gallery Upload] Received FormData:", {
+            title,
+            description,
+            category,
+            hasImage: !!imageFile,
+            imageName: imageFile?.name
+        });
+
+        if (!title || !description || !imageFile || !category) {
             return NextResponse.json(
-                { success: false, error: "Missing required fields" },
+                { success: false, error: "Missing required fields (including category)" },
                 { status: 400 }
             );
         }
@@ -50,6 +59,7 @@ export async function POST(req: NextRequest) {
         const newImage = await Gallery.create({
             title,
             description,
+            category,
             url: imageUrl
         });
 
@@ -65,6 +75,22 @@ export async function POST(req: NextRequest) {
             { success: false, error: err.message || "Failed to upload image" },
             { status: 500 }
         );
+    }
+}
+
+export async function GET(req: NextRequest) {
+    try {
+        await connectDb();
+        const { searchParams } = new URL(req.url);
+        const category = searchParams.get("category");
+
+        const query = category ? { category } : {};
+        const images = await Gallery.find(query).sort({ createdAt: -1 });
+
+        return NextResponse.json({ success: true, data: images });
+    } catch (error) {
+        console.error("Gallery Fetch Error:", error);
+        return NextResponse.json({ success: false, error: "Failed to fetch images" }, { status: 500 });
     }
 }
 

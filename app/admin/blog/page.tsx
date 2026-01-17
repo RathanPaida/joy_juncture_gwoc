@@ -32,6 +32,7 @@ interface Blog {
   excerpt: string;
   content: string;
   coverImage?: string;
+  images: string[];
   category: string;
   tags: string[];
   author: {
@@ -181,7 +182,7 @@ const AdminBlogPage: React.FC = () => {
     }
   };
 
-  const handleSaveBlog = async (blog: Blog, imageFile?: File) => {
+  const handleSaveBlog = async (blog: Blog, imageFile?: File, additionalFiles?: File[]) => {
     try {
       const token = await auth.currentUser?.getIdToken();
 
@@ -195,6 +196,12 @@ const AdminBlogPage: React.FC = () => {
 
       if (imageFile) {
         formData.append("coverImage", imageFile);
+      }
+
+      if (additionalFiles && additionalFiles.length > 0) {
+        additionalFiles.forEach((file) => {
+          formData.append("images", file);
+        });
       }
 
       if (blog._id) {
@@ -567,20 +574,27 @@ const AdminBlogPage: React.FC = () => {
   );
 };
 
-// Blog Modal Component
 const BlogModal: React.FC<{
   blog: Blog;
-  onSave: (blog: Blog, imageFile?: File) => Promise<void>;
+  onSave: (blog: Blog, imageFile?: File, additionalFiles?: File[]) => Promise<void>;
   onClose: () => void;
   isAdmin: boolean;
   categories: string[];
 }> = ({ blog, onSave, onClose, isAdmin, categories }) => {
-  const [formData, setFormData] = useState(blog);
+  const [formData, setFormData] = useState<Blog>({ ...blog, images: blog.images || [] });
   const [tagsInput, setTagsInput] = useState(blog.tags.join(", "));
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(blog.coverImage || "");
+
+  // New State for Additional Images
+  const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
+  const [additionalPreviews, setAdditionalPreviews] = useState<string[]>(
+    blog.images || []
+  );
+
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -589,13 +603,33 @@ const BlogModal: React.FC<{
         alert("Image size should be less than 5MB");
         return;
       }
-
       setImageFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
+      reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleMultiImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      const validFiles = newFiles.filter(f => f.size <= 5 * 1024 * 1024);
+
+      if (validFiles.length < newFiles.length) {
+        alert("Some files were skipped because they exceed 5MB.");
+      }
+
+      setAdditionalFiles(prev => [...prev, ...validFiles]);
+
+      // Generate previews
+      validFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAdditionalPreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
   };
 
@@ -603,8 +637,28 @@ const BlogModal: React.FC<{
     setImageFile(null);
     setImagePreview("");
     setFormData({ ...formData, coverImage: "" });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAdditionalImage = (index: number) => {
+    // Logic: existing images come first in additionalPreviews
+    // If we remove an image that is NOT in additionalFiles, it means it's an existing image.
+    // But we need to track WHICH images are retained.
+
+    const existingImageCount = (formData.images || []).length;
+
+    if (index < existingImageCount) {
+      // It's an existing image
+      const updatedImages = [...(formData.images || [])];
+      updatedImages.splice(index, 1);
+      setFormData(prev => ({ ...prev, images: updatedImages }));
+      // We also need to remove it from previews
+      setAdditionalPreviews(prev => prev.filter((_, i) => i !== index));
+    } else {
+      // It's a new file
+      const fileIndex = index - existingImageCount;
+      setAdditionalFiles(prev => prev.filter((_, i) => i !== fileIndex));
+      setAdditionalPreviews(prev => prev.filter((_, i) => i !== index));
     }
   };
 
@@ -626,7 +680,8 @@ const BlogModal: React.FC<{
           ...formData,
           tags,
         },
-        imageFile || undefined
+        imageFile || undefined,
+        additionalFiles // Pass array of new files
       );
     } catch (error) {
       console.error("Error saving blog:", error);

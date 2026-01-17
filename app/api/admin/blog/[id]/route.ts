@@ -79,7 +79,8 @@ export async function PUT(
     // Parse FormData for image upload
     const formData = await request.formData();
     const blogDataStr = formData.get('blogData') as string;
-    const imageFile = formData.get('coverImage') as File | null;
+    const coverImageFile = formData.get('coverImage') as File | null;
+    const additionalImages = formData.getAll('images') as File[];
 
     if (!blogDataStr) {
       return NextResponse.json(
@@ -91,24 +92,44 @@ export async function PUT(
     const updateData = JSON.parse(blogDataStr);
     let coverImageUrl = updateData.coverImage || blog.coverImage || '';
 
-    // Handle image upload if provided
-    if (imageFile) {
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blogs');
+    // Start with existing images (ensure it's an array)
+    const currentImages = updateData.images || blog.images || [];
+    const newImageUrls: string[] = [];
 
-      try {
-        await mkdir(uploadsDir, { recursive: true });
-      } catch (error) {
-        // Directory already exists
-      }
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blogs');
 
-      const bytes = await imageFile.arrayBuffer();
+    try {
+      await mkdir(uploadsDir, { recursive: true });
+    } catch (error) {
+      // Directory already exists
+    }
+
+    // Handle Cover Image Update
+    if (coverImageFile) {
+      const bytes = await coverImageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const ext = imageFile.name.split('.').pop();
-      const filename = `${generateUniqueId()}.${ext}`;
+      const ext = coverImageFile.name.split('.').pop();
+      const filename = `${generateUniqueId()}_cover.${ext}`;
       const filepath = path.join(uploadsDir, filename);
 
       await writeFile(filepath, buffer);
       coverImageUrl = `/uploads/blogs/${filename}`;
+    }
+
+    // Handle Additional Images Upload
+    if (additionalImages && additionalImages.length > 0) {
+      for (const imgFile of additionalImages) {
+        if (imgFile instanceof File) {
+          const bytes = await imgFile.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+          const ext = imgFile.name.split('.').pop();
+          const filename = `${generateUniqueId()}_${Math.random().toString(36).substr(2, 5)}.${ext}`;
+          const filepath = path.join(uploadsDir, filename);
+
+          await writeFile(filepath, buffer);
+          newImageUrls.push(`/uploads/blogs/${filename}`);
+        }
+      }
     }
 
     console.log("Update data received:", Object.keys(updateData));
@@ -138,6 +159,11 @@ export async function PUT(
     // Apply updates
     Object.assign(blog, updateData);
     blog.coverImage = coverImageUrl;
+    // Merge new images with preserved existing ones
+    // Note: updateData.images comes from frontend and should contain the list of retained existing images
+    // We add newly uploaded images to that list.
+    blog.images = [...(updateData.images || []), ...newImageUrls];
+
     blog.updatedAt = new Date();
 
     await blog.save();

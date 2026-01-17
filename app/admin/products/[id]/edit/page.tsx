@@ -575,12 +575,12 @@ export default function EditProductPage({
                 <div className="flex flex-wrap gap-2 mt-2">
                   {FILTERS.players.options.map(opt => (
                     <button
-                      key={opt}
+                      key={opt.value}
                       type="button"
-                      onClick={() => updateNestedField("meta", "players", opt)}
+                      onClick={() => updateNestedField("meta", "players", opt.value)}
                       className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
                     >
-                      {opt}
+                      {opt.label}
                     </button>
                   ))}
                 </div>
@@ -649,7 +649,7 @@ export default function EditProductPage({
                 >
                   <option value="" disabled>Select Occasion</option>
                   {FILTERS.occasion.options.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
@@ -675,15 +675,15 @@ export default function EditProductPage({
                 <div className="flex flex-wrap gap-2">
                   {FILTERS.mood.options.map(mood => {
                     const currentMoods = formData.meta.moods || [];
-                    const isActive = currentMoods.includes(mood);
+                    const isActive = currentMoods.includes(mood.value);
                     return (
                       <button
-                        key={mood}
+                        key={mood.value}
                         type="button"
                         onClick={() => {
                           const newMoods = isActive
-                            ? currentMoods.filter(m => m !== mood)
-                            : [...currentMoods, mood];
+                            ? currentMoods.filter(m => m !== mood.value)
+                            : [...currentMoods, mood.value];
                           updateNestedField("meta", "moods", newMoods);
                         }}
                         className={`px-3 py-1 text-sm rounded-full border transition-all ${isActive
@@ -691,7 +691,7 @@ export default function EditProductPage({
                           : "bg-gray-800 border-gray-600 text-gray-400 hover:border-gray-500"
                           }`}
                       >
-                        {mood}
+                        {mood.label}
                       </button>
                     );
                   })}

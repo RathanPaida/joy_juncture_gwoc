@@ -7,6 +7,7 @@ export interface IBlog extends Document {
   excerpt: string;
   content: string;
   coverImage?: string;
+  images: string[];
   category: string;
   tags: string[];
   author: {
@@ -56,6 +57,10 @@ const BlogSchema = new Schema<IBlog>(
     coverImage: {
       type: String,
       default: null,
+    },
+    images: {
+      type: [String],
+      default: [],
     },
     category: {
       type: String,

@@ -517,7 +517,7 @@ export default function NewProductPage() {
                 >
                   <option value="" disabled>Select Occasion</option>
                   {FILTERS.occasion.options.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
@@ -588,12 +588,12 @@ export default function NewProductPage() {
               <div className="tag-group">
                 {FILTERS.mood.options.map(mood => (
                   <button
-                    key={mood}
+                    key={mood.value}
                     type="button"
-                    onClick={() => toggleMood(mood)}
-                    className={`tag-button ${formData.moods.includes(mood) ? 'active' : ''}`}
+                    onClick={() => toggleMood(mood.value)}
+                    className={`tag-button ${formData.moods.includes(mood.value) ? 'active' : ''}`}
                   >
-                    {mood}
+                    {mood.label}
                   </button>
                 ))}
               </div>

@@ -9,22 +9,44 @@ export const FILTERS = {
     gametype: {
         title: "Gametype",
         key: "gametype",
-        options: ["Board Games", "Card Games"],
+        options: [
+            { label: "Board Games", value: "board-game" },
+            { label: "Card Games", value: "card-game" }
+        ],
     },
     occasion: {
         title: "Occasion",
         key: "category",
-        options: ["Party", "Family Event", "Date Night", "Strategy", "Kids", "Travel"],
+        options: [
+            { label: "Party", value: "Party" },
+            { label: "Family Event", value: "Family Event" },
+            { label: "Date Night", value: "Date Night" },
+            { label: "Strategy", value: "Strategy" },
+            { label: "Kids", value: "Kids" },
+            { label: "Travel", value: "Travel" }
+        ],
     },
     mood: {
         title: "Mood",
         key: "mood",
-        options: ["Chill", "Happy", "Adventurous", "Competitive", "Creative", "Funny"],
+        options: [
+            { label: "Chill", value: "Chill" },
+            { label: "Happy", value: "Happy" },
+            { label: "Adventurous", value: "Adventurous" },
+            { label: "Competitive", value: "Competitive" },
+            { label: "Creative", value: "Creative" },
+            { label: "Funny", value: "Funny" }
+        ],
     },
     players: {
         title: "Players",
         key: "players",
-        options: ["2", "3-5", "5-7", "7+"],
+        options: [
+            { label: "2", value: "2" },
+            { label: "3-5", value: "3-5" },
+            { label: "5-7", value: "5-7" },
+            { label: "7+", value: "7+" }
+        ],
     },
 };
 
@@ -35,11 +57,13 @@ export default function StoreFilters() {
         category: [],
         mood: [],
         players: [],
+        gametype: [],
     });
     const [expanded, setExpanded] = useState<Record<string, boolean>>({
         category: true,
         mood: true,
         players: true,
+        gametype: true,
     });
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -49,6 +73,7 @@ export default function StoreFilters() {
             category: searchParams.get("category")?.split(",") || [],
             mood: searchParams.get("mood")?.split(",") || [],
             players: searchParams.get("players")?.split(",") || [],
+            gametype: searchParams.get("gametype")?.split(",") || [],
         };
         setActiveFilters(newFilters);
     }, [searchParams]);
@@ -60,7 +85,21 @@ export default function StoreFilters() {
         if (current.includes(value)) {
             updated = current.filter((item) => item !== value);
         } else {
-            updated = [...current, value];
+            // For gametype, we behave like a radio button (single select) if desired, 
+            // but the original code supported arrays. 
+            // The user request "filters" implies checkbox. 
+            // However, typical store gametype is mutually exclusive. 
+            // Given the schema `gametype: String` (single), filtering by multiple would need $in.
+            // The API supports passing a single RegEx. 
+            // If we allow multiple, we should update API.
+            // But let's check StorePage: `query.gametype = new RegExp(...)`. It only handles ONE value.
+            // So for gametype, it should be Single Select.
+
+            if (key === 'gametype') {
+                updated = [value];
+            } else {
+                updated = [...current, value];
+            }
         }
 
         const newFilters = { ...activeFilters, [key]: updated };
@@ -86,7 +125,7 @@ export default function StoreFilters() {
     };
 
     const clearAll = () => {
-        setActiveFilters({ category: [], mood: [], players: [] });
+        setActiveFilters({ category: [], mood: [], players: [], gametype: [] });
         router.push("/store");
         setMobileOpen(false);
     };
@@ -102,7 +141,7 @@ export default function StoreFilters() {
                 <h3 className="text-lg font-bold text-orange-500 flex items-center gap-2">
                     <Filter size={18} /> Filters
                 </h3>
-                {(activeFilters.category.length > 0 || activeFilters.mood.length > 0 || activeFilters.players.length > 0 || activeFilters.gametype?.length > 0) && (
+                {(Object.values(activeFilters).some(v => v.length > 0)) && (
                     <button
                         onClick={clearAll}
                         className="text-xs text-stone-400 hover:text-white transition-colors"
@@ -122,14 +161,12 @@ export default function StoreFilters() {
 
                     <div className="flex flex-col gap-2">
                         {data.options.map((option) => {
-                            const isActive = activeFilters[data.key]?.includes(option);
-                            // Gametype uses radio-like behavior visually in screenshot (checkbox logic still applies for simplicity unless requested otherwise)
-                            // Actually, screenshot shows "Board Games" checked. Let's keep it consistent.
+                            const isActive = activeFilters[data.key]?.includes(option.value);
 
                             return (
                                 <button
-                                    key={option}
-                                    onClick={() => toggleFilter(data.key, option)}
+                                    key={option.value}
+                                    onClick={() => toggleFilter(data.key, option.value)}
                                     className={cn(
                                         "flex items-center gap-3 text-sm transition-all duration-200 group w-full text-left p-2 rounded-lg",
                                         isActive
@@ -144,7 +181,7 @@ export default function StoreFilters() {
                                     )}>
                                         {isActive && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                                     </div>
-                                    {option}
+                                    {option.label}
                                 </button>
                             );
                         })}

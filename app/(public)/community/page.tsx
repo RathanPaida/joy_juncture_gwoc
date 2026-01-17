@@ -761,35 +761,6 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* CTA Section */}
-      <section className="community-cta">
-        <div className="container">
-          <div className="cta-content">
-            <h2 className="cta-title">Ready to Join?</h2>
-            <p className="cta-description">
-              Create your account and start earning points, engaging with the
-              community, and discovering endless joy.
-            </p>
-            <div className="cta-buttons">
-              <button
-                className="primary-cta-btn"
-                onClick={() => {
-                  if (!authUser) {
-                    router.push("/signup");
-                  } else {
-                    setShowCreateModal(true);
-                  }
-                }}
-              >
-                {authUser ? "Start Discussion" : "Sign Up Free"}
-              </button>
-              <button className="secondary-cta-btn">
-                Learn More About Rewards
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
   );
 }
