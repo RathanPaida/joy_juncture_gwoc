@@ -277,6 +277,7 @@ export default function CheckoutPage() {
           amount: total,
           cartItems,
           shippingAddress,
+          couponCode: couponCode || undefined,
         }),
       });
 

@@ -4,6 +4,7 @@ import Razorpay from "razorpay";
 import connectDb from "@/lib/mongodb";
 import { Order } from "@/models/Order";
 import { User } from "@/models/User";
+import { Coupon } from "@/models/Coupon";
 import { verifyIdToken } from "@/lib/firebase-admin";
 
 const razorpay = new Razorpay({
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     const firebaseUid = decodedToken.uid;
 
-    const { amount, cartItems, shippingAddress } = await request.json();
+    const { amount, cartItems, shippingAddress, couponCode } = await request.json();
 
     if (!amount || !cartItems || !shippingAddress || !cartItems.length) {
       return NextResponse.json(
@@ -61,12 +62,28 @@ export async function POST(request: NextRequest) {
 
     // Calculate totals
     const subtotal = cartItems.reduce(
-      (sum: number, item: any) => sum + item.price * item.quantity,
+      (sum: number, item: any) => sum + item.price * (item.quantity || 1),
       0,
     );
+
+    // Validate Coupon if provided
+    let discountAmount = 0;
+    let appliedCoupon = null;
+
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
+
+      if (coupon && coupon.isValid() && coupon.canUserUse(firebaseUid)) {
+        if (subtotal >= (coupon.minPurchaseAmount || 0)) {
+          discountAmount = coupon.calculateDiscount(subtotal);
+          appliedCoupon = coupon;
+        }
+      }
+    }
+
     const shipping = subtotal > 500 ? 0 : 50;
-    const tax = subtotal * 0.18;
-    const total = subtotal + shipping + tax;
+    const tax = (subtotal - discountAmount) * 0.18;
+    const total = Math.max(0, subtotal + shipping + tax - discountAmount);
 
     // Create orders
     const orders = [];
