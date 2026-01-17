@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 
@@ -15,10 +16,10 @@ export async function GET(request: NextRequest) {
 
     // Check if product with this name exists in MongoDB
     const productsCollection = await getCollection('products');
-    const existingProduct = await productsCollection.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    const existingProduct = await productsCollection.findOne({
+      name: { $regex: new RegExp(`^${name}$`, 'i') }
     });
-    
+
     return NextResponse.json({
       success: true,
       exists: !!existingProduct,
