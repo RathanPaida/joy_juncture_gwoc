@@ -369,9 +369,6 @@ const userSchema = new Schema<IUser>(
 );
 
 // Indexes for better query performance
-userSchema.index({ email: 1 });
-userSchema.index({ firebaseUid: 1 });
-userSchema.index({ referralCode: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ communityPoints: -1 });
 userSchema.index({ discussionCount: -1 });

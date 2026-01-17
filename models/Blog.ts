@@ -138,13 +138,11 @@ const BlogSchema = new Schema<IBlog>(
 );
 
 // Indexes for better query performance
-BlogSchema.index({ slug: 1 });
 BlogSchema.index({ status: 1 });
 BlogSchema.index({ category: 1 });
 BlogSchema.index({ tags: 1 });
 BlogSchema.index({ featured: 1 });
 BlogSchema.index({ publishedDate: -1 });
-BlogSchema.index({ "createdBy.userId": 1 });
 
 export const Blog =
   mongoose.models.Blog || mongoose.model<IBlog>("Blog", BlogSchema);

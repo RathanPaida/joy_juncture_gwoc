@@ -1,4 +1,5 @@
 // app/api/cart/debug/route.ts - TEMPORARY DEBUG ENDPOINT
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { verifyIdToken } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   console.log("\n========================================");
   console.log("🔍 CART DEBUG ENDPOINT");
   console.log("========================================");
-  
+
   try {
     await connectDb();
     console.log("✅ Database connected");
