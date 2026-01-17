@@ -44,16 +44,18 @@ export default function RegisterPage() {
           'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
+          firebaseUid: user.uid, // FIXED: Add firebaseUid
           email: user.email,
           name: additionalData.name || user.displayName || user.email?.split('@')[0],
           avatar: additionalData.avatar || user.photoURL || 'https://i.pravatar.cc/150?img=12',
+          authProvider: additionalData.authProvider || 'firebase', // FIXED: Add authProvider
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         console.warn('⚠️ MongoDB sync failed:', errorData);
-        return null;
+        throw new Error(errorData.message || 'Sync failed');
       }
 
       const data = await response.json();
@@ -61,7 +63,7 @@ export default function RegisterPage() {
       return data;
     } catch (error: any) {
       console.error('❌ MongoDB sync error:', error);
-      return null;
+      throw error; // FIXED: Throw error instead of returning null to handle it properly
     }
   };
 
@@ -107,6 +109,7 @@ export default function RegisterPage() {
           await syncUserToMongoDB(user, {
             name: user.displayName,
             avatar: user.photoURL,
+            authProvider: 'google', // FIXED: Specify Google provider
           });
 
           if (isAdmin) {
@@ -213,6 +216,13 @@ export default function RegisterPage() {
       return;
     }
 
+    // FIXED: Better email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters");
       return;
@@ -311,19 +321,23 @@ export default function RegisterPage() {
       }
 
       // Sync to MongoDB - CRITICAL STEP
-      const syncResult = await syncUserToMongoDB(user, {
-        name: tempUserData.name,
-        avatar: 'https://i.pravatar.cc/150?img=12',
-      });
-
-      if (!syncResult) {
-        console.warn("⚠️ MongoDB sync failed, but account was created");
+      try {
+        await syncUserToMongoDB(user, {
+          name: tempUserData.name,
+          avatar: 'https://i.pravatar.cc/150?img=12',
+          authProvider: 'firebase', // FIXED: Specify Firebase provider
+        });
+        console.log("✅ MongoDB sync successful");
+      } catch (syncError: any) {
+        console.error("❌ MongoDB sync failed:", syncError);
+        // FIXED: Show warning but don't block registration
+        alert("⚠️ Account created but sync failed. Please contact support if you experience issues.");
       }
 
       // Success!
-      alert("✅ Account created successfully!");
+      setSuccess("Account created successfully! Redirecting to login...");
 
-      // Clear form
+      // FIXED: Clear form and wait before redirect
       setFormData({
         name: "",
         email: "",
@@ -334,8 +348,10 @@ export default function RegisterPage() {
       setAgreeTerms(false);
       setTempUserData(null);
 
-      // Redirect to login
-      router.push("/login");
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
 
     } catch (err: any) {
       console.error("❌ Registration error:", err);
@@ -364,6 +380,8 @@ export default function RegisterPage() {
     try {
       await sendOTPEmail(tempUserData.email, otpCode);
       setSuccess("OTP resent successfully!");
+      // FIXED: Clear success message after 3 seconds
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError("Failed to resend OTP");
     }
@@ -422,10 +440,16 @@ export default function RegisterPage() {
       }
 
       // Sync to MongoDB
-      await syncUserToMongoDB(user, {
-        name: user.displayName,
-        avatar: user.photoURL,
-      });
+      try {
+        await syncUserToMongoDB(user, {
+          name: user.displayName,
+          avatar: user.photoURL,
+          authProvider: 'google', // FIXED: Specify Google provider
+        });
+      } catch (syncError: any) {
+        console.error("❌ MongoDB sync failed:", syncError);
+        // Continue anyway - user is authenticated
+      }
 
       if (isAdmin) {
         router.push("/admin/dashboard");
@@ -495,6 +519,7 @@ export default function RegisterPage() {
                 placeholder="Enter 6-digit OTP"
                 maxLength={6}
                 required
+                autoFocus // FIXED: Auto-focus on OTP input
                 style={{
                   textAlign: 'center',
                   fontSize: '24px',
@@ -512,12 +537,13 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={handleResendOTP}
+                disabled={loading} // FIXED: Disable while loading
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#10B981',
+                  color: loading ? '#94A3B8' : '#10B981',
                   textDecoration: 'underline',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   fontSize: '14px'
                 }}
               >
@@ -526,13 +552,19 @@ export default function RegisterPage() {
               <span style={{ margin: '0 8px', color: '#64748B' }}>|</span>
               <button
                 type="button"
-                onClick={() => setStep('form')}
+                onClick={() => {
+                  setStep('form');
+                  setOtp('');
+                  setError('');
+                  setSuccess('');
+                }}
+                disabled={loading} // FIXED: Disable while loading
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#10B981',
+                  color: loading ? '#94A3B8' : '#10B981',
                   textDecoration: 'underline',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   fontSize: '14px'
                 }}
               >
@@ -565,6 +597,19 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {success && (
+            <div className="success-message" style={{
+              padding: '12px',
+              backgroundColor: '#d4edda',
+              color: '#155724',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              textAlign: 'center'
+            }}>
+              <span>{success}</span>
+            </div>
+          )}
+
           <div className="input-group">
             <label htmlFor="name">Full Name</label>
             <input
@@ -575,6 +620,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               placeholder="Enter your full name"
               required
+              disabled={loading} // FIXED: Disable while loading
             />
           </div>
 
@@ -588,6 +634,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               placeholder="Enter your email"
               required
+              disabled={loading} // FIXED: Disable while loading
             />
           </div>
 
@@ -601,6 +648,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               placeholder="Create a password (min. 6 characters)"
               required
+              disabled={loading} // FIXED: Disable while loading
             />
           </div>
 
@@ -614,6 +662,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               placeholder="Confirm your password"
               required
+              disabled={loading} // FIXED: Disable while loading
             />
           </div>
 
@@ -624,6 +673,7 @@ export default function RegisterPage() {
                 checked={agreeTerms}
                 onChange={(e) => setAgreeTerms(e.target.checked)}
                 className="terms-checkbox"
+                disabled={loading} // FIXED: Disable while loading
               />
               <span>
                 I agree to the{" "}
@@ -638,7 +688,7 @@ export default function RegisterPage() {
             </label>
           </div>
 
-          <button type="submit" className="register-btn" disabled={loading}>
+          <button type="submit" className="register-btn" disabled={loading || !agreeTerms}>
             {loading ? "Sending OTP..." : "Send OTP"}
           </button>
 
@@ -650,10 +700,10 @@ export default function RegisterPage() {
             type="button"
             className="google-btn"
             onClick={handleGoogleSignUp}
-            disabled={googleLoading}
+            disabled={googleLoading || loading}
             style={{
-              opacity: googleLoading ? 0.7 : 1,
-              cursor: googleLoading ? 'not-allowed' : 'pointer',
+              opacity: (googleLoading || loading) ? 0.7 : 1,
+              cursor: (googleLoading || loading) ? 'not-allowed' : 'pointer',
             }}
           >
             <svg className="google-icon" viewBox="0 0 24 24">

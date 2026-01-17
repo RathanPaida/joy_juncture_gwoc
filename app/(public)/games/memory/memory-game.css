@@ -352,3 +352,269 @@
     animation: scorePop 1s ease-out forwards;
     pointer-events: none;
   }
+  /* ============================================
+   LOCKED GAME SCREEN STYLES
+   Add these to both memory-game.css and jigsaw-puzzle-game.css
+   ============================================ */
+
+/* Memory Game - Already Played Screen */
+.memory-already-played {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.memory-locked-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  max-width: 500px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: fadeInScale 0.5s ease-out;
+}
+
+.memory-lock-icon {
+  width: 80px;
+  height: 80px;
+  color: #ffffff;
+  margin: 0 auto 1.5rem;
+  opacity: 0.9;
+}
+
+.memory-locked-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.memory-locked-message {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.memory-next-play {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  backdrop-filter: blur(10px);
+}
+
+.memory-next-play-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.memory-next-play-time {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: 'Courier New', monospace;
+}
+
+.memory-locked-hint {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+
+.memory-next-play-info {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.memory-next-play-info p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.memory-next-play-hint {
+  font-size: 1.2rem !important;
+  font-weight: 600;
+  color: #ffd700;
+  font-style: italic;
+}
+
+/* Puzzle Game - Already Played Screen */
+.puzzle-already-played {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.puzzle-locked-card {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  max-width: 500px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: fadeInScale 0.5s ease-out;
+}
+
+.puzzle-lock-icon {
+  width: 80px;
+  height: 80px;
+  color: #ffffff;
+  margin: 0 auto 1.5rem;
+  opacity: 0.9;
+}
+
+.puzzle-locked-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.puzzle-locked-message {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.puzzle-next-play {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  backdrop-filter: blur(10px);
+}
+
+.puzzle-next-play-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.puzzle-next-play-time {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: 'Courier New', monospace;
+}
+
+.puzzle-locked-hint {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+
+.puzzle-next-play-info {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.puzzle-next-play-info p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.puzzle-next-play-hint {
+  font-size: 1.2rem !important;
+  font-weight: 600;
+  color: #ffd700;
+  font-style: italic;
+}
+
+/* Animation */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .memory-locked-card,
+  .puzzle-locked-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .memory-lock-icon,
+  .puzzle-lock-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .memory-locked-title,
+  .puzzle-locked-title {
+    font-size: 1.5rem;
+  }
+
+  .memory-next-play-time,
+  .puzzle-next-play-time {
+    font-size: 1.5rem;
+  }
+}
+/* Game message styles */
+.memory-game-message {
+  margin: 20px auto;
+  max-width: 800px;
+}
+
+.memory-message-card {
+  padding: 15px 20px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.memory-message-card.success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 2px solid #10b981;
+}
+
+.memory-message-card.error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 2px solid #ef4444;
+}
+
+.memory-message-card.info {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 2px solid #3b82f6;
+}
+
+.memory-game-status {
+  background-color: #fef3c7;
+  border: 2px solid #f59e0b;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 15px 0;
+  text-align: center;
+  color: #92400e;
+  font-weight: 500;
+}

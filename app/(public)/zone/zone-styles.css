@@ -1,128 +1,172 @@
-/* Zone Page Styles - Orange & Black Theme */
+/* Zone Page Styles */
 .zone-page {
-    min-height: 100vh;
-    background-color: #0a0a0a; /* Deep black */
-    padding: 24px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+  padding: 2rem;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #ffffff;
+}
+
+.zone-header-section {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem 1rem;
+  background: linear-gradient(135deg, rgba(255, 102, 0, 0.1), rgba(255, 170, 0, 0.05));
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 102, 0, 0.2);
+}
+
+.zone-header {
+  font-size: 3.5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ff6600, #ffaa00, #ff6600);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+  animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.zone-subtitle {
+  font-size: 1.2rem;
+  color: #cccccc;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Stats Bar */
+.zone-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin: 2rem auto 3rem;
+  max-width: 900px;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 102, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.zone-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(255, 102, 0, 0.1);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 102, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.zone-stat:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 102, 0, 0.15);
+  border-color: rgba(255, 102, 0, 0.5);
+  box-shadow: 0 10px 25px rgba(255, 102, 0, 0.2);
+}
+
+.zone-stat-number {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #ff6600;
+  margin-bottom: 0.5rem;
+}
+
+.zone-stat-label {
+  font-size: 0.9rem;
+  color: #aaaaaa;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+
+/* Games Grid */
+.zone-games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto 3rem;
+}
+
+/* Footer */
+.zone-footer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  background: rgba(255, 102, 0, 0.05);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 102, 0, 0.1);
+}
+
+.zone-footer-text {
+  font-size: 1.1rem;
+  color: #bbbbbb;
+  line-height: 1.7;
+}
+
+.zone-footer-text strong {
+  color: #ffaa00;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .zone-page {
+    padding: 1rem;
   }
-  
+
   .zone-header {
     font-size: 2.5rem;
-    font-weight: 800;
-    text-align: center;
-    margin-bottom: 48px;
-    color: #ff6b35; /* Primary orange */
-    text-transform: uppercase;
-    letter-spacing: 2px;
   }
-  
-  .zone-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 40px;
-    max-width: 72rem;
-    margin: 0 auto;
-  }
-  
-  @media (min-width: 768px) {
-    .zone-container {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-  
-  .zone-card {
-    background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
-    border-radius: 16px;
-    overflow: hidden;
-    border: 2px solid #333;
-    box-shadow: 0 8px 32px rgba(255, 107, 53, 0.1);
-    transition: all 0.3s ease;
-    position: relative;
-  }
-  
-  .zone-card:hover {
-    transform: translateY(-8px);
-    border-color: #ff6b35;
-    box-shadow: 0 16px 48px rgba(255, 107, 53, 0.2);
-  }
-  
-  .zone-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #ff6b35, #ff8e53);
-  }
-  
-  .card-image {
-    width: 100%;
-    height: 200px;
-    background-color: #1a1a1a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 2px solid #333;
-  }
-  
-  .card-image-placeholder {
-    font-size: 4rem;
-    color: #ff6b35;
-    opacity: 0.3;
-  }
-  
-  .card-content {
-    padding: 24px;
-  }
-  
-  .card-title {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #ff8e53; /* Lighter orange */
-    margin-bottom: 12px;
-    letter-spacing: 1px;
-  }
-  
-  .card-description {
-    color: #b3b3b3;
+
+  .zone-subtitle {
     font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 20px;
+    padding: 0 1rem;
   }
-  
-  .card-link {
-    display: inline-block;
-    background: linear-gradient(90deg, #ff6b35, #ff8e53);
-    color: #0a0a0a;
-    padding: 12px 24px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
-    border: none;
-    cursor: pointer;
+
+  .zone-stats-bar {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1.5rem;
+    margin: 2rem 1rem;
   }
-  
-  .card-link:hover {
-    background: linear-gradient(90deg, #ff8e53, #ff6b35);
-    transform: scale(1.05);
-    box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4);
+
+  .zone-stat-number {
+    font-size: 2.5rem;
   }
-  
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .zone-page {
-      padding: 16px;
-    }
-    
-    .zone-header {
-      font-size: 2rem;
-      margin-bottom: 32px;
-    }
-    
-    .card-content {
-      padding: 20px;
-    }
+
+  .zone-games-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 0 1rem;
   }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .zone-games-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1400px) {
+  .zone-games-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1401px) {
+  .zone-games-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

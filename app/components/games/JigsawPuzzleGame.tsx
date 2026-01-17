@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { 
-  Timer, 
-  RefreshCw, 
-  Trophy, 
-  Eye, 
-  EyeOff, 
+import {
+  Timer,
+  RefreshCw,
+  Trophy,
+  Eye,
+  EyeOff,
   HelpCircle,
   Puzzle,
   Zap,
@@ -16,14 +16,13 @@ import {
   Coins,
   Lock,
   Grid,
-  AlertCircle
+  AlertCircle,
+  Gamepad2
 } from "lucide-react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { getAuth } from "firebase/auth";
 import "./jigsaw-puzzle-game.css";
-
-/* ---------------- TYPES ---------------- */
 
 interface User {
   _id: string;
@@ -58,74 +57,13 @@ interface PuzzlePiece {
 }
 
 const JIGSAW_GAME_ID = "jigsaw-puzzle";
-const JIGSAW_GAME_NAME = "Jigsaw Puzzle";
-
-/* ---------------- HELPER FUNCTIONS ---------------- */
-
-// Check if user has played this game today (USE UTC)
-const hasPlayedToday = (user: User | null, gameId: string): boolean => {
-  if (!user || !user.gamesPlayed) return false;
-
-  // Use UTC to avoid timezone issues (same as backend)
-  const now = new Date();
-  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
-  const gameRecord = user.gamesPlayed.find(
-    (game) => game.gameId === gameId
-  );
-
-  if (!gameRecord) return false;
-
-  const playedDate = new Date(gameRecord.playedAt);
-  const playedUTC = new Date(Date.UTC(
-    playedDate.getUTCFullYear(),
-    playedDate.getUTCMonth(),
-    playedDate.getUTCDate()
-  ));
-
-  return playedUTC.getTime() === todayUTC.getTime();
-};
-
-// Get next available play time (USE UTC)
-const getNextPlayTime = (user: User | null, gameId: string): string => {
-  if (!user || !user.gamesPlayed) return "Play Now";
-
-  const gameRecord = user.gamesPlayed.find(
-    (game) => game.gameId === gameId
-  );
-
-  if (!gameRecord) return "Play Now";
-
-  // Use UTC dates (same as backend)
-  const playedDate = new Date(gameRecord.playedAt);
-  const playedUTC = new Date(Date.UTC(
-    playedDate.getUTCFullYear(),
-    playedDate.getUTCMonth(),
-    playedDate.getUTCDate()
-  ));
-  
-  // Tomorrow in UTC
-  const tomorrowUTC = new Date(playedUTC);
-  tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
-  
-  // Current time in UTC
-  const nowUTC = new Date();
-  
-  const diff = tomorrowUTC.getTime() - nowUTC.getTime();
-  
-  if (diff <= 0) return "Play Now";
-  
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  } else {
-    return `${minutes}m`;
-  }
-};
-
-/* ---------------- COMPONENT ---------------- */
+const JIGSAW_GAME_NAME = "Jigsaw Puzzle Challenge";
+const ROWS = 4;
+const COLS = 4;
+const TOTAL_PIECES = ROWS * COLS;
+const HINT_COUNT = 2;
+const BASE_COINS = 10;
+const TIME_LIMIT = 420;
 
 export default function JigsawPuzzleGame() {
   const router = useRouter();
@@ -150,29 +88,84 @@ export default function JigsawPuzzleGame() {
   const [canPlay, setCanPlay] = useState<boolean>(true);
   const [nextPlayTime, setNextPlayTime] = useState<string>("");
   const [gameMessage, setGameMessage] = useState<string>("");
-  
+
   const gridRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const gamesFetched = useRef<boolean>(false);
 
-  // Fixed 4x4 grid
-  const ROWS = 4;
-  const COLS = 4;
-  const TOTAL_PIECES = ROWS * COLS;
-  const HINT_COUNT = 2;
-  const BASE_COINS = 50;
-  const TIME_LIMIT = 420; // 7 minutes
+  const hasPlayedToday = (user: User | null, gameId: string): boolean => {
+    if (!user || !user.gamesPlayed) return false;
 
-  /* ---------------- GET TOKEN HELPER ---------------- */
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    // Check ALL records for this game, not just the first one found
+    return user.gamesPlayed.some((game) => {
+      if (game.gameId !== gameId) return false;
+
+      const playedDate = new Date(game.playedAt);
+      const playedUTC = new Date(Date.UTC(
+        playedDate.getUTCFullYear(),
+        playedDate.getUTCMonth(),
+        playedDate.getUTCDate()
+      ));
+
+      return playedUTC.getTime() === todayUTC.getTime();
+    });
+  };
+
+  const getNextPlayTime = (user: User | null, gameId: string): string => {
+    if (!user || !user.gamesPlayed) return "Play Now";
+
+    // Find the LATEST play record for this game
+    const gameRecords = user.gamesPlayed
+      .filter((game) => game.gameId === gameId)
+      .sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
+
+    if (gameRecords.length === 0) return "Play Now";
+
+    const lastPlayed = gameRecords[0];
+    const playedDate = new Date(lastPlayed.playedAt);
+    const playedUTC = new Date(Date.UTC(
+      playedDate.getUTCFullYear(),
+      playedDate.getUTCMonth(),
+      playedDate.getUTCDate()
+    ));
+
+    const todayUTC = new Date(Date.UTC(
+      new Date().getUTCFullYear(),
+      new Date().getUTCMonth(),
+      new Date().getUTCDate()
+    ));
+
+    // If played today (or in future??), calculate time until tomorrow
+    if (playedUTC.getTime() >= todayUTC.getTime()) {
+      const tomorrowUTC = new Date(playedUTC);
+      tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
+
+      const nowUTC = new Date();
+      const diff = tomorrowUTC.getTime() - nowUTC.getTime();
+
+      if (diff <= 0) return "Play Now";
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      } else {
+        return `${minutes}m`;
+      }
+    }
+
+    return "Play Now";
+  };
+
   const getIdToken = async (): Promise<string | null> => {
     try {
       const auth = getAuth();
       const currentUser = auth.currentUser;
-      
-      if (!currentUser) {
-        console.error("No Firebase user found");
-        return null;
-      }
-      
+      if (!currentUser) return null;
       return await currentUser.getIdToken();
     } catch (error) {
       console.error("Error getting ID token:", error);
@@ -180,53 +173,26 @@ export default function JigsawPuzzleGame() {
     }
   };
 
-  /* ---------------- FETCH USER DATA HELPER ---------------- */
   const fetchUserData = useCallback(async () => {
     try {
       const token = await getIdToken();
-      
-      if (!token) {
-        console.error("Failed to get authentication token");
-        return null;
-      }
-      
+      if (!token) return null;
+
       const res = await fetch("/api/user/me", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (!res.ok) {
-        console.error("Failed to fetch user data:", res.status);
-        return null;
-      }
-
+      if (!res.ok) return null;
       const data = await res.json();
-      if (data.success) {
-        console.log("✅ User data fetched for Jigsaw Puzzle:", {
-          name: data.user.name,
-          userPoints: data.user.userPoints,
-          gamesPlayedCount: data.user.gamesPlayed?.length,
-          hasPlayedToday: hasPlayedToday(data.user, JIGSAW_GAME_ID)
-        });
-        return data.user;
-      } else {
-        console.error("User data fetch unsuccessful:", data);
-        return null;
-      }
+      return data.success ? data.user : null;
     } catch (error) {
       console.error("Error fetching user:", error);
       return null;
     }
   }, []);
 
-  /* ---------------- AUTHENTICATION CHECK ---------------- */
-
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
-
+    if (authLoading) return;
     if (!authUser) {
       router.push("/login");
       return;
@@ -235,25 +201,24 @@ export default function JigsawPuzzleGame() {
     const initUser = async () => {
       const userData = await fetchUserData();
       if (userData) {
+        console.log("User data loaded");
+
         setUser(userData);
-        
-        // Check if user can play today
         const playedToday = hasPlayedToday(userData, JIGSAW_GAME_ID);
-        console.log("🔍 Can user play Jigsaw today?", {
-          playedToday,
-          gameId: JIGSAW_GAME_ID,
-          gamesPlayed: userData.gamesPlayed?.filter(g => g.gameId === JIGSAW_GAME_ID)
-        });
-        
+
         setCanPlay(!playedToday);
-        
+
         if (playedToday) {
           const nextTime = getNextPlayTime(userData, JIGSAW_GAME_ID);
-          console.log("⏰ Next play time:", nextTime);
           setNextPlayTime(nextTime);
           setGameMessage("🚫 You have already played Jigsaw Puzzle today!");
         }
-        
+
+        // Fetch games after user data is loaded
+        if (!gamesFetched.current && !playedToday) {
+          fetchGames();
+        }
+
         setLoading(false);
       } else {
         router.push("/login");
@@ -263,18 +228,47 @@ export default function JigsawPuzzleGame() {
     initUser();
   }, [authUser, authLoading, router, fetchUserData]);
 
-  /* ---------------- UPDATE TIMER FOR NEXT PLAY ---------------- */
   useEffect(() => {
     if (!canPlay) {
       const interval = setInterval(() => {
         setNextPlayTime(getNextPlayTime(user, JIGSAW_GAME_ID));
-      }, 60000); // Update every minute
-
+      }, 60000);
       return () => clearInterval(interval);
     }
   }, [canPlay, user]);
 
-  /* ---------------- HELPER FUNCTIONS ---------------- */
+  const fetchGames = async () => {
+    if (gamesFetched.current) return;
+
+    try {
+      console.log("Fetching games...");
+      const response = await fetch('/api/games/public');
+      if (!response.ok) return;
+
+      const data = await response.json();
+      if (data.success && data.data && data.data.length > 0) {
+        const formattedGames = data.data.map((game: any) => ({
+          id: game.id?.toString() || Math.random().toString(36).substr(2, 9),
+          name: game.name || 'Unnamed Game',
+          imageUrl: game.imageUrl || game.image || 'https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=600&h=400&fit=crop',
+          category: Array.isArray(game.category) ? game.category : [game.category || ''],
+          players: game.players || '2-4',
+          duration: game.duration || '30-60 min'
+        }));
+
+        setGames(formattedGames);
+        gamesFetched.current = true;
+
+        if (formattedGames.length > 0) {
+          const randomGame = formattedGames[Math.floor(Math.random() * formattedGames.length)];
+          setCurrentGame(randomGame);
+          console.log("Set current game:", randomGame.name);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching games:', err);
+    }
+  };
 
   const getPieceBackgroundPosition = (row: number, col: number): string => {
     const xPercent = (col / (COLS - 1)) * 100;
@@ -295,46 +289,13 @@ export default function JigsawPuzzleGame() {
     return shuffled;
   };
 
-  /* ---------------- FETCH GAMES ---------------- */
-
-  useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        const response = await fetch('/api/games/public');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.data && data.data.length > 0) {
-          const formattedGames = data.data.map((game: any) => ({
-            id: game.id?.toString() || Math.random().toString(36).substr(2, 9),
-            name: game.name || 'Unnamed Game',
-            imageUrl: game.imageUrl || game.image || 'https://images.unsplash.com/photo-1546484475-7f7bd55792da?w=600&h=400&fit=crop',
-            category: Array.isArray(game.category) ? game.category : [game.category || ''],
-            players: game.players || '2-4',
-            duration: game.duration || '30-60 min'
-          }));
-          
-          setGames(formattedGames);
-          if (formattedGames.length > 0) {
-            setCurrentGame(formattedGames[Math.floor(Math.random() * formattedGames.length)]);
-          }
-        }
-      } catch (err: any) {
-        console.error('Error fetching games:', err);
-      }
-    };
-
-    fetchGames();
-  }, []);
-
-  /* ---------------- INITIALIZE GAME ---------------- */
-
   const initializeGame = useCallback(() => {
-    if (!currentGame || !canPlay) return;
+    if (!currentGame || !canPlay) {
+      console.log("Cannot initialize game - missing:", { currentGame, canPlay });
+      return;
+    }
+
+    console.log("Initializing game with:", currentGame.name);
 
     const pieces: PuzzlePiece[] = [];
     for (let row = 0; row < ROWS; row++) {
@@ -353,7 +314,7 @@ export default function JigsawPuzzleGame() {
 
     const initialGrid = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
     const shuffledPieces = shufflePieces([...pieces]);
-    
+
     setPuzzlePieces(shuffledPieces);
     setGridState(initialGrid);
     setPlacedPieces(0);
@@ -371,13 +332,13 @@ export default function JigsawPuzzleGame() {
     }
   }, [currentGame, canPlay]);
 
+  // Initialize game when currentGame is set and user can play
   useEffect(() => {
-    if (currentGame && canPlay) {
+    if (currentGame && canPlay && puzzlePieces.length === 0) {
+      console.log("Auto-initializing game on mount");
       initializeGame();
     }
-  }, [currentGame, canPlay, initializeGame]);
-
-  /* ---------------- TIMER ---------------- */
+  }, [currentGame, canPlay, puzzlePieces.length, initializeGame]);
 
   useEffect(() => {
     if (gameStarted && !gameCompleted && canPlay) {
@@ -394,8 +355,6 @@ export default function JigsawPuzzleGame() {
       }
     };
   }, [gameStarted, gameCompleted, canPlay]);
-
-  /* ---------------- GAME LOGIC ---------------- */
 
   const handlePieceSelect = (piece: PuzzlePiece) => {
     if (piece.isPlaced || gameCompleted || !canPlay) return;
@@ -422,14 +381,14 @@ export default function JigsawPuzzleGame() {
     };
     setGridState(newGridState);
 
-    setPuzzlePieces(prev => prev.map(p => 
-      p.id === selectedPiece.id 
+    setPuzzlePieces(prev => prev.map(p =>
+      p.id === selectedPiece.id
         ? { ...p, isPlaced: true, isCorrect: isCorrect }
         : p
     ));
 
     setMoves(prev => prev + 1);
-    
+
     if (isCorrect) {
       setPlacedPieces(prev => prev + 1);
       setFeedbackMessage("✅ Correct placement!");
@@ -437,7 +396,7 @@ export default function JigsawPuzzleGame() {
     } else {
       setFeedbackMessage("❌ Wrong position! Try again.");
       setTimeout(() => setFeedbackMessage(""), 1500);
-      
+
       setTimeout(() => {
         setGridState(prev => {
           const updatedGrid = [...prev];
@@ -446,9 +405,9 @@ export default function JigsawPuzzleGame() {
           }
           return updatedGrid;
         });
-        
-        setPuzzlePieces(prev => prev.map(p => 
-          p.id === selectedPiece.id 
+
+        setPuzzlePieces(prev => prev.map(p =>
+          p.id === selectedPiece.id
             ? { ...p, isPlaced: false, isCorrect: false }
             : p
         ));
@@ -460,18 +419,16 @@ export default function JigsawPuzzleGame() {
 
   const useHint = () => {
     if (hintsUsed >= HINT_COUNT || gameCompleted || !canPlay) return;
-    
+
     const unplacedPiece = puzzlePieces.find(p => !p.isPlaced);
     if (!unplacedPiece) return;
 
     setSelectedPiece(unplacedPiece);
     setHintsUsed(prev => prev + 1);
-    
+
     setFeedbackMessage(`💡 Hint: Piece ${unplacedPiece.id + 1} belongs at row ${unplacedPiece.correctRow + 1}, column ${unplacedPiece.correctCol + 1}`);
     setTimeout(() => setFeedbackMessage(""), 3000);
   };
-
-  /* ---------------- CALCULATE COINS ---------------- */
 
   const calculateCoins = () => {
     const timeBonus = Math.max(0, Math.floor((TIME_LIMIT - time) / 10));
@@ -482,11 +439,8 @@ export default function JigsawPuzzleGame() {
     return totalCoins;
   };
 
-  /* ---------------- FINISH GAME ---------------- */
-
   const finishGame = async () => {
     setGameCompleted(true);
-    
     const coins = calculateCoins();
     setEarnedCoins(coins);
 
@@ -495,29 +449,15 @@ export default function JigsawPuzzleGame() {
       return;
     }
 
-    console.log("🎮 Jigsaw Puzzle completed! Attempting to mark as played and add coins:", { 
-      gameId: JIGSAW_GAME_ID,
-      gameName: JIGSAW_GAME_NAME,
-      userId: user._id, 
-      coinsToAdd: coins,
-      currentPoints: user.userPoints
-    });
-
     try {
       const token = await getIdToken();
-      
       if (!token) {
-        console.error("❌ Failed to get authentication token");
         setGameMessage("❌ Failed to save your progress. Please check your connection.");
         return;
       }
 
-      console.log("✅ Token obtained successfully");
-
-      // Calculate score for the game
       const score = Math.max(0, 1000 - Math.floor(time / 10) - (moves * 2) - (hintsUsed * 100));
 
-      // Mark game as played (once per day)
       const markPlayedResponse = await fetch("/api/user/markGamePlayed", {
         method: "POST",
         headers: {
@@ -534,22 +474,12 @@ export default function JigsawPuzzleGame() {
       });
 
       const responseData = await markPlayedResponse.json();
-      
+
       if (!markPlayedResponse.ok) {
-        console.error("❌ Failed to mark game as played:", responseData);
-        
-        // Check for different error messages
-        if (responseData.error?.includes("Game already played") || 
-            responseData.error?.includes("once per day") ||
-            responseData.error?.includes("once.")) {
-          console.log("⚠️ Game already played today");
-          
-          // Set message for user
+        if (responseData.error?.includes("Game already played") ||
+          responseData.error?.includes("once per day")) {
           setGameMessage("🚫 You have already played this game today! Come back tomorrow.");
-          
           setCanPlay(false);
-          
-          // Update next play time
           const tempUser = {
             ...user,
             gamesPlayed: [
@@ -565,57 +495,36 @@ export default function JigsawPuzzleGame() {
             ]
           };
           setNextPlayTime(getNextPlayTime(tempUser, JIGSAW_GAME_ID));
-          
-          // Refresh user data
-          const refreshedUser = await fetchUserData();
-          if (refreshedUser) {
-            setUser(refreshedUser);
-          }
           return;
         }
-        
         setGameMessage("❌ Failed to save your game progress. Please try again.");
-        throw new Error(responseData.error || "Failed to save your game progress");
+        return;
       }
 
-      console.log("✅ Game marked as played:", responseData);
-
-      // Game saved successfully
       if (responseData.success) {
-        // Update user state with new points
-        setUser(prev => prev ? {
-          ...prev,
-          userPoints: responseData.totalPoints || prev.userPoints
-        } : prev);
-        
+        // Update local state immediately
+        const newGameRecord = {
+          gameId: JIGSAW_GAME_ID,
+          gameName: JIGSAW_GAME_NAME,
+          playedAt: new Date(),
+          score: score,
+          pointsEarned: coins,
+          completed: true
+        };
+
+        const updatedUser = user ? {
+          ...user,
+          userPoints: responseData.totalPoints || user.userPoints,
+          gamesPlayed: [...(user.gamesPlayed || []), newGameRecord]
+        } : null;
+
+        if (updatedUser) {
+          setUser(updatedUser);
+          setNextPlayTime(getNextPlayTime(updatedUser, JIGSAW_GAME_ID));
+        }
+
         setCanPlay(false);
-        
-        // Get next play time
-        if (user.gamesPlayed) {
-          const updatedGames = [...user.gamesPlayed, {
-            gameId: JIGSAW_GAME_ID,
-            gameName: JIGSAW_GAME_NAME,
-            playedAt: new Date(),
-            score: score,
-            pointsEarned: coins,
-            completed: true
-          }];
-          const tempUser = { ...user, gamesPlayed: updatedGames };
-          const nextTime = getNextPlayTime(tempUser, JIGSAW_GAME_ID);
-          console.log("⏰ Setting next play time to:", nextTime);
-          setNextPlayTime(nextTime);
-        }
-        
-        // Set success message
         setGameMessage(`🎉 Congratulations! You earned ${coins} coins! Come back tomorrow to play again.`);
-        
-        // Also refresh full user data
-        const refreshedUser = await fetchUserData();
-        if (refreshedUser) {
-          console.log("✅ User data refreshed successfully!");
-          console.log("💰 New user points:", refreshedUser.userPoints);
-          setUser(refreshedUser);
-        }
       }
 
     } catch (error) {
@@ -624,27 +533,11 @@ export default function JigsawPuzzleGame() {
     }
   };
 
-  /* ---------------- CHECK IF PUZZLE COMPLETE ---------------- */
-
   useEffect(() => {
     if (placedPieces === TOTAL_PIECES && TOTAL_PIECES > 0 && !gameCompleted && canPlay) {
       finishGame();
     }
   }, [placedPieces, gameCompleted, canPlay]);
-
-  /* ---------------- CALCULATE SCORE ---------------- */
-
-  const calculateScore = () => {
-    if (!gameCompleted) return 0;
-    
-    const timeBonus = Math.max(0, 1000 - Math.floor(time / 10));
-    const movesBonus = Math.max(0, 500 - moves * 2);
-    const hintPenalty = hintsUsed * 100;
-    
-    return Math.max(0, (timeBonus + movesBonus - hintPenalty) * 2);
-  };
-
-  /* ---------------- FORMAT TIME ---------------- */
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -652,18 +545,14 @@ export default function JigsawPuzzleGame() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  /* ---------------- NEXT PUZZLE ---------------- */
-
   const nextPuzzle = () => {
     if (games.length > 0) {
       const currentIndex = games.findIndex(g => g.id === currentGame?.id);
       const nextIndex = (currentIndex + 1) % games.length;
       setCurrentGame(games[nextIndex]);
-      initializeGame();
+      // Don't auto-initialize here, let the useEffect handle it
     }
   };
-
-  /* ---------------- UI RENDER ---------------- */
 
   if (authLoading) {
     return (
@@ -676,7 +565,7 @@ export default function JigsawPuzzleGame() {
   if (loading) {
     return (
       <div className="puzzle-loading-screen">
-        <div className="puzzle-loading-message">Loading game data...</div>
+        <div className="puzzle-loading-message">Loading game...</div>
       </div>
     );
   }
@@ -689,20 +578,17 @@ export default function JigsawPuzzleGame() {
     );
   }
 
-  // Show "Already Played" screen
-  if (!canPlay && !gameStarted) {
-    console.log("🔒 Showing already played screen");
+  if (!canPlay) {
     return (
       <div className="puzzle-game-container">
         <div className="puzzle-game-wrapper">
-          {/* Header */}
           <header className="puzzle-game-header">
             <div className="puzzle-header-card">
               <div className="puzzle-header-content">
                 <div>
                   <h1 className="puzzle-game-title">
                     <Puzzle className="puzzle-title-icon" />
-                    Jigsaw Puzzle Game
+                    Jigsaw Puzzle Challenge
                   </h1>
                   <p className="puzzle-welcome-message">
                     Welcome, <span className="puzzle-username">{user.name}</span>!
@@ -719,38 +605,27 @@ export default function JigsawPuzzleGame() {
             </div>
           </header>
 
-          {/* Already Played Message - SIMPLIFIED */}
           <div className="puzzle-already-played">
             <div className="puzzle-locked-card">
               <AlertCircle className="puzzle-lock-icon" />
-              <h2 className="puzzle-locked-title">Daily Limit Reached</h2>
+              <h2 className="puzzle-locked-title">Game Already Played Today</h2>
               <p className="puzzle-locked-message">
-                You've already played Jigsaw Puzzle today!
+                {gameMessage || "🚫 You have already played Jigsaw Puzzle today!"}
               </p>
-              
               <div className="puzzle-next-play-info">
-                <p className="puzzle-next-play-label">Come back in:</p>
+                <p className="puzzle-next-play-label">Next available in:</p>
                 <div className="puzzle-next-play-time">{nextPlayTime || "Calculating..."}</div>
               </div>
-              
               <p className="puzzle-locked-hint">
-                Play again tomorrow for more coins!
+                Come back tomorrow for another challenge!
               </p>
-              
-              <div className="puzzle-action-buttons">
-                <button
-                  onClick={() => router.push("/home")}
-                  className="puzzle-button puzzle-button-primary"
-                >
-                  Return to Home
-                </button>
-                <button
-                  onClick={() => router.push("/games")}
-                  className="puzzle-button puzzle-button-secondary"
-                >
-                  Browse Other Games
-                </button>
-              </div>
+              <button
+                onClick={() => router.push("/zone")}
+                className="puzzle-button puzzle-button-primary"
+              >
+                <Gamepad2 className="puzzle-button-icon" />
+                Return to Game Zone
+              </button>
             </div>
           </div>
         </div>
@@ -766,19 +641,16 @@ export default function JigsawPuzzleGame() {
     );
   }
 
-  const score = calculateScore();
-
   return (
     <div className="puzzle-game-container">
       <div className="puzzle-game-wrapper">
-        {/* Header with User Info */}
         <header className="puzzle-game-header">
           <div className="puzzle-header-card">
             <div className="puzzle-header-content">
               <div>
                 <h1 className="puzzle-game-title">
                   <Puzzle className="puzzle-title-icon" />
-                  Jigsaw Puzzle Game (4×4)
+                  Jigsaw Puzzle Challenge
                 </h1>
                 <p className="puzzle-welcome-message">
                   Welcome, <span className="puzzle-username">{user.name}</span>! Assemble the puzzle to earn coins.
@@ -795,7 +667,6 @@ export default function JigsawPuzzleGame() {
           </div>
         </header>
 
-        {/* Game Stats */}
         <div className="puzzle-stats-container">
           <div className="puzzle-stats-grid">
             <div className="puzzle-stat-card puzzle-stat-time">
@@ -831,20 +702,15 @@ export default function JigsawPuzzleGame() {
             </div>
           </div>
 
-          {/* Feedback Message */}
           {feedbackMessage && (
-            <div className={`puzzle-feedback-message ${
-              feedbackMessage.includes("✅") 
-                ? "puzzle-feedback-success" 
-                : feedbackMessage.includes("❌")
-                ? "puzzle-feedback-error"
-                : "puzzle-feedback-hint"
-            }`}>
+            <div className={`puzzle-feedback-message ${feedbackMessage.includes("✅") ? "puzzle-feedback-success" :
+              feedbackMessage.includes("❌") ? "puzzle-feedback-error" :
+                "puzzle-feedback-hint"
+              }`}>
               {feedbackMessage}
             </div>
           )}
 
-          {/* Game Message */}
           {gameMessage && (
             <div className="puzzle-game-message">
               <div className={`puzzle-message-card ${gameMessage.includes("🎉") ? 'success' : gameMessage.includes("🚫") ? 'error' : 'info'}`}>
@@ -852,63 +718,58 @@ export default function JigsawPuzzleGame() {
               </div>
             </div>
           )}
+        </div>
 
-          {/* Game Controls */}
-          <div className="puzzle-controls-container">
-            <div className="puzzle-controls-group">
-              <button
-                onClick={initializeGame}
-                className="puzzle-button puzzle-button-restart"
-              >
-                <RefreshCw className="puzzle-button-icon" />
-                Restart Puzzle
-              </button>
+        <div className="puzzle-controls-container">
+          <div className="puzzle-controls-group">
+            <button
+              onClick={initializeGame}
+              className="puzzle-button puzzle-button-restart"
+            >
+              <RefreshCw className="puzzle-button-icon" />
+              New Puzzle
+            </button>
 
-              <button
-                onClick={nextPuzzle}
-                className="puzzle-button puzzle-button-next"
-              >
-                Next Game
-              </button>
+            <button
+              onClick={nextPuzzle}
+              className="puzzle-button puzzle-button-secondary"
+            >
+              Next Puzzle
+            </button>
 
-              <button
-                onClick={useHint}
-                disabled={hintsUsed >= HINT_COUNT || gameCompleted}
-                className="puzzle-button puzzle-button-hint"
-              >
-                <HelpCircle className="puzzle-button-icon" />
-                Use Hint ({HINT_COUNT - hintsUsed} left)
-              </button>
-            </div>
+            <button
+              onClick={useHint}
+              disabled={hintsUsed >= HINT_COUNT || gameCompleted}
+              className="puzzle-button puzzle-button-hint"
+            >
+              <HelpCircle className="puzzle-button-icon" />
+              Use Hint ({HINT_COUNT - hintsUsed} left)
+            </button>
 
-            <div className="puzzle-view-controls">
-              <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="puzzle-button puzzle-button-secondary"
-              >
-                {showPreview ? <EyeOff className="puzzle-button-icon" /> : <Eye className="puzzle-button-icon" />}
-                {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className="puzzle-button puzzle-button-secondary"
+            >
+              {showPreview ? <EyeOff className="puzzle-button-icon" /> : <Eye className="puzzle-button-icon" />}
+              {showPreview ? 'Hide' : 'Show'} Preview
+            </button>
 
-              <button
-                onClick={() => setShowGrid(!showGrid)}
-                className="puzzle-button puzzle-button-secondary"
-              >
-                <Grid className="puzzle-button-icon" />
-                {showGrid ? 'Hide' : 'Show'} Grid
-              </button>
-            </div>
+            <button
+              onClick={() => setShowGrid(!showGrid)}
+              className="puzzle-button puzzle-button-secondary"
+            >
+              <Grid className="puzzle-button-icon" />
+              {showGrid ? 'Hide' : 'Show'} Grid
+            </button>
           </div>
         </div>
 
-        {/* Main Game Area */}
         <div className="puzzle-game-area">
-          {/* Puzzle Board */}
           <div className="puzzle-board-section">
             <div className="puzzle-board-card">
               <div className="puzzle-board-header">
                 <h2 className="puzzle-board-title">
-                  {currentGame?.name || 'Game Puzzle'}
+                  {currentGame?.name || 'Jigsaw Puzzle'}
                 </h2>
                 {selectedPiece && (
                   <div className="puzzle-selected-indicator">
@@ -918,28 +779,26 @@ export default function JigsawPuzzleGame() {
                 )}
               </div>
 
-              {/* Puzzle Grid */}
-              <div 
+              <div
                 ref={gridRef}
                 className="puzzle-grid-container"
               >
-                <div className="puzzle-grid" style={{ 
-                  gridTemplateRows: `repeat(${ROWS}, 1fr)`, 
-                  gridTemplateColumns: `repeat(${COLS}, 1fr)` 
+                <div className="puzzle-grid" style={{
+                  gridTemplateRows: `repeat(${ROWS}, 1fr)`,
+                  gridTemplateColumns: `repeat(${COLS}, 1fr)`
                 }}>
                   {Array.from({ length: ROWS }).map((_, rowIndex) => (
                     Array.from({ length: COLS }).map((_, colIndex) => {
                       const pieceInCell = gridState[rowIndex]?.[colIndex];
-                      
+
                       return (
                         <div
                           key={`${rowIndex}-${colIndex}`}
                           onClick={() => handleGridCellClick(rowIndex, colIndex)}
-                          className={`puzzle-grid-cell ${showGrid ? 'puzzle-grid-show' : ''} ${
-                            pieceInCell ? (
-                              pieceInCell.isCorrect ? 'puzzle-cell-correct' : 'puzzle-cell-wrong'
-                            ) : 'puzzle-cell-empty'
-                          }`}
+                          className={`puzzle-grid-cell ${showGrid ? 'puzzle-grid-show' : ''} ${pieceInCell ? (
+                            pieceInCell.isCorrect ? 'puzzle-cell-correct' : 'puzzle-cell-wrong'
+                          ) : 'puzzle-cell-empty'
+                            }`}
                         >
                           {pieceInCell && (
                             <div
@@ -967,15 +826,14 @@ export default function JigsawPuzzleGame() {
                     })
                   ))}
                 </div>
-                
-                {/* Game Completed Overlay */}
+
                 {gameCompleted && (
                   <div className="puzzle-completion-overlay">
                     <div className="puzzle-completion-card">
                       <div className="puzzle-completion-emoji">🎉</div>
                       <h3 className="puzzle-completion-title">Puzzle Complete!</h3>
                       <p className="puzzle-completion-text">
-                        You finished in {formatTime(time)} with {moves} moves
+                        Time: {formatTime(time)} • Moves: {moves}
                       </p>
                       <div className="puzzle-coins-earned">
                         +{earnedCoins} coins earned!
@@ -983,43 +841,40 @@ export default function JigsawPuzzleGame() {
                       <div className="puzzle-total-coins">
                         Total coins: <span className="puzzle-total-coins-value">{user.userPoints}</span>
                       </div>
-                      
-                      {/* Show game message if exists */}
+
                       {gameMessage && (
                         <div className="puzzle-game-status">
                           <p>{gameMessage}</p>
                         </div>
                       )}
-                      
+
                       <div className="puzzle-next-play-info">
-                        <p>Come back tomorrow to play again!</p>
+                        <p>Come back tomorrow for a new puzzle!</p>
                         <p className="puzzle-next-play-hint">Next play available: {nextPlayTime || "Calculating..."}</p>
                       </div>
                       <button
-                        onClick={() => router.push("/home")}
+                        onClick={() => router.push("/zone")}
                         className="puzzle-button puzzle-button-primary"
                       >
-                        Return to Home
+                        <Gamepad2 className="puzzle-button-icon" />
+                        Return to Game Zone
                       </button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Instructions */}
               {!gameStarted && (
                 <div className="puzzle-instructions">
                   <p className="puzzle-instructions-text">
-                    💡 <strong>How to play:</strong> Click a piece from the side tray, then click on an empty grid cell to place it. Correct pieces stay, wrong pieces disappear. Complete all {TOTAL_PIECES} pieces to win and earn coins!
+                    💡 <strong>How to play:</strong> Click a piece from the side tray, then click on an empty grid cell to place it. Correct pieces stay, wrong pieces disappear. Complete all {TOTAL_PIECES} pieces to win!
                   </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Side Panels */}
           <div className="puzzle-side-panels">
-            {/* Game Preview */}
             {showPreview && currentGame && (
               <div className="puzzle-preview-card">
                 <h3 className="puzzle-side-title">
@@ -1034,12 +889,11 @@ export default function JigsawPuzzleGame() {
                   />
                 </div>
                 <p className="puzzle-preview-caption">
-                  Complete this 4×4 puzzle
+                  Complete this {ROWS}×{COLS} puzzle
                 </p>
               </div>
             )}
 
-            {/* Puzzle Pieces Tray */}
             <div className="puzzle-pieces-tray">
               <h3 className="puzzle-side-title">
                 Puzzle Pieces ({puzzlePieces.filter(p => !p.isPlaced).length} remaining)
@@ -1070,13 +924,6 @@ export default function JigsawPuzzleGame() {
             </div>
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className="puzzle-game-footer">
-          <p>
-            🧩 Jigsaw Puzzle Game • 4×4 Grid • {games.length} games available • Once per day
-          </p>
-        </footer>
       </div>
     </div>
   );
