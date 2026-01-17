@@ -24,7 +24,10 @@ import {
   Package,
   CreditCard,
   Users,
-  Coins
+  Coins,
+  Gamepad2,
+  Flame,
+  Gift
 } from 'lucide-react';
 import './profile.css';
 
@@ -87,19 +90,31 @@ interface WalletInfo {
   transactions: number;
 }
 
+interface Transaction {
+  _id: string;
+  type: string;
+  amount: number;
+  description: string;
+  status: string;
+  createdAt: string;
+  metadata?: any;
+}
+
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const auth = getAuth();
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'events' | 'products' | 'blogs'>('events');
-  
+  const [activeTab, setActiveTab] = useState<'events' | 'products' | 'blogs' | 'history'>('events');
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
   const [purchasedProducts, setPurchasedProducts] = useState<PurchasedProduct[]>([]);
   const [userBlogs, setUserBlogs] = useState<UserBlog[]>([]);
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filterType, setFilterType] = useState<string>('all');
 
   useEffect(() => {
     if (!authLoading) {
@@ -125,7 +140,7 @@ export default function ProfilePage() {
       const token = await currentUser.getIdToken();
 
       // Fetch all profile data in parallel
-      const [profileRes, eventsRes, productsRes, blogsRes, walletRes] = await Promise.all([
+      const [profileRes, eventsRes, productsRes, blogsRes, walletRes, transactionsRes] = await Promise.all([
         fetch('/api/user/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
@@ -139,6 +154,9 @@ export default function ProfilePage() {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('/api/user/wallet', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/wallet/transactions?limit=50', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -166,6 +184,11 @@ export default function ProfilePage() {
       if (walletRes.ok) {
         const data = await walletRes.json();
         setWalletInfo(data.wallet);
+      }
+
+      if (transactionsRes.ok) {
+        const data = await transactionsRes.json();
+        setTransactions(data.transactions || []);
       }
 
     } catch (error) {
@@ -213,7 +236,7 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <div className="profile-header">
         <div className="profile-banner"></div>
-        
+
         <div className="profile-info-section">
           <div className="profile-page-avatar-container">
             <div className="profile-page-avatar">
@@ -241,9 +264,9 @@ export default function ProfilePage() {
               </span>
               <span className="profile-joined">
                 <Calendar size={14} />
-                Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  year: 'numeric' 
+                Joined {new Date(profile.createdAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  year: 'numeric'
                 })}
               </span>
               {/* ADDED: Show level and points */}
@@ -367,6 +390,13 @@ export default function ProfilePage() {
           <FileText size={18} />
           My Blogs ({userBlogs.length})
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          <Wallet size={18} />
+          Wallet History
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -392,7 +422,7 @@ export default function ProfilePage() {
                       {event.status}
                     </span>
                   </div>
-                  
+
                   <div className="event-details">
                     <div className="detail-item">
                       <Calendar size={16} />
@@ -421,7 +451,7 @@ export default function ProfilePage() {
                     <span className="event-date">
                       Registered on {new Date(event.registeredAt).toLocaleDateString()}
                     </span>
-                    <button 
+                    <button
                       className="btn-view"
                       onClick={() => router.push(`/events/${event.eventId}`)}
                     >
@@ -452,7 +482,7 @@ export default function ProfilePage() {
                   <div className="product-image">
                     <img src={product.productImage} alt={product.productName} />
                   </div>
-                  
+
                   <div className="product-info">
                     <div className="product-header">
                       <h3>{product.productName}</h3>
@@ -460,7 +490,7 @@ export default function ProfilePage() {
                         {product.status}
                       </span>
                     </div>
-                    
+
                     <div className="product-details">
                       <div className="detail-row">
                         <span>Quantity:</span>
@@ -481,7 +511,7 @@ export default function ProfilePage() {
                         <Clock size={14} />
                         {new Date(product.purchaseDate).toLocaleDateString()}
                       </span>
-                      <button 
+                      <button
                         className="btn-view"
                         onClick={() => router.push(`/orders/${product._id}`)}
                       >
@@ -543,7 +573,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="blog-actions">
-                      <button 
+                      <button
                         className="btn-view"
                         onClick={() => router.push(`/blog/${blog.slug}`)}
                       >
@@ -553,6 +583,100 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* History Tab */}
+        {activeTab === 'history' && (
+          <div className="history-list">
+
+            <div className="filter-controls" style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {[
+                { id: 'all', label: 'All Transactions', icon: <Wallet size={16} /> },
+                { id: 'purchase', label: 'Purchases', icon: <ShoppingBag size={16} /> },
+                { id: 'event', label: 'Events', icon: <Calendar size={16} /> },
+                { id: 'game', label: 'Games', icon: <Gamepad2 size={16} /> },
+                { id: 'daily_login', label: 'Daily Login', icon: <Flame size={16} /> },
+                { id: 'referral', label: 'Referrals', icon: <Users size={16} /> },
+                { id: 'bonus', label: 'Bonuses', icon: <Star size={16} /> },
+                { id: 'achievement', label: 'Achievements', icon: <Trophy size={16} /> },
+                { id: 'redeem', label: 'Redemptions', icon: <Gift size={16} /> }
+              ].map(filter => (
+                <button
+                  key={filter.id}
+                  className={`filter-btn ${filterType === filter.id ? 'active' : ''}`}
+                  onClick={() => setFilterType(filter.id)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '24px',
+                    border: '1px solid #333',
+                    background: filterType === filter.id ? '#fca311' : 'rgba(255, 255, 255, 0.05)',
+                    color: filterType === filter.id ? '#000' : '#fff',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {filter.icon}
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+
+            {transactions
+              .filter(t => filterType === 'all' || t.type === filterType)
+              .length === 0 ? (
+              <div className="empty-state">
+                <Wallet className="empty-icon" />
+                <h3>No History Found</h3>
+                <p>No transactions found for this category</p>
+              </div>
+            ) : (
+              transactions
+                .filter(t => filterType === 'all' || t.type === filterType)
+                .map((t) => (
+                  <div key={t._id} className="transaction-card" style={{
+                    background: '#1a1a1a',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderLeft: `4px solid ${t.type === 'purchase' || t.type === 'redeem' ? '#ef4444' : '#22c55e'
+                      }`
+                  }}>
+                    <div className="t-info">
+                      <div className="t-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                        <span className="t-type" style={{
+                          textTransform: 'capitalize',
+                          fontSize: '12px',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          background: '#333',
+                          color: '#bbb'
+                        }}>{t.type}</span>
+                        <span className="t-date" style={{ fontSize: '12px', color: '#666' }}>
+                          {new Date(t.createdAt).toLocaleDateString()} • {new Date(t.createdAt).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <h4 style={{ margin: 0, fontSize: '16px', color: '#fff' }}>{t.description}</h4>
+                    </div>
+
+                    <div className="t-amount" style={{
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      color: t.amount >= 0 ? '#22c55e' : '#ef4444'
+                    }}>
+                      {t.amount > 0 ? '+' : ''}{t.amount}
+                    </div>
+                  </div>
+                ))
             )}
           </div>
         )}
