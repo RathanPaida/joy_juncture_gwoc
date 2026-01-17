@@ -5,12 +5,13 @@ import GameImage from "@/models/GameImage";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await connectDB();
 
-    const gameImage = await GameImage.findById(params.id);
+    const gameImage = await GameImage.findById(id);
 
     if (!gameImage) {
       return NextResponse.json(
@@ -34,16 +35,17 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await connectDB();
 
     const body = await request.json();
     const { name, imageUrl, category, isActive } = body;
 
     const gameImage = await GameImage.findByIdAndUpdate(
-      params.id,
+      id,
       {
         name,
         imageUrl,
@@ -75,12 +77,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await connectDB();
 
-    const gameImage = await GameImage.findByIdAndDelete(params.id);
+    const gameImage = await GameImage.findByIdAndDelete(id);
 
     if (!gameImage) {
       return NextResponse.json(
