@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { useScroll, useTransform, motion, useMotionValueEvent } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-const TOTAL_FRAMES = 104;
+const TOTAL_FRAMES = 120;
 
 export default function HeroScroll() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -31,7 +31,7 @@ export default function HeroScroll() {
                     const img = new Image();
                     // Format based on file names: ezgif-frame-001.jpg
                     const frameNumber = i.toString().padStart(3, "0");
-                    img.src = `/cards-sequences-jpg/ezgif-frame-${frameNumber}.jpg`;
+                    img.src = `/cards-sequenceses-jpg/ezgif-frame-${frameNumber}.jpg`;
                     img.onload = () => {
                         loadedImages[i - 1] = img;
                         resolve();
