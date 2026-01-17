@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  createUserWithEmailAndPassword, 
+import {
+  createUserWithEmailAndPassword,
   signInWithPopup,
   getRedirectResult,
 } from "firebase/auth";
@@ -34,9 +34,9 @@ export default function RegisterPage() {
   const syncUserToMongoDB = async (user: any, additionalData: any = {}) => {
     try {
       const idToken = await user.getIdToken();
-      
+
       console.log('🔄 Syncing user to MongoDB...', user.uid);
-      
+
       const response = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: {
@@ -76,7 +76,7 @@ export default function RegisterPage() {
 
         setGoogleLoading(true);
         const result = await getRedirectResult(auth);
-        
+
         if (result && result.user) {
           sessionStorage.removeItem('googleSignInAttempt');
           const user = result.user;
@@ -143,61 +143,38 @@ export default function RegisterPage() {
     return Math.floor(100000 + Math.random() * 900000).toString();
   };
 
-  // Send OTP via email
+  // Send OTP via Backend API
   const sendOTPEmail = async (email: string, otpCode: string) => {
-    const emailJsConfigured = 
-      process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID &&
-      process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID &&
-      process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
+    try {
+      console.log('🔄 Requesting OTP email via backend API...');
+      const response = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp: otpCode }),
+      });
 
-    if (emailJsConfigured) {
-      try {
-        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            service_id: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
-            template_id: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
-            user_id: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY,
-            template_params: {
-              user_email: email,
-              passcode: otpCode,
-              time: '15 minutes',
-            }
-          })
-        });
+      const data = await response.json();
 
-        if (response.ok) {
-          console.log('✅ OTP sent via EmailJS');
-          return true;
-        } else {
-          const errorData = await response.text();
-          console.error('EmailJS error:', errorData);
-          throw new Error('EmailJS failed');
-        }
-      } catch (error) {
-        console.warn('EmailJS failed, using development mode:', error);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP email');
       }
-    }
 
-    // Development mode fallback
-    console.log('🔐 DEVELOPMENT MODE - OTP for', email, ':', otpCode);
-    console.log('%c OTP CODE: ' + otpCode, 'background: #222; color: #bada55; font-size: 20px; padding: 10px;');
-    
-    const userConfirmed = window.confirm(
-      `📧 EMAIL SERVICE NOT CONFIGURED\n\n` +
-      `Your OTP code is: ${otpCode}\n\n` +
-      `Copy this code and click OK to continue.\n` +
-      `(In production, this will be sent to your email)`
-    );
-    
-    if (!userConfirmed) {
-      throw new Error('User cancelled OTP');
+      console.log('✅ OTP sent successfully via backend');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send OTP:', error);
+
+      // Fallback for development if API fails (optional, good for debugging)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ API failed. Displaying OTP in console for Dev:', otpCode);
+        alert(`DEV MODE: Your OTP is ${otpCode} (Check console for details)`);
+        return true;
+      }
+
+      throw error;
     }
-    
-    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -254,7 +231,7 @@ export default function RegisterPage() {
       // Move to OTP verification step
       setStep('otp');
       setSuccess(`OTP sent to ${formData.email}`);
-      
+
     } catch (err: any) {
       console.error("Error sending OTP:", err);
       setError("Failed to send OTP. Please try again.");
@@ -373,10 +350,10 @@ export default function RegisterPage() {
   const handleResendOTP = async () => {
     setError("");
     setSuccess("");
-    
+
     const otpCode = generateOTP();
     setGeneratedOtp(otpCode);
-    
+
     try {
       await sendOTPEmail(tempUserData.email, otpCode);
       setSuccess("OTP resent successfully!");
@@ -458,7 +435,7 @@ export default function RegisterPage() {
       }
     } catch (err: any) {
       console.error("❌ Google sign-up error:", err);
-      
+
       if (err.code === 'auth/popup-blocked') {
         setError("Please allow popups for this site, or we'll redirect you automatically.");
       } else if (err.code === "auth/popup-closed-by-user") {
@@ -728,9 +705,9 @@ export default function RegisterPage() {
           </button>
 
           {googleLoading && (
-            <p style={{ 
-              textAlign: 'center', 
-              color: '#64748B', 
+            <p style={{
+              textAlign: 'center',
+              color: '#64748B',
               fontSize: '13px',
               marginTop: '12px'
             }}>

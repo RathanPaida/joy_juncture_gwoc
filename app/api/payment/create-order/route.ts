@@ -107,6 +107,14 @@ export async function POST(request: NextRequest) {
 
     const razorpayOrder = await razorpay.orders.create(options);
 
+    // CRITICAL FIX: Update the created orders with the Razorpay Order ID
+    // This allows us to reliably find them during verification
+    await Order.updateMany(
+      { _id: { $in: orders.map(o => o._id) } },
+      { $set: { razorpayOrderId: razorpayOrder.id } }
+    );
+    console.log("✅ Linked Razorpay Order ID:", razorpayOrder.id, "to", orders.length, "orders");
+
     return NextResponse.json({
       ...razorpayOrder,
       notes: {

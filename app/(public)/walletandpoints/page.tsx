@@ -824,8 +824,8 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* My Redeemed Coupons */}
-      {walletUser?.redeemedCoupons && walletUser.redeemedCoupons.length > 0 && (
+      {/* My Redeemed Coupons - Filtered to show only unused */}
+      {walletUser?.redeemedCoupons && walletUser.redeemedCoupons.filter(c => !c.isUsed).length > 0 && (
         <section className="redeemed-rewards mt-8">
           <div className="container">
             <div className="section-header">
@@ -838,7 +838,7 @@ const WalletPointsPage: React.FC = () => {
             </div>
 
             <div className="rewards-grid">
-              {walletUser.redeemedCoupons.map((coupon, idx) => (
+              {walletUser.redeemedCoupons.filter(c => !c.isUsed).map((coupon, idx) => (
                 <div key={idx} className="reward-card" style={{ borderColor: '#FF8C00' }}>
                   <div
                     className="reward-icon"
@@ -869,11 +869,8 @@ const WalletPointsPage: React.FC = () => {
                       <button
                         className="redeem-btn available"
                         onClick={() => {
-                          // Copy and go to cart? Or just go to cart.
                           navigator.clipboard.writeText(coupon.code);
                           window.location.href = `/cart`;
-                          // I can't easily auto-fill via URL params unless CartPage supports it. 
-                          // I will just redirect to cart for now.
                         }}
                       >
                         Use Now
@@ -1010,6 +1007,24 @@ const WalletPointsPage: React.FC = () => {
                         const redeemedCoupon = walletUser?.redeemedCoupons?.find((c: any) => String(c.rewardId) === String(reward._id));
 
                         if (redeemedCoupon) {
+                          // Check if used
+                          if (redeemedCoupon.isUsed) {
+                            return (
+                              <div className="flex flex-col items-center gap-2 w-full mt-2">
+                                <div className="w-full bg-zinc-800 py-2 rounded border border-zinc-700 text-center font-mono opacity-50 cursor-not-allowed">
+                                  <span className="text-xs text-zinc-500 font-sans font-normal uppercase tracking-wider block">Code:</span>
+                                  <span className="line-through text-zinc-400">{redeemedCoupon.code}</span>
+                                </div>
+                                <button
+                                  className="w-full py-2 rounded font-bold bg-zinc-700 text-zinc-400 cursor-default"
+                                  disabled
+                                >
+                                  Used
+                                </button>
+                              </div>
+                            );
+                          }
+
                           return (
                             <div className="flex flex-col items-center gap-2 w-full mt-2">
                               <div

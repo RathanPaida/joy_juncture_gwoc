@@ -35,7 +35,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 50%, rgba(249, 115, 22, 0.05) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(251, 146, 60, 0.03) 0%, transparent 50%);
   pointer-events: none;
@@ -57,11 +57,9 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(
-    circle at center,
-    rgba(249, 115, 22, 0.08) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle at center,
+      rgba(249, 115, 22, 0.08) 0%,
+      transparent 70%);
   z-index: 0;
 }
 
@@ -304,6 +302,7 @@
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -315,6 +314,7 @@
   margin-bottom: 1rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -658,6 +658,7 @@
   transition: color 0.3s ease;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -673,6 +674,7 @@
   margin-bottom: 1rem;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex-grow: 1;
@@ -849,7 +851,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive Design */
@@ -857,13 +861,13 @@
   .main-content {
     grid-template-columns: 1fr;
   }
-  
+
   .sidebar {
     order: 2;
     position: relative;
     top: 0;
   }
-  
+
   .blogs-main {
     order: 1;
   }

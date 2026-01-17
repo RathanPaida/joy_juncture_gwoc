@@ -115,10 +115,12 @@ export async function POST(request: NextRequest) {
       { new: true },
     );
 
-    console.log("✅ User wallet updated:", userUpdate?.walletBalance);
-    console.log("✅ User points updated:", userUpdate?.totalPoints);
-
-    console.log("✅ User points updated:", userUpdate?.totalPoints);
+    if (!userUpdate) {
+      console.error('❌ CRITICAL: User not found for COD points update!', firebaseUid);
+    } else {
+      console.log("✅ User wallet updated (COD). New Balance:", userUpdate.walletBalance);
+      console.log("✅ User points updated (COD). New Total:", userUpdate.totalPoints);
+    }
 
     // Mark coupon as used if promo code provided
     if (promoCode) {

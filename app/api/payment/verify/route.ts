@@ -288,15 +288,15 @@ async function handleProductPayment(
     }
 
     const firebaseUid = decodedToken.uid;
+    console.log('👤 Verify Payment for User:', firebaseUid);
 
-    // Update all orders for this user that are processing
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-
+    // 1. Update orders directly using the unique Razorpay Order ID
+    // This is much safer than finding "processing" orders
     const updatedOrders = await Order.updateMany(
       {
-        firebaseUid: firebaseUid,
-        orderStatus: 'processing',
-        purchaseDate: { $gte: tenMinutesAgo }
+        razorpayOrderId: razorpay_order_id,
+        // Optional: Ensure we only update orders that aren't already completed
+        // orderStatus: { $ne: 'confirmed' } 
       },
       {
         $set: {
@@ -308,13 +308,23 @@ async function handleProductPayment(
       }
     );
 
-    console.log('✅ Orders updated:', updatedOrders.modifiedCount);
+    console.log(`✅ Orders updated via ID ${razorpay_order_id}:`, updatedOrders.modifiedCount);
 
-    // Calculate total amount from all updated orders
+    if (updatedOrders.modifiedCount === 0) {
+      console.warn('⚠️ No orders were updated! They might be already confirmed or ID mismatch.');
+      // We continue to check if they exist, maybe they were already updated?
+    }
+
+    // 2. Fetch the orders to calculate totals
     const orders = await Order.find({
-      firebaseUid: firebaseUid,
-      razorpayPaymentId: razorpay_payment_id
+      razorpayOrderId: razorpay_order_id
     }).lean();
+
+    console.log('📦 Orders found for logic:', orders.length);
+
+    if (orders.length === 0) {
+      throw new Error("No orders found for this payment ID. Payment verification failed logic.");
+    }
 
     const totalAmount = orders.reduce(
       (sum, order) => sum + order.totalAmount,
@@ -322,11 +332,12 @@ async function handleProductPayment(
     );
     console.log('💰 Total amount:', totalAmount);
 
-    // Calculate Joy Points (total ÷ 10)
+    // 3. Calculate Joy Points (total ÷ 10)
     const joyPoints = Math.floor(totalAmount / 10);
-    console.log('🎁 Joy points to add:', joyPoints);
+    console.log('🎁 Joy points calculated:', joyPoints);
 
-    // Update BOTH walletBalance AND totalPoints
+    // 4. Update BOTH walletBalance AND totalPoints
+    // Force find by Firebase UID to ensure we get the right user
     const userUpdate = await User.findOneAndUpdate(
       { firebaseUid: firebaseUid },
       {
@@ -338,8 +349,12 @@ async function handleProductPayment(
       { new: true }
     );
 
-    console.log('✅ User wallet updated:', userUpdate?.walletBalance);
-    console.log('✅ User points updated:', userUpdate?.totalPoints);
+    if (!userUpdate) {
+      console.error('❌ CRITICAL: User not found for points update!', firebaseUid);
+    } else {
+      console.log('✅ User wallet updated. New Balance:', userUpdate.walletBalance);
+      console.log('✅ User points updated. New Total:', userUpdate.totalPoints);
+    }
 
     // Create transaction record for product purchase
     if (joyPoints > 0) {

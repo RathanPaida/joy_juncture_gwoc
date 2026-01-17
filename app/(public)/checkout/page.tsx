@@ -86,6 +86,8 @@ export default function CheckoutPage() {
     }
   }, [user, authLoading]);
 
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
+
   // Validate promo code from URL
   useEffect(() => {
     const code = searchParams.get('promo');
@@ -93,6 +95,45 @@ export default function CheckoutPage() {
       validatePromo(code);
     }
   }, [searchParams]);
+
+  // Pincode Auto-fill Effect
+  useEffect(() => {
+    const fetchPincodeDetails = async () => {
+      const pin = shippingAddress.pincode;
+
+      // Only fetch if 6 digits
+      if (!pin || pin.length !== 6) return;
+
+      setIsPincodeLoading(true);
+      try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+        const data = await response.json();
+
+        if (data && data[0].Status === "Success") {
+          const details = data[0].PostOffice[0];
+          setShippingAddress(prev => ({
+            ...prev,
+            city: details.District,
+            state: details.State,
+            country: details.Country || "India"
+          }));
+          setErrors(prev => ({ ...prev, pincode: undefined, city: undefined, state: undefined }));
+        } else {
+          setErrors(prev => ({ ...prev, pincode: "Invalid Pincode" }));
+          // Optional: Clear fields if invalid
+          setShippingAddress(prev => ({ ...prev, city: "", state: "" }));
+        }
+      } catch (error) {
+        console.error("Error fetching pincode:", error);
+      } finally {
+        setIsPincodeLoading(false);
+      }
+    };
+
+    // Debounce slightly or just call
+    const timer = setTimeout(fetchPincodeDetails, 500);
+    return () => clearTimeout(timer);
+  }, [shippingAddress.pincode]);
 
   const validatePromo = async (code: string) => {
     try {
@@ -484,6 +525,43 @@ export default function CheckoutPage() {
               </div>
 
               <div className="form-grid">
+                {/* Pincode Section - Moved to Top for Auto-fill */}
+                <div className="form-group full-width" style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #333' }}>
+                  <label style={{ color: '#ff6b00', fontWeight: 'bold' }}>
+                    <MapPin size={18} />
+                    Enter Pincode First *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      value={shippingAddress.pincode}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        setShippingAddress({
+                          ...shippingAddress,
+                          pincode: val,
+                        })
+                      }}
+                      placeholder="Enter 6-digit Pincode to auto-fill details"
+                      maxLength={6}
+                      className={errors.pincode ? "error" : ""}
+                      style={{ fontSize: '1.1rem', letterSpacing: '2px' }}
+                      autoFocus
+                    />
+                    {isPincodeLoading && (
+                      <div className="spinner-small" style={{ position: 'absolute', right: '10px', top: '12px' }}></div>
+                    )}
+                  </div>
+                  {errors.pincode && (
+                    <span className="error-text">{errors.pincode}</span>
+                  )}
+                  {shippingAddress.city && (
+                    <p style={{ fontSize: '12px', color: '#10B981', marginTop: '4px' }}>
+                      ✓ {shippingAddress.city}, {shippingAddress.state}, {shippingAddress.country}
+                    </p>
+                  )}
+                </div>
+
                 <div className="form-group full-width">
                   <label>
                     <User size={18} />
@@ -587,8 +665,10 @@ export default function CheckoutPage() {
                         city: e.target.value,
                       })
                     }
-                    placeholder="City"
+                    placeholder="Auto-filled from Pincode"
                     className={errors.city ? "error" : ""}
+                    readOnly
+                    style={{ backgroundColor: '#222', cursor: 'not-allowed' }}
                   />
                   {errors.city && (
                     <span className="error-text">{errors.city}</span>
@@ -606,8 +686,10 @@ export default function CheckoutPage() {
                         state: e.target.value,
                       })
                     }
-                    placeholder="State"
+                    placeholder="Auto-filled from Pincode"
                     className={errors.state ? "error" : ""}
+                    readOnly
+                    style={{ backgroundColor: '#222', cursor: 'not-allowed' }}
                   />
                   {errors.state && (
                     <span className="error-text">{errors.state}</span>
@@ -615,28 +697,13 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="form-group">
-                  <label>Pincode *</label>
+                  <label>Country *</label>
                   <input
                     type="text"
-                    value={shippingAddress.pincode}
-                    onChange={(e) =>
-                      setShippingAddress({
-                        ...shippingAddress,
-                        pincode: e.target.value,
-                      })
-                    }
-                    placeholder="6-digit pincode"
-                    maxLength={6}
-                    className={errors.pincode ? "error" : ""}
+                    value={shippingAddress.country}
+                    readOnly
+                    style={{ backgroundColor: '#222', cursor: 'not-allowed' }}
                   />
-                  {errors.pincode && (
-                    <span className="error-text">{errors.pincode}</span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label>Country</label>
-                  <input type="text" value={shippingAddress.country} disabled />
                 </div>
               </div>
 
