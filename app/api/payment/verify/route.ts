@@ -7,6 +7,7 @@ import { ObjectId, MongoClient } from 'mongodb';
 import { Order } from '@/models/Order';
 import { User, Transaction } from '@/models/User';
 import { verifyIdToken } from '@/lib/firebase-admin';
+import { sendEmail } from '@/lib/mail';
 
 export async function POST(request: NextRequest) {
   try {
@@ -355,40 +356,40 @@ async function handleProductPayment(
     console.log("🧹 ATTEMPTING TO CLEAR CART");
     console.log("========================================");
     // console.log("FirebaseUid:", firebaseUid);
-    
+
     try {
       // Use the same MongoDB connection as the cart API
       const cartClient = new MongoClient(process.env.MONGODB_URI!);
       await cartClient.connect();
-      
+
       try {
         const db = cartClient.db("joyjuncture");
         const cartCollection = db.collection("cart");
-        
+
         // Find all cart items for this user
         const existingItems = await cartCollection.find({ userId: firebaseUid }).toArray();
-        
+
         console.log("📦 Cart items found:", existingItems.length);
-        
+
         if (existingItems.length > 0) {
           console.log("📦 Items to delete:");
           existingItems.forEach((item: any, index: number) => {
             console.log(`   ${index + 1}. ${item.productName} (${item.quantity}x)`);
           });
         }
-        
+
         // Delete all cart items
         const cartDeleteResult = await cartCollection.deleteMany({ userId: firebaseUid });
-        
+
         console.log("🗑️ Delete result:", {
           acknowledged: cartDeleteResult.acknowledged,
           deletedCount: cartDeleteResult.deletedCount
         });
-        
+
         // Verify deletion
         const verifyItems = await cartCollection.find({ userId: firebaseUid }).toArray();
         console.log("✅ Remaining items after delete:", verifyItems.length);
-        
+
         if (verifyItems.length === 0) {
           console.log("🎉 CART SUCCESSFULLY DELETED!");
         } else {
@@ -397,7 +398,7 @@ async function handleProductPayment(
       } finally {
         await cartClient.close();
       }
-      
+
       console.log("========================================\n");
     } catch (cartError: any) {
       console.error("\n========================================");
@@ -406,7 +407,77 @@ async function handleProductPayment(
       console.error("Error:", cartError.message);
       console.error("Stack:", cartError.stack);
       console.error("========================================\n");
-      // Don't fail the payment if cart clearing fails
+    }
+
+    // Send Order Confirmation Email
+    const user = await User.findOne({ firebaseUid: firebaseUid });
+    const userEmail = user?.email; // Keep single declaration
+    console.log(`📧 Attempting to send order email to: ${userEmail}`);
+    console.log(`🔍 Debug: Firebase UID: ${firebaseUid}`);
+    console.log(`🔍 Debug: Razorpay Payment ID: ${razorpay_payment_id}`);
+
+    // Refetch orders to be absolutely sure we have the latest data for email
+    let emailOrders = orders;
+    let emailTotal = totalAmount;
+
+    if (emailOrders.length === 0) {
+      console.log('⚠️ No orders found by PaymentID immediately. Waiting 2s...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Fallback: fetch recently confirmed orders for this user (WIDER WINDOW)
+      const recentOrders = await Order.find({
+        firebaseUid: firebaseUid,
+        orderStatus: 'confirmed',
+        purchaseDate: { $gte: new Date(Date.now() - 60 * 60 * 1000) } // last 60 mins
+      }).sort({ purchaseDate: -1 });
+
+      console.log(`🔍 Debug: Found ${recentOrders.length} recent confirmed orders.`);
+
+      if (recentOrders.length > 0) {
+        const matchingOrders = recentOrders.filter(o => o.razorpayPaymentId === razorpay_payment_id);
+
+        if (matchingOrders.length > 0) {
+          console.log(`✅ Found ${matchingOrders.length} orders matching Payment ID in fallback.`);
+          emailOrders = matchingOrders;
+        } else {
+          console.warn(`⚠️ No orders match Payment ID even in fallback. Sending LATEST 5 orders as backup.`);
+          emailOrders = recentOrders.slice(0, 5);
+        }
+
+        emailTotal = emailOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+      }
+    }
+
+    if (userEmail) {
+      console.log('✅ Orders for email:', emailOrders.length);
+      const orderListHtml = emailOrders.map(o => `
+        <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
+          <strong>${o.productName}</strong> - Qty: ${o.quantity} - ₹${o.totalAmount}
+        </div>
+      `).join('');
+
+      await sendEmail({
+        to: userEmail,
+        subject: `Order Confirmed - Joy Juncture`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #FF6B35;">Order Received!</h1>
+            <p>Hi ${user.name},</p>
+            <p>Thank you for your purchase. We've received your order.</p>
+            <div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">
+               <h3>Order Summary</h3>
+               ${orderListHtml}
+               <hr style="border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+               <p><strong>Total Paid:</strong> ₹${emailTotal}</p>
+               <p><strong>Joy Points Earned:</strong> ${Math.floor(emailTotal / 10)}</p>
+            </div>
+            <p>We'll notify you when it ships!</p>
+            <p>- Team Joy Juncture</p>
+          </div>
+        `
+      });
+    } else {
+      console.warn("⚠️ No email found for user, skipping order confirmation email.");
     }
 
     return NextResponse.json({

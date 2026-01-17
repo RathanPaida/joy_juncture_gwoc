@@ -93,6 +93,21 @@ export async function POST(req: NextRequest) {
     try {
       // Deduct points from user
       user.totalPoints -= reward.points;
+
+      // Generate Coupon Code
+      const couponCode = `JJ-${reward.category.substring(0, 3).toUpperCase()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+      // Add to user's redeemed coupons
+      user.redeemedCoupons.push({
+        rewardId: reward._id,
+        code: couponCode,
+        name: reward.name,
+        description: reward.description,
+        discountAmount: reward.points / 10, // Example: 10 points = 1 currency unit discount, adjust as needed
+        status: 'available',
+        redeemedAt: new Date()
+      });
+
       await user.save({ session });
 
       // Decrease reward stock
@@ -109,14 +124,16 @@ export async function POST(req: NextRequest) {
           rewardId: reward._id,
           rewardName: reward.name,
           rewardCategory: reward.category,
+          couponCode: couponCode
         },
+        balanceAfter: user.totalPoints,
       });
       await transaction.save({ session });
 
       await session.commitTransaction();
 
       console.log(
-        `Redemption successful - User: ${user.email}, Reward: ${reward.name}`,
+        `Redemption successful - User: ${user.email}, Reward: ${reward.name}, Code: ${couponCode}`,
       );
 
       return NextResponse.json({
@@ -126,6 +143,7 @@ export async function POST(req: NextRequest) {
         reward: {
           name: reward.name,
           description: reward.description,
+          code: couponCode // Send code back to frontend
         },
       });
     } catch (error) {

@@ -55,6 +55,18 @@ export interface IUser extends Document {
 
   createdAt: Date;
   updatedAt: Date;
+
+  // Coupons
+  redeemedCoupons: Array<{
+    rewardId: string;
+    code: string;
+    name: string;
+    description: string;
+    discountAmount: number;
+    status: 'available' | 'used';
+    redeemedAt: Date;
+    usedAt?: Date;
+  }>;
 }
 
 const userSchema = new Schema<IUser>(
@@ -236,6 +248,25 @@ const userSchema = new Schema<IUser>(
       default: 0,
       min: 0,
     },
+
+    // Coupons
+    redeemedCoupons: [{
+      rewardId: String,
+      code: String,
+      name: String,
+      description: String,
+      discountAmount: Number, // Value of the coupon
+      status: {
+        type: String,
+        enum: ['available', 'used'],
+        default: 'available'
+      },
+      redeemedAt: {
+        type: Date,
+        default: Date.now
+      },
+      usedAt: Date
+    }],
   },
   {
     timestamps: true,

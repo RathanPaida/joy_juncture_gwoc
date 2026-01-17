@@ -1,9 +1,9 @@
-// app/checkout/page.tsx - FIXED CART CLEARING
+// app/checkout/page.tsx - FIXED CART CLEARING AND COUPONS
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebase"; // Import Firebase auth directly
 import {
   CreditCard,
@@ -50,6 +50,7 @@ declare global {
 export default function CheckoutPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -70,11 +71,19 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const [errors, setErrors] = useState<Partial<ShippingAddress>>({});
 
+  const [couponCode, setCouponCode] = useState("");
+  const [discount, setDiscount] = useState(0);
+
   useEffect(() => {
     if (!authLoading) {
       if (user) {
         fetchCartData();
         loadRazorpayScript();
+
+        const coupon = searchParams.get('coupon');
+        if (coupon) {
+          validateCoupon(coupon);
+        }
       } else {
         router.push("/login?redirect=/checkout");
       }
@@ -96,7 +105,7 @@ export default function CheckoutPage() {
         console.error("❌ No current user");
         return null;
       }
-      
+
       // Force refresh to get a fresh token
       const token = await currentUser.getIdToken(true);
       console.log("✅ Got fresh token, length:", token.length);
@@ -104,6 +113,30 @@ export default function CheckoutPage() {
     } catch (error) {
       console.error("❌ Error getting token:", error);
       return null;
+    }
+  };
+
+  const validateCoupon = async (code: string) => {
+    try {
+      const token = await getFreshToken();
+      if (!token) return;
+
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setCouponCode(code);
+        setDiscount(data.discount);
+      }
+    } catch (error) {
+      console.error("Error validating coupon:", error);
     }
   };
 
@@ -160,8 +193,8 @@ export default function CheckoutPage() {
       0,
     );
     const shipping = subtotal > 500 ? 0 : 50;
-    const tax = subtotal * 0.18;
-    const total = subtotal + shipping + tax;
+    const tax = (subtotal - discount) * 0.18;
+    const total = Math.max(0, subtotal + shipping + tax - discount);
     return { subtotal, shipping, tax, total };
   };
 
@@ -303,12 +336,12 @@ export default function CheckoutPage() {
         const data = await verifyRes.json();
         console.log("✅ Payment verified:", data);
         console.log("✅ Cart cleared by server:", data.cartCleared);
-        
+
         // Redirect to success page with order info
         const orderIds = data.orderIds?.join(',') || '';
         const joyPoints = data.joyPointsEarned || 0;
         const count = data.ordersUpdated || 1;
-        
+
         router.push(`/order-succes`);
       } else {
         const errorData = await verifyRes.json();
@@ -350,6 +383,7 @@ export default function CheckoutPage() {
           shippingAddress,
           paymentMethod: "cod",
           total: totals.total,
+          couponCode: couponCode || undefined
         }),
       });
 
@@ -362,7 +396,7 @@ export default function CheckoutPage() {
         const orderIds = data.orderIds?.join(',') || '';
         const joyPoints = data.joyPointsEarned || 0;
         const count = data.ordersCreated || 1;
-        
+
         router.push(`/order-succes`);
       } else {
         const errorData = await orderRes.json();
@@ -694,6 +728,13 @@ export default function CheckoutPage() {
                 <span>Shipping</span>
                 <span>{shipping === 0 ? "FREE" : `₹${shipping}`}</span>
               </div>
+
+              {discount > 0 && (
+                <div className="summary-row discount" style={{ color: '#22c55e' }}>
+                  <span>Discount</span>
+                  <span>-₹{discount.toLocaleString()}</span>
+                </div>
+              )}
 
               <div className="summary-row">
                 <span>Tax (18% GST)</span>

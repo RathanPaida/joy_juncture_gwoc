@@ -97,6 +97,7 @@ interface WalletUser {
   lastActivity: string;
   lastLogin?: string;
   achievements: any[];
+  redeemedCoupons?: any[];
 }
 
 const WalletPointsPage: React.FC = () => {
@@ -599,6 +600,10 @@ const WalletPointsPage: React.FC = () => {
     return iconMap[iconName] || <FaStar />;
   };
 
+  const getRedeemedCoupon = (rewardId: string) => {
+    return walletUser?.redeemedCoupons?.find(c => c.rewardId === rewardId);
+  };
+
   const getTransactionIcon = (type: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
       purchase: <FaShoppingCart />,
@@ -939,53 +944,102 @@ const WalletPointsPage: React.FC = () => {
             </div>
           ) : (
             <div className="rewards-grid">
-              {filteredRewards.map((reward) => (
-                <div key={reward._id} className="reward-card">
-                  <div
-                    className="reward-icon"
-                    style={{ backgroundColor: reward.color || "#FF8C00" }}
-                  >
-                    {renderIcon(reward.icon)}
-                  </div>
-                  <div className="reward-content">
-                    <div className="reward-header">
-                      <h4>{reward.name}</h4>
-                      {reward.stock > 0 && reward.stock < 10 && (
-                        <span className="stock-badge">
-                          Only {reward.stock} left!
-                        </span>
+              {filteredRewards.map((reward) => {
+                const redeemedCoupon = getRedeemedCoupon(reward._id);
+                const isRedeemed = !!redeemedCoupon;
+
+                return (
+                  <div key={reward._id} className="reward-card">
+                    <div
+                      className="reward-icon"
+                      style={{ backgroundColor: reward.color || "#FF8C00" }}
+                    >
+                      {renderIcon(reward.icon)}
+                    </div>
+                    <div className="reward-content">
+                      <div className="reward-header">
+                        <h4>{reward.name}</h4>
+                        {reward.stock > 0 && reward.stock < 10 && (
+                          <span className="stock-badge">
+                            Only {reward.stock} left!
+                          </span>
+                        )}
+                        {reward.stock <= 0 && (
+                          <span className="stock-badge out-of-stock">
+                            Out of Stock
+                          </span>
+                        )}
+                      </div>
+                      <p className="reward-desc">{reward.description}</p>
+
+                      {isRedeemed ? (
+                        <div className="redeemed-info" style={{
+                          background: '#f0fdf4',
+                          padding: '10px',
+                          borderRadius: '6px',
+                          border: '1px dashed #22c55e',
+                          margin: '10px 0'
+                        }}>
+                          <p style={{ color: '#166534', fontSize: '0.9em', marginBottom: '5px' }}>
+                            <FaCheck /> Redeemed! Code:
+                          </p>
+                          <p style={{
+                            fontFamily: 'monospace',
+                            fontSize: '1.2em',
+                            fontWeight: 'bold',
+                            color: '#15803d',
+                            textAlign: 'center',
+                            letterSpacing: '1px'
+                          }}>
+                            {redeemedCoupon?.code}
+                          </p>
+                          <p style={{ fontSize: '0.8em', color: '#666', marginTop: '5px' }}>
+                            Status: {redeemedCoupon?.status === 'used' ? 'Used' : 'Available'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="reward-footer">
+                          <span className="reward-points">
+                            <FaCoins /> {reward.points} points
+                          </span>
+                          <button
+                            className={`redeem-btn ${userPoints >= reward.points && reward.stock > 0
+                              ? "available"
+                              : "locked"
+                              }`}
+                            onClick={() => handleRedeem(reward)}
+                            disabled={
+                              userPoints < reward.points || reward.stock <= 0
+                            }
+                          >
+                            {userPoints >= reward.points && reward.stock > 0
+                              ? "Redeem"
+                              : reward.stock <= 0
+                                ? "Out of Stock"
+                                : "Need More Points"}
+                          </button>
+                        </div>
                       )}
-                      {reward.stock <= 0 && (
-                        <span className="stock-badge out-of-stock">
-                          Out of Stock
-                        </span>
+
+                      {isRedeemed && (
+                        <button
+                          className="redeem-btn"
+                          disabled
+                          style={{
+                            background: '#e5e7eb',
+                            color: '#6b7280',
+                            cursor: 'not-allowed',
+                            width: '100%',
+                            marginTop: '5px'
+                          }}
+                        >
+                          Already Redeemed
+                        </button>
                       )}
                     </div>
-                    <p className="reward-desc">{reward.description}</p>
-                    <div className="reward-footer">
-                      <span className="reward-points">
-                        <FaCoins /> {reward.points} points
-                      </span>
-                      <button
-                        className={`redeem-btn ${userPoints >= reward.points && reward.stock > 0
-                            ? "available"
-                            : "locked"
-                          }`}
-                        onClick={() => handleRedeem(reward)}
-                        disabled={
-                          userPoints < reward.points || reward.stock <= 0
-                        }
-                      >
-                        {userPoints >= reward.points && reward.stock > 0
-                          ? "Redeem"
-                          : reward.stock <= 0
-                            ? "Out of Stock"
-                            : "Need More Points"}
-                      </button>
-                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

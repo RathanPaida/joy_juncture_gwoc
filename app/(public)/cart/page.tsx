@@ -47,16 +47,39 @@ export default function CartPage() {
   const [promoCode, setPromoCode] = useState("");
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState(0);
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading) {
       if (user) {
         fetchCartData();
+        fetchCoupons();
       } else {
         router.push("/login?redirect=/cart");
       }
     }
   }, [user, authLoading]);
+
+  const fetchCoupons = async () => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      const token = await currentUser.getIdToken();
+
+      // Reuse profile endpoint which returns redeemedCoupons
+      const res = await fetch("/api/user/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const coupons = data.profile.redeemedCoupons?.filter((c: any) => c.status === 'available') || [];
+        setAvailableCoupons(coupons);
+      }
+    } catch (error) {
+      console.error("Error fetching coupons:", error);
+    }
+  };
 
   const fetchCartData = async () => {
     try {
@@ -138,22 +161,32 @@ export default function CartPage() {
     }
   };
 
-  const applyPromoCode = async () => {
-    if (!promoCode.trim()) return;
+  const applyPromoCode = async (codeOverride?: string) => {
+    const codeToApply = codeOverride || promoCode;
+    if (!codeToApply.trim()) return;
 
     try {
-      const res = await fetch("/api/promo/validate", {
+      const currentUser = auth.currentUser;
+      const token = currentUser ? await currentUser.getIdToken() : '';
+
+      const res = await fetch("/api/coupons/validate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: promoCode }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ code: codeToApply }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setPromoApplied(true);
-        setPromoDiscount(data.discount || 10);
+        // Assuming fixed amount for now, if percentage logic needed, update here
+        setPromoDiscount(data.discount);
+        if (codeOverride) setPromoCode(codeOverride);
       } else {
-        alert("Invalid promo code");
+        const err = await res.json();
+        alert(err.error || "Invalid promo code");
       }
     } catch (error) {
       console.error("Error applying promo:", error);
@@ -165,7 +198,8 @@ export default function CartPage() {
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
-    const discount = promoApplied ? (subtotal * promoDiscount) / 100 : 0;
+    // Discount is fixed amount now
+    const discount = promoApplied ? promoDiscount : 0;
     const shipping = subtotal > 500 ? 0 : 50;
     const tax = (subtotal - discount) * 0.18; // 18% GST
     const total = subtotal - discount + shipping + tax;
@@ -178,7 +212,8 @@ export default function CartPage() {
       alert("Your cart is empty!");
       return;
     }
-    router.push("/checkout");
+    const query = promoApplied && promoCode ? `?coupon=${promoCode}` : '';
+    router.push(`/checkout${query}`);
   };
 
   if (authLoading || loading) {
@@ -312,7 +347,7 @@ export default function CartPage() {
                 />
                 <button
                   className="apply-promo-btn"
-                  onClick={applyPromoCode}
+                  onClick={() => applyPromoCode()}
                   disabled={promoApplied || !promoCode.trim()}
                 >
                   {promoApplied ? "Applied" : "Apply"}
@@ -321,7 +356,43 @@ export default function CartPage() {
               {promoApplied && (
                 <div className="promo-success">
                   <ShieldCheck size={16} />
-                  <span>Promo code applied! {promoDiscount}% off</span>
+                  <span>Promo code applied! ₹{promoDiscount} off</span>
+                </div>
+              )}
+
+              {availableCoupons.length > 0 && !promoApplied && (
+                <div className="available-coupons" style={{ marginTop: '15px' }}>
+                  <p style={{ fontSize: '14px', marginBottom: '10px', color: '#666' }}>Available Coupons:</p>
+                  {availableCoupons.map((coupon, idx) => (
+                    <div key={idx} className="coupon-item" style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px',
+                      border: '1px dashed #ccc',
+                      marginBottom: '8px',
+                      borderRadius: '6px'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 'bold' }}>{coupon.code}</span>
+                        <span style={{ fontSize: '12px', color: '#888' }}>{coupon.name}</span>
+                      </div>
+                      <button
+                        onClick={() => applyPromoCode(coupon.code)}
+                        style={{
+                          background: '#fca311',
+                          border: 'none',
+                          padding: '5px 10px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          color: '#000'
+                        }}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

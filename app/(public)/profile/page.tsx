@@ -44,6 +44,16 @@ interface UserProfile {
   streak: number; // ADDED
   createdAt: string;
   lastLogin?: string;
+  redeemedCoupons?: Array<{
+    rewardId: string;
+    code: string;
+    name: string;
+    description: string;
+    discountAmount: number;
+    status: 'available' | 'used';
+    redeemedAt: string;
+    usedAt?: string;
+  }>;
 }
 
 interface RegisteredEvent {
@@ -106,7 +116,7 @@ export default function ProfilePage() {
   const auth = getAuth();
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'events' | 'products' | 'blogs' | 'history'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'products' | 'blogs' | 'history' | 'coupons'>('events');
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
@@ -397,6 +407,13 @@ export default function ProfilePage() {
           <Wallet size={18} />
           Wallet History
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'coupons' ? 'active' : ''}`}
+          onClick={() => setActiveTab('coupons')}
+        >
+          <Gift size={18} />
+          My Coupons ({profile?.redeemedCoupons?.length || 0})
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -583,6 +600,81 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Coupons Tab */}
+        {activeTab === 'coupons' && (
+          <div className="coupons-list">
+            {(!profile?.redeemedCoupons || profile.redeemedCoupons.length === 0) ? (
+              <div className="empty-state">
+                <Gift className="empty-icon" />
+                <h3>No Coupons Yet</h3>
+                <p>Redeem your Joy Points for exciting rewards!</p>
+                <button className="btn-primary" onClick={() => router.push('/walletandpoints')}>
+                  Go to Wallet
+                </button>
+              </div>
+            ) : (
+              <div className="coupons-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                {profile.redeemedCoupons.map((coupon, index) => (
+                  <div key={index} className="coupon-card" style={{
+                    background: '#1a1a1a',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    border: '1px solid #333',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    <div className="coupon-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                      <span className={`coupon-status ${coupon.status}`} style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        background: coupon.status === 'available' ? '#22c55e20' : '#ef444420',
+                        color: coupon.status === 'available' ? '#22c55e' : '#ef4444'
+                      }}>
+                        {coupon.status}
+                      </span>
+                      <Gift size={20} color="#fca311" />
+                    </div>
+
+                    <h3 style={{ margin: '0 0 10px 0', color: '#fff' }}>{coupon.name}</h3>
+                    <p style={{ color: '#888', fontSize: '14px', marginBottom: '20px' }}>{coupon.description}</p>
+
+                    <div className="coupon-code-box" style={{
+                      background: '#000',
+                      padding: '15px',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      border: '1px dashed #444',
+                      marginBottom: '15px'
+                    }}>
+                      <span style={{
+                        color: '#fca311',
+                        fontSize: '18px',
+                        fontWeight: 'bold',
+                        letterSpacing: '1px',
+                        fontFamily: 'monospace'
+                      }}>
+                        {coupon.code}
+                      </span>
+                    </div>
+
+                    <div className="coupon-footer" style={{
+                      fontSize: '12px',
+                      color: '#666',
+                      borderTop: '1px solid #333',
+                      paddingTop: '15px'
+                    }}>
+                      Redeemed on {new Date(coupon.redeemedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
