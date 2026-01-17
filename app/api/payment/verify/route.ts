@@ -316,18 +316,52 @@ async function handleProductPayment(
     }
 
     // 2. Fetch the orders to calculate totals
-    const orders = await Order.find({
+    let orders = await Order.find({
       razorpayOrderId: razorpay_order_id
     }).lean();
 
-    console.log('📦 Orders found for logic:', orders.length);
+    console.log('📦 Orders found via direct lookup:', orders.length);
+
+    // SELF-HEALING FALLBACK: If not found, fetch from Razorpay API to find the linked Mongo IDs
+    if (orders.length === 0) {
+      console.warn('⚠️ Orders not found by Razorpay ID. Attempting self-healing via Razorpay API...');
+      try {
+        const Razorpay = require("razorpay");
+        const instance = new Razorpay({
+          key_id: process.env.RAZORPAY_KEY_ID!,
+          key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        });
+
+        const rzpOrder = await instance.orders.fetch(razorpay_order_id);
+
+        if (rzpOrder && rzpOrder.notes && rzpOrder.notes.orderIds) {
+          const mongoOrderIds = rzpOrder.notes.orderIds.split(',');
+          console.log('🔄 Found linked Mongo IDs in Razorpay notes:', mongoOrderIds);
+
+          // Find these orders
+          orders = await Order.find({ _id: { $in: mongoOrderIds } }).lean();
+          console.log('📦 Recovered orders:', orders.length);
+
+          if (orders.length > 0) {
+            // HEAL: Update them with the missing ID
+            await Order.updateMany(
+              { _id: { $in: mongoOrderIds } },
+              { $set: { razorpayOrderId: razorpay_order_id } }
+            );
+            console.log('✅ Self-healing complete: Linked Razorpay ID to orders.');
+          }
+        }
+      } catch (fallbackError) {
+        console.error('❌ Self-healing failed:', fallbackError);
+      }
+    }
 
     if (orders.length === 0) {
       throw new Error("No orders found for this payment ID. Payment verification failed logic.");
     }
 
     const totalAmount = orders.reduce(
-      (sum, order) => sum + order.totalAmount,
+      (sum: any, order: any) => sum + (order.totalAmount || 0),
       0
     );
     console.log('💰 Total amount:', totalAmount);

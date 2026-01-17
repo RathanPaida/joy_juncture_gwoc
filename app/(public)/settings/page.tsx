@@ -17,7 +17,9 @@ import {
     Check,
     AlertCircle,
     ChevronRight,
-    Loader
+    Loader,
+    Eye,
+    EyeOff
 } from "lucide-react";
 import "./settings.css";
 
@@ -37,6 +39,10 @@ export default function SettingsPage() {
         newPassword: "",
         confirmPassword: ""
     });
+
+    const [showCurrent, setShowCurrent] = useState(false);
+    const [showNew, setShowNew] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -207,40 +213,106 @@ export default function SettingsPage() {
                                         <form onSubmit={handleUpdatePassword}>
                                             <div className="form-group">
                                                 <label>Current Password</label>
-                                                <input
-                                                    type="password"
-                                                    name="currentPassword"
-                                                    value={passwordData.currentPassword}
-                                                    onChange={handlePasswordChange}
-                                                    placeholder="Enter current password"
-                                                    required
-                                                />
+                                                <div className="input-group-relative" style={{ position: 'relative' }}>
+                                                    <input
+                                                        type={showCurrent ? "text" : "password"}
+                                                        name="currentPassword"
+                                                        value={passwordData.currentPassword}
+                                                        onChange={handlePasswordChange}
+                                                        placeholder="Enter current password"
+                                                        required
+                                                        style={{ width: '100%', paddingRight: '40px' }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowCurrent(!showCurrent)}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            right: '12px',
+                                                            top: '50%',
+                                                            transform: 'translateY(-50%)',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: '#64748b',
+                                                            cursor: 'pointer',
+                                                            padding: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center'
+                                                        }}
+                                                    >
+                                                        {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                </div>
                                                 <span className="help-text">For your security, please verify your current password.</span>
                                             </div>
 
                                             <div className="form-group">
                                                 <label>New Password</label>
-                                                <input
-                                                    type="password"
-                                                    name="newPassword"
-                                                    value={passwordData.newPassword}
-                                                    onChange={handlePasswordChange}
-                                                    placeholder="Enter new password"
-                                                    required
-                                                    minLength={6}
-                                                />
+                                                <div className="input-group-relative" style={{ position: 'relative' }}>
+                                                    <input
+                                                        type={showNew ? "text" : "password"}
+                                                        name="newPassword"
+                                                        value={passwordData.newPassword}
+                                                        onChange={handlePasswordChange}
+                                                        placeholder="Enter new password"
+                                                        required
+                                                        minLength={6}
+                                                        style={{ width: '100%', paddingRight: '40px' }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowNew(!showNew)}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            right: '12px',
+                                                            top: '50%',
+                                                            transform: 'translateY(-50%)',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: '#64748b',
+                                                            cursor: 'pointer',
+                                                            padding: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center'
+                                                        }}
+                                                    >
+                                                        {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div className="form-group">
                                                 <label>Confirm New Password</label>
-                                                <input
-                                                    type="password"
-                                                    name="confirmPassword"
-                                                    value={passwordData.confirmPassword}
-                                                    onChange={handlePasswordChange}
-                                                    placeholder="Confirm new password"
-                                                    required
-                                                />
+                                                <div className="input-group-relative" style={{ position: 'relative' }}>
+                                                    <input
+                                                        type={showConfirm ? "text" : "password"}
+                                                        name="confirmPassword"
+                                                        value={passwordData.confirmPassword}
+                                                        onChange={handlePasswordChange}
+                                                        placeholder="Confirm new password"
+                                                        required
+                                                        style={{ width: '100%', paddingRight: '40px' }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowConfirm(!showConfirm)}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            right: '12px',
+                                                            top: '50%',
+                                                            transform: 'translateY(-50%)',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: '#64748b',
+                                                            cursor: 'pointer',
+                                                            padding: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center'
+                                                        }}
+                                                    >
+                                                        {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <button type="submit" className="btn-primary" disabled={loading}>

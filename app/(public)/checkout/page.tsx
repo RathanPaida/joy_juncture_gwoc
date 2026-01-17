@@ -87,6 +87,7 @@ export default function CheckoutPage() {
   }, [user, authLoading]);
 
   const [isPincodeLoading, setIsPincodeLoading] = useState(false);
+  const [calculatedShipping, setCalculatedShipping] = useState<number | null>(null);
 
   // Validate promo code from URL
   useEffect(() => {
@@ -96,7 +97,7 @@ export default function CheckoutPage() {
     }
   }, [searchParams]);
 
-  // Pincode Auto-fill Effect
+  // Pincode Auto-fill & Delivery Fee Effect
   useEffect(() => {
     const fetchPincodeDetails = async () => {
       const pin = shippingAddress.pincode;
@@ -106,6 +107,7 @@ export default function CheckoutPage() {
 
       setIsPincodeLoading(true);
       try {
+        // 1. Fetch Location Details
         const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
         const data = await response.json();
 
@@ -123,15 +125,28 @@ export default function CheckoutPage() {
           // Optional: Clear fields if invalid
           setShippingAddress(prev => ({ ...prev, city: "", state: "" }));
         }
+
+        // 2. Fetch Delivery Fee from Backend
+        const deliveryRes = await fetch(`/api/delivery/calculate?pincode=${pin}`);
+        const deliveryData = await deliveryRes.json();
+
+        if (deliveryRes.ok && deliveryData.success) {
+          console.log("🚚 Delivery Fee Calculated:", deliveryData.data);
+          setCalculatedShipping(deliveryData.data.is_free_delivery ? 0 : deliveryData.data.delivery_fee);
+        } else {
+          console.warn("⚠️ Failed to calculate delivery fee, falling back to default logic");
+          setCalculatedShipping(null); // Will fallback to default
+        }
+
       } catch (error) {
-        console.error("Error fetching pincode:", error);
+        console.error("Error fetching pincode/delivery:", error);
       } finally {
         setIsPincodeLoading(false);
       }
     };
 
     // Debounce slightly or just call
-    const timer = setTimeout(fetchPincodeDetails, 500);
+    const timer = setTimeout(fetchPincodeDetails, 800);
     return () => clearTimeout(timer);
   }, [shippingAddress.pincode]);
 
@@ -255,7 +270,15 @@ export default function CheckoutPage() {
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
-    const shipping = subtotal > 500 ? 0 : 50;
+
+    // Shipping Logic: Use API calculated fee if available (even if 0), else fallback
+    let shipping = 0;
+    if (calculatedShipping !== null) {
+      shipping = calculatedShipping;
+    } else {
+      // Fallback default logic
+      shipping = subtotal > 500 ? 0 : 50;
+    }
 
     // Apply discount BEFORE tax? Depends on local laws. Usually Tax is on discounted price.
     const taxableAmount = Math.max(0, subtotal - discountAmount);
@@ -263,6 +286,7 @@ export default function CheckoutPage() {
     const tax = taxableAmount * 0.18;
     const total = taxableAmount + shipping + tax;
 
+    console.log("💰 Totals calculated:", { subtotal, shipping, tax, total });
     return { subtotal, shipping, tax, total, discount: discountAmount };
   };
 
@@ -328,7 +352,8 @@ export default function CheckoutPage() {
           cartItems,
           shippingAddress,
           promoCode: isPromoApplied ? promoCode : null,
-          discountAmount: isPromoApplied ? discountAmount : 0
+          discountAmount: isPromoApplied ? discountAmount : 0,
+          shippingFee: calculateTotals().shipping // Explicitly send the calculated shipping fee
         }),
       });
 
@@ -343,7 +368,7 @@ export default function CheckoutPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
-        name: "Your Store Name",
+        name: "Joy Juncture",
         description: "Order Payment",
         order_id: order.id,
         handler: async (response: any) => {
@@ -358,7 +383,7 @@ export default function CheckoutPage() {
           address: shippingAddress.address,
         },
         theme: {
-          color: "#6366f1",
+          color: "#f97316",
         },
         modal: {
           ondismiss: () => {
@@ -724,6 +749,7 @@ export default function CheckoutPage() {
               <div className="payment-methods">
                 <label
                   className={`payment-option ${paymentMethod === "razorpay" ? "selected" : ""}`}
+                  style={paymentMethod === "razorpay" ? { borderColor: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.1)' } : {}}
                 >
                   <input
                     type="radio"

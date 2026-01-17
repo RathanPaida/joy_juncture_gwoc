@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const firebaseUid = decodedToken.uid;
 
-    const { amount, cartItems, shippingAddress, promoCode, discountAmount } = await request.json();
+    const { amount, cartItems, shippingAddress, promoCode, discountAmount, shippingFee } = await request.json();
 
     if (!amount || !cartItems || !shippingAddress || !cartItems.length) {
       return NextResponse.json(
@@ -48,15 +48,34 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user
-    const user = await User.findOne({ firebaseUid: firebaseUid });
+    let user = await User.findOne({ firebaseUid: firebaseUid });
+
+    // JIT USER CREATION: If user not found but token valid, create them now
     if (!user) {
-      return NextResponse.json(
-        {
-          error:
-            "User not found in database. Please complete your profile first.",
-        },
-        { status: 404 },
-      );
+      console.log('⚠️ User not found in MongoDB during checkout. Creating JIT user:', firebaseUid);
+      try {
+        user = await User.create({
+          firebaseUid: firebaseUid,
+          email: decodedToken.email,
+          name: decodedToken.name || decodedToken.email?.split('@')[0] || 'User',
+          avatar: decodedToken.picture || null,
+          role: 'viewer',
+          totalPoints: 0,
+          walletBalance: 0,
+          createdAt: new Date(),
+          lastLogin: new Date(),
+        });
+        console.log('✅ JIT User created successfully:', user._id);
+      } catch (createError) {
+        console.error('❌ Failed to create JIT user:', createError);
+        return NextResponse.json(
+          {
+            error:
+              "User not found and failed to create profile. Please contact support.",
+          },
+          { status: 500 },
+        );
+      }
     }
 
     // Calculate totals
@@ -64,8 +83,19 @@ export async function POST(request: NextRequest) {
       (sum: number, item: any) => sum + item.price * item.quantity,
       0,
     );
-    const shipping = subtotal > 500 ? 0 : 50;
-    const tax = subtotal * 0.18;
+
+    // Use provided shipping fee from frontend (validated by Pincode API there)
+    // or fallback to default logic
+    // Use provided shipping fee from frontend (validated by Pincode API there)
+    // or fallback to default logic
+    let shipping = 0;
+    if (typeof shippingFee === 'number') {
+      shipping = shippingFee;
+    } else {
+      shipping = subtotal > 500 ? 0 : 50;
+    }
+
+    const tax = subtotal * 0.18; // Note: Tax should ideally be on (subtotal - discount) but keeping existing logic for now
     const total = subtotal + shipping + tax;
 
     // Create orders

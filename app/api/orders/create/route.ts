@@ -43,6 +43,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user
+    let user = await User.findOne({ firebaseUid: firebaseUid });
+
+    // JIT USER CREATION: If user not found but token valid, create them now
+    if (!user) {
+      console.log('⚠️ User not found in MongoDB during COD order. Creating JIT user:', firebaseUid);
+      try {
+        user = await User.create({
+          firebaseUid: firebaseUid,
+          email: decodedToken.email,
+          name: decodedToken.name || decodedToken.email?.split('@')[0] || 'User',
+          avatar: decodedToken.picture || null,
+          role: 'viewer',
+          totalPoints: 0,
+          walletBalance: 0,
+          createdAt: new Date(),
+          lastLogin: new Date(),
+        });
+        console.log('✅ JIT User created successfully (COD):', user._id);
+      } catch (createError) {
+        console.error('❌ Failed to create JIT user (COD):', createError);
+        return NextResponse.json(
+          {
+            error:
+              "User not found and failed to create profile. Please contact support.",
+          },
+          { status: 500 },
+        );
+      }
+    }
+
+    /* 
     const user = await User.findOne({ firebaseUid: firebaseUid });
     if (!user) {
       return NextResponse.json(
@@ -52,7 +84,8 @@ export async function POST(request: NextRequest) {
         },
         { status: 404 },
       );
-    }
+    } 
+    */
 
     console.log("📦 Creating orders for", cartItems.length, "items");
 

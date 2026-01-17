@@ -24,19 +24,42 @@ export default function ForgotPasswordPage() {
             return;
         }
 
+        console.log("🔄 Attempting password reset for:", email);
+        console.log("🔧 Auth Status:", auth ? "Initialized" : "Not Initialized");
+        if (auth) {
+            console.log("🔧 Auth Config (partial):", {
+                apiKey: auth.config?.apiKey ? "Present" : "Missing",
+                apiScheme: auth.config?.apiScheme,
+                apiHost: auth.config?.apiHost
+            });
+
+            // Ensure auth is ready
+            try {
+                console.log("⏳ Waiting for auth state readiness...");
+                await auth.authStateReady();
+                console.log("✅ Auth state ready");
+            } catch (e) {
+                console.warn("⚠️ Auth state ready check failed (non-fatal):", e);
+            }
+        }
+
         try {
             await sendPasswordResetEmail(auth, email);
+            console.log("✅ Password reset email sent successfully");
             setSuccess(true);
         } catch (err: any) {
-            console.error("Password reset error:", err);
+            console.error("❌ Password reset error full object:", err);
+            console.error("❌ Error Code:", err.code);
+            console.error("❌ Error Message:", err.message);
+
             if (err.code === "auth/user-not-found") {
-                // For security reasons, we might want to show success even if user not found,
-                // but for better UX in this app we'll show a specific error or generic one.
                 setError("No account found with this email address.");
             } else if (err.code === "auth/invalid-email") {
                 setError("Please enter a valid email address.");
+            } else if (err.code === "auth/network-request-failed") {
+                setError("Network error. Please check your internet connection or try again later.");
             } else {
-                setError("Failed to send reset email. Please try again.");
+                setError("Failed to send reset email. " + err.message);
             }
         } finally {
             setLoading(false);

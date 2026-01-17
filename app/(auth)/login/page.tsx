@@ -4,18 +4,20 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  signInWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
   signInWithPopup,
-  getRedirectResult 
+  getRedirectResult
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
+import { Eye, EyeOff } from "lucide-react";
 import "./login.css";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -24,9 +26,9 @@ export default function LoginPage() {
   const syncUserToMongoDB = async (user: any) => {
     try {
       const idToken = await user.getIdToken();
-      
+
       console.log('🔄 Syncing user to MongoDB on login...', user.uid);
-      
+
       const response = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: {
@@ -65,7 +67,7 @@ export default function LoginPage() {
 
         setGoogleLoading(true);
         const result = await getRedirectResult(auth);
-        
+
         if (result && result.user) {
           sessionStorage.removeItem('googleSignInAttempt');
           const user = result.user;
@@ -161,7 +163,7 @@ export default function LoginPage() {
 
     try {
       let result;
-      
+
       // Try popup first
       try {
         result = await signInWithPopup(auth, googleProvider);
@@ -252,14 +254,37 @@ export default function LoginPage() {
 
           <div className="input-group">
             <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+                style={{ width: "100%", paddingRight: "40px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#64748B",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           <div className="options">
@@ -312,9 +337,9 @@ export default function LoginPage() {
           </button>
 
           {googleLoading && (
-            <p style={{ 
-              textAlign: 'center', 
-              color: '#64748B', 
+            <p style={{
+              textAlign: 'center',
+              color: '#64748B',
               fontSize: '13px',
               marginTop: '12px'
             }}>
