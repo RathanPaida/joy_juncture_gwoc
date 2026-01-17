@@ -10,7 +10,7 @@ export interface IUser extends Document {
   authProvider: "local" | "firebase" | "google";
   totalPoints: number;
   level: number;
-  streak: { type: Number; default: 0 }; // ← ADD THIS
+  streak: number;
   lastLogin?: Date; // ← ADD THIS
   lastDailyClaim?: Date; // New field to track daily reward separately
   lastActivity?: Date;

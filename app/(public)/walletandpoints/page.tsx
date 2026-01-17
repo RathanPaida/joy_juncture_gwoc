@@ -39,14 +39,14 @@ interface Transaction {
   _id: string;
   userId: string;
   type:
-    | "purchase"
-    | "event"
-    | "game"
-    | "daily_login"
-    | "referral"
-    | "bonus"
-    | "achievement"
-    | "redeem";
+  | "purchase"
+  | "event"
+  | "game"
+  | "daily_login"
+  | "referral"
+  | "bonus"
+  | "achievement"
+  | "redeem";
   amount: number;
   description: string;
   createdAt: string;
@@ -177,17 +177,17 @@ const WalletPointsPage: React.FC = () => {
   const getFirebaseToken = async () => {
     try {
       const currentUser = auth.currentUser;
-      
+
       if (!currentUser) {
         console.error("❌ No authenticated user");
         throw new Error("Not authenticated");
       }
 
       console.log("✅ Getting token for user:", currentUser.email);
-      
+
       // Force refresh to get fresh token
       const token = await currentUser.getIdToken(true);
-      
+
       if (!token) {
         console.error("❌ Token is empty");
         throw new Error("Failed to get authentication token");
@@ -223,7 +223,7 @@ const WalletPointsPage: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to create wallet: ${response.status}`);
+        throw new Error(errorData.error ? `${errorData.error}: ${errorData.details || ''}` : `Failed to create wallet: ${response.status}`);
       }
 
       return await response.json();
@@ -367,7 +367,7 @@ const WalletPointsPage: React.FC = () => {
       }
 
       const data = await response.json();
-      
+
       console.log("Daily reward status:", data);
 
       setCanClaimDaily(data.canClaim);
@@ -452,7 +452,7 @@ const WalletPointsPage: React.FC = () => {
         let message = `🎁 Daily Reward Claimed!\n\n+${data.points} points!\n`;
         message += `Current streak: ${data.streak} days\n`;
         message += `New balance: ${data.newBalance} points`;
-        
+
         if (data.leveledUp) {
           message += `\n\n🎉 LEVEL UP! You reached Level ${data.level}!`;
         }
@@ -486,9 +486,9 @@ const WalletPointsPage: React.FC = () => {
     setStreak(walletData.user?.streak || 0);
     setUserName(
       walletData.user?.name ||
-        user?.displayName ||
-        user?.email?.split("@")[0] ||
-        "Player",
+      user?.displayName ||
+      user?.email?.split("@")[0] ||
+      "Player",
     );
   };
 
@@ -710,7 +710,7 @@ const WalletPointsPage: React.FC = () => {
       </div>
     );
   }
- return (
+  return (
     <div className="wallet-page">
       {showConfetti && (
         <div className="confetti-overlay">
@@ -967,11 +967,10 @@ const WalletPointsPage: React.FC = () => {
                         <FaCoins /> {reward.points} points
                       </span>
                       <button
-                        className={`redeem-btn ${
-                          userPoints >= reward.points && reward.stock > 0
+                        className={`redeem-btn ${userPoints >= reward.points && reward.stock > 0
                             ? "available"
                             : "locked"
-                        }`}
+                          }`}
                         onClick={() => handleRedeem(reward)}
                         disabled={
                           userPoints < reward.points || reward.stock <= 0
