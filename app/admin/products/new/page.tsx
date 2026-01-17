@@ -26,17 +26,60 @@ export default function NewProductPage() {
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
-    description: '',
+    shortDescription: '',
+    story: '',
     price: '',
     currency: 'INR',
     stock: '',
-    category: 'party', // Default to first occasion or generic
+    points: '',
+    category: 'party', // Default
     gametype: 'board-game',
     players: '',
     duration: '',
+    age: '',
+    difficulty: 'Easy',
     moods: [] as string[],
     badges: [] as string[],
+    howToPlay: {
+      setup: '',
+      gameplay: '',
+      winning: ''
+    },
+    keyFeatures: [] as string[],
+    whatYouGet: [] as string[],
+    faqs: [] as { question: string; answer: string }[]
   });
+
+  // Dynamic list handlers
+  const handleKeyFeatureChange = (index: number, value: string) => {
+    const newFeatures = [...formData.keyFeatures];
+    newFeatures[index] = value;
+    setFormData(prev => ({ ...prev, keyFeatures: newFeatures }));
+  };
+  const addKeyFeature = () => setFormData(prev => ({ ...prev, keyFeatures: [...prev.keyFeatures, ''] }));
+  const removeKeyFeature = (index: number) => {
+    setFormData(prev => ({ ...prev, keyFeatures: prev.keyFeatures.filter((_, i) => i !== index) }));
+  };
+
+  const handleWhatYouGetChange = (index: number, value: string) => {
+    const newItems = [...formData.whatYouGet];
+    newItems[index] = value;
+    setFormData(prev => ({ ...prev, whatYouGet: newItems }));
+  };
+  const addWhatYouGet = () => setFormData(prev => ({ ...prev, whatYouGet: [...prev.whatYouGet, ''] }));
+  const removeWhatYouGet = (index: number) => {
+    setFormData(prev => ({ ...prev, whatYouGet: prev.whatYouGet.filter((_, i) => i !== index) }));
+  };
+
+  const handleFaqChange = (index: number, field: 'question' | 'answer', value: string) => {
+    const newFaqs = [...formData.faqs];
+    newFaqs[index] = { ...newFaqs[index], [field]: value };
+    setFormData(prev => ({ ...prev, faqs: newFaqs }));
+  };
+  const addFaq = () => setFormData(prev => ({ ...prev, faqs: [...prev.faqs, { question: '', answer: '' }] }));
+  const removeFaq = (index: number) => {
+    setFormData(prev => ({ ...prev, faqs: prev.faqs.filter((_, i) => i !== index) }));
+  };
 
   // Auto-generate slug from name and check for duplicates
   const handleNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,16 +229,29 @@ export default function NewProductPage() {
 
       submitData.append('name', formData.name);
       submitData.append('slug', formData.slug);
-      submitData.append('description', formData.description);
+      submitData.append('shortDescription', formData.shortDescription);
+      submitData.append('story', formData.story);
       submitData.append('price', formData.price);
       submitData.append('currency', formData.currency);
       submitData.append('stock', formData.stock);
+      submitData.append('points', formData.points);
       submitData.append('category', formData.category);
       submitData.append('gametype', formData.gametype);
       submitData.append('players', formData.players);
       submitData.append('duration', formData.duration);
+      submitData.append('age', formData.age);
+      submitData.append('difficulty', formData.difficulty);
       submitData.append('moods', JSON.stringify(formData.moods));
       submitData.append('badges', JSON.stringify(formData.badges));
+
+      // Complex fields
+      submitData.append('howToPlaySetup', formData.howToPlay.setup);
+      submitData.append('howToPlayGameplay', formData.howToPlay.gameplay);
+      submitData.append('howToPlayWinning', formData.howToPlay.winning);
+
+      submitData.append('keyFeatures', JSON.stringify(formData.keyFeatures));
+      submitData.append('whatYouGet', JSON.stringify(formData.whatYouGet));
+      submitData.append('faqs', JSON.stringify(formData.faqs));
 
       images.forEach((img, index) => {
         submitData.append('images', img.file);
@@ -352,7 +408,7 @@ export default function NewProductPage() {
               </div>
 
               <div className="form-group full-width">
-                <label className="form-label">URL Slug *</label>
+                <label className="form-label">URL Identifier (Website Link) *</label>
                 <input
                   type="text"
                   required
@@ -361,17 +417,30 @@ export default function NewProductPage() {
                   className="form-input"
                   placeholder="e.g., catan"
                 />
-                <p className="form-hint">Auto-generated from name, but you can customize</p>
+                <p className="form-hint">Auto-generated from name. This appears in the browser address bar.</p>
               </div>
 
               <div className="form-group full-width">
-                <label className="form-label">Description</label>
+                <label className="form-label">Short Description *</label>
                 <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={4}
+                  required
+                  value={formData.shortDescription}
+                  onChange={(e) => setFormData(prev => ({ ...prev, shortDescription: e.target.value }))}
+                  rows={2}
                   className="form-textarea"
-                  placeholder="Describe the product..."
+                  placeholder="Brief summary for listings..."
+                />
+              </div>
+
+              <div className="form-group full-width">
+                <label className="form-label">Full Story/Description *</label>
+                <textarea
+                  required
+                  value={formData.story}
+                  onChange={(e) => setFormData(prev => ({ ...prev, story: e.target.value }))}
+                  rows={6}
+                  className="form-textarea"
+                  placeholder="Detailed storyline and description of the game..."
                 />
               </div>
             </div>
@@ -419,6 +488,19 @@ export default function NewProductPage() {
                   placeholder="0"
                 />
               </div>
+
+              <div className="form-group">
+                <label className="form-label">Joy Points (Reward)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.points}
+                  onChange={(e) => setFormData(prev => ({ ...prev, points: e.target.value }))}
+                  className="form-input"
+                  placeholder="e.g. 100"
+                />
+                <p className="form-hint text-[10px] mt-1 text-gray-400">Points awarded on purchase</p>
+              </div>
             </div>
           </div>
 
@@ -454,27 +536,13 @@ export default function NewProductPage() {
 
               <div className="form-group">
                 <label className="form-label">Players</label>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={formData.players}
-                    onChange={(e) => setFormData(prev => ({ ...prev, players: e.target.value }))}
-                    className="form-input"
-                    placeholder="e.g., 2-4"
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    {FILTERS.players.options.map(opt => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, players: opt }))}
-                        className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300"
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <input
+                  type="text"
+                  value={formData.players}
+                  onChange={(e) => setFormData(prev => ({ ...prev, players: e.target.value }))}
+                  className="form-input"
+                  placeholder="e.g., 2-4"
+                />
               </div>
 
               <div className="form-group">
@@ -487,10 +555,35 @@ export default function NewProductPage() {
                   placeholder="e.g., 30-60 min"
                 />
               </div>
+
+              <div className="form-group">
+                <label className="form-label">Age</label>
+                <input
+                  type="text"
+                  value={formData.age}
+                  onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value }))}
+                  className="form-input"
+                  placeholder="e.g., 14+"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Difficulty</label>
+                <select
+                  value={formData.difficulty}
+                  onChange={(e) => setFormData(prev => ({ ...prev, difficulty: e.target.value }))}
+                  className="form-select"
+                >
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                  <option value="Very Easy">Very Easy</option>
+                </select>
+              </div>
             </div>
 
             {/* Moods */}
-            <div className="form-group full-width">
+            <div className="form-group full-width mt-4">
               <label className="form-label">Moods</label>
               <div className="tag-group">
                 {FILTERS.mood.options.map(mood => (
@@ -507,7 +600,7 @@ export default function NewProductPage() {
             </div>
 
             {/* Badges */}
-            <div className="form-group full-width">
+            <div className="form-group full-width mt-4">
               <label className="form-label">Badges</label>
               <div className="tag-group">
                 {['bestseller', 'new', 'trending', 'limited'].map(badge => (
@@ -524,6 +617,120 @@ export default function NewProductPage() {
             </div>
           </div>
 
+          {/* How to Play */}
+          <div className="form-section">
+            <h2 className="section-title">
+              <span className="w-1 h-6 bg-orange-500 rounded-full inline-block mr-2" style={{ backgroundColor: '#FF5F1F', verticalAlign: 'middle' }}></span>
+              How to Play
+            </h2>
+            <div className="form-group full-width">
+              <label className="form-label">Setup</label>
+              <textarea
+                value={formData.howToPlay.setup}
+                onChange={(e) => setFormData(prev => ({ ...prev, howToPlay: { ...prev.howToPlay, setup: e.target.value } }))}
+                rows={3}
+                className="form-textarea"
+                placeholder="Game setup instructions..."
+              />
+            </div>
+            <div className="form-group full-width">
+              <label className="form-label">Gameplay</label>
+              <textarea
+                value={formData.howToPlay.gameplay}
+                onChange={(e) => setFormData(prev => ({ ...prev, howToPlay: { ...prev.howToPlay, gameplay: e.target.value } }))}
+                rows={3}
+                className="form-textarea"
+                placeholder="Core gameplay mechanics..."
+              />
+            </div>
+            <div className="form-group full-width">
+              <label className="form-label">Winning</label>
+              <textarea
+                value={formData.howToPlay.winning}
+                onChange={(e) => setFormData(prev => ({ ...prev, howToPlay: { ...prev.howToPlay, winning: e.target.value } }))}
+                rows={2}
+                className="form-textarea"
+                placeholder="How to win the game..."
+              />
+            </div>
+          </div>
+
+          {/* Key Features */}
+          <div className="form-section">
+            <h2 className="section-title">Key Features</h2>
+            {formData.keyFeatures.map((feature, idx) => (
+              <div key={idx} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={feature}
+                  onChange={(e) => handleKeyFeatureChange(idx, e.target.value)}
+                  className="form-input"
+                  placeholder="Feature description"
+                />
+                <button type="button" onClick={() => removeKeyFeature(idx)} className="text-red-500">
+                  <X size={20} />
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={addKeyFeature} className="text-orange-500 font-bold mt-2">
+              + Add Feature
+            </button>
+          </div>
+
+          {/* What You Get */}
+          <div className="form-section">
+            <h2 className="section-title">What You Get (Box Contents)</h2>
+            {formData.whatYouGet.map((item, idx) => (
+              <div key={idx} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={item}
+                  onChange={(e) => handleWhatYouGetChange(idx, e.target.value)}
+                  className="form-input"
+                  placeholder="e.g., 1 Game Board"
+                />
+                <button type="button" onClick={() => removeWhatYouGet(idx)} className="text-red-500">
+                  <X size={20} />
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={addWhatYouGet} className="text-orange-500 font-bold mt-2">
+              + Add Item
+            </button>
+          </div>
+
+          {/* FAQs */}
+          <div className="form-section">
+            <h2 className="section-title">FAQs</h2>
+            {formData.faqs.map((faq, idx) => (
+              <div key={idx} className="mb-4 border border-gray-700 p-4 rounded bg-gray-900/30">
+                <div className="flex justify-between mb-2">
+                  <label className="text-sm text-gray-400">Question {idx + 1}</label>
+                  <button type="button" onClick={() => removeFaq(idx)} className="text-red-500">
+                    <X size={16} />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={faq.question}
+                  onChange={(e) => handleFaqChange(idx, 'question', e.target.value)}
+                  className="form-input mb-2"
+                  placeholder="Question"
+                />
+                <textarea
+                  value={faq.answer}
+                  onChange={(e) => handleFaqChange(idx, 'answer', e.target.value)}
+                  className="form-textarea"
+                  rows={2}
+                  placeholder="Answer"
+                />
+              </div>
+            ))}
+            <button type="button" onClick={addFaq} className="text-orange-500 font-bold mt-2">
+              + Add FAQ
+            </button>
+          </div>
+
           {/* Submit Buttons */}
           <div className="form-actions">
             <Link href="/admin/products" className="btn-cancel">
@@ -538,7 +745,7 @@ export default function NewProductPage() {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

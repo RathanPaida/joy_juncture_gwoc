@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebase"; // Import Firebase auth directly
 import {
   CreditCard,
@@ -70,6 +70,11 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const [errors, setErrors] = useState<Partial<ShippingAddress>>({});
 
+  const searchParams = useSearchParams();
+  const [promoCode, setPromoCode] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [isPromoApplied, setIsPromoApplied] = useState(false);
+
   useEffect(() => {
     if (!authLoading) {
       if (user) {
@@ -80,6 +85,56 @@ export default function CheckoutPage() {
       }
     }
   }, [user, authLoading]);
+
+  // Validate promo code from URL
+  useEffect(() => {
+    const code = searchParams.get('promo');
+    if (code && !isPromoApplied) {
+      validatePromo(code);
+    }
+  }, [searchParams]);
+
+  const validatePromo = async (code: string) => {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/promo/validate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPromoCode(code);
+
+        // Calculate potential discount based on cart items
+        // Note: Actual calculation happens in calculateTotals based on these state values
+        // We just need to determine the value here to set state
+
+        let discount = 0;
+        const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+        if (data.type === 'percentage') {
+          // For percentage, store the % value or calculate absolute immediately?
+          // Let's store absolute amount for simplicity in calculateTotals
+          discount = (subtotal * data.discount) / 100;
+        } else {
+          discount = data.discount;
+        }
+
+        if (discount > subtotal) discount = subtotal;
+
+        setDiscountAmount(discount);
+        setIsPromoApplied(true);
+        console.log("✅ Promo applied:", code, "Discount:", discount);
+      }
+    } catch (error) {
+      console.error("Error validating promo:", error);
+    }
+  };
 
   const loadRazorpayScript = () => {
     const script = document.createElement("script");
@@ -96,7 +151,7 @@ export default function CheckoutPage() {
         console.error("❌ No current user");
         return null;
       }
-      
+
       // Force refresh to get a fresh token
       const token = await currentUser.getIdToken(true);
       console.log("✅ Got fresh token, length:", token.length);
@@ -160,9 +215,14 @@ export default function CheckoutPage() {
       0,
     );
     const shipping = subtotal > 500 ? 0 : 50;
-    const tax = subtotal * 0.18;
-    const total = subtotal + shipping + tax;
-    return { subtotal, shipping, tax, total };
+
+    // Apply discount BEFORE tax? Depends on local laws. Usually Tax is on discounted price.
+    const taxableAmount = Math.max(0, subtotal - discountAmount);
+
+    const tax = taxableAmount * 0.18;
+    const total = taxableAmount + shipping + tax;
+
+    return { subtotal, shipping, tax, total, discount: discountAmount };
   };
 
   const validateAddress = (): boolean => {
@@ -226,6 +286,8 @@ export default function CheckoutPage() {
           amount: total,
           cartItems,
           shippingAddress,
+          promoCode: isPromoApplied ? promoCode : null,
+          discountAmount: isPromoApplied ? discountAmount : 0
         }),
       });
 
@@ -303,12 +365,12 @@ export default function CheckoutPage() {
         const data = await verifyRes.json();
         console.log("✅ Payment verified:", data);
         console.log("✅ Cart cleared by server:", data.cartCleared);
-        
+
         // Redirect to success page with order info
         const orderIds = data.orderIds?.join(',') || '';
         const joyPoints = data.joyPointsEarned || 0;
         const count = data.ordersUpdated || 1;
-        
+
         router.push(`/order-succes`);
       } else {
         const errorData = await verifyRes.json();
@@ -350,6 +412,8 @@ export default function CheckoutPage() {
           shippingAddress,
           paymentMethod: "cod",
           total: totals.total,
+          promoCode: isPromoApplied ? promoCode : null,
+          discountAmount: isPromoApplied ? discountAmount : 0
         }),
       });
 
@@ -362,7 +426,7 @@ export default function CheckoutPage() {
         const orderIds = data.orderIds?.join(',') || '';
         const joyPoints = data.joyPointsEarned || 0;
         const count = data.ordersCreated || 1;
-        
+
         router.push(`/order-succes`);
       } else {
         const errorData = await orderRes.json();
@@ -689,6 +753,13 @@ export default function CheckoutPage() {
                 <span>Subtotal</span>
                 <span>₹{subtotal.toLocaleString()}</span>
               </div>
+
+              {discountAmount > 0 && (
+                <div className="summary-row" style={{ color: '#22c55e' }}>
+                  <span>Discount</span>
+                  <span>-₹{discountAmount.toLocaleString()}</span>
+                </div>
+              )}
 
               <div className="summary-row">
                 <span>Shipping</span>

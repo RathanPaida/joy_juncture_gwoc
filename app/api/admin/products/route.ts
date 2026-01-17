@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const productsCollection = await getCollection('products');
     const products = await productsCollection.find({}).toArray();
-    
+
     return NextResponse.json({
       success: true,
       items: products,
@@ -31,17 +31,17 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    
+
     // Extract form fields
     const name = formData.get('name') as string;
     const slug = formData.get('slug') as string;
-    
+
     // Check if product with this name already exists
     const productsCollection = await getCollection('products');
-    const existingProduct = await productsCollection.findOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+    const existingProduct = await productsCollection.findOne({
+      name: { $regex: new RegExp(`^${name}$`, 'i') }
     });
-    
+
     if (existingProduct) {
       return NextResponse.json(
         { success: false, error: `A product with the name "${name}" already exists` },
@@ -51,28 +51,44 @@ export async function POST(request: NextRequest) {
 
     // Check if slug already exists
     const existingSlug = await productsCollection.findOne({ slug });
-    
+
     if (existingSlug) {
       return NextResponse.json(
         { success: false, error: `A product with the slug "${slug}" already exists. Please use a different product name.` },
         { status: 409 }
       );
     }
-    
-    const description = formData.get('description') as string;
+
+    const shortDescription = formData.get('shortDescription') as string;
+    const story = formData.get('story') as string;
     const price = parseFloat(formData.get('price') as string);
     const currency = formData.get('currency') as string;
     const stock = parseInt(formData.get('stock') as string);
+    const points = parseInt(formData.get('points') as string || '0');
     const category = formData.get('category') as string;
+
+    // Meta
     const players = formData.get('players') as string;
     const duration = formData.get('duration') as string;
+    const age = formData.get('age') as string;
+    const difficulty = formData.get('difficulty') as string;
     const moods = JSON.parse(formData.get('moods') as string || '[]');
     const badges = JSON.parse(formData.get('badges') as string || '[]');
+
+    // Complex fields
+    const howToPlaySetup = formData.get('howToPlaySetup') as string;
+    const howToPlayGameplay = formData.get('howToPlayGameplay') as string;
+    const howToPlayWinning = formData.get('howToPlayWinning') as string;
+
+    const keyFeatures = JSON.parse(formData.get('keyFeatures') as string || '[]');
+    const whatYouGet = JSON.parse(formData.get('whatYouGet') as string || '[]');
+    const faqs = JSON.parse(formData.get('faqs') as string || '[]');
+
     const primaryImageIndex = parseInt(formData.get('primaryImageIndex') as string || '0');
-    
+
     // Get all uploaded images
     const imageFiles = formData.getAll('images') as File[];
-    
+
     if (imageFiles.length === 0) {
       return NextResponse.json(
         { success: false, error: 'At least one image is required' },
@@ -93,16 +109,16 @@ export async function POST(request: NextRequest) {
       imageFiles.map(async (file, index) => {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        
+
         // Generate unique filename
         const ext = file.name.split('.').pop();
         const uniqueId = generateUniqueId();
         const filename = `${uniqueId}.${ext}`;
         const filepath = path.join(uploadsDir, filename);
-        
+
         // Save file
         await writeFile(filepath, buffer);
-        
+
         return {
           url: `/uploads/products/${filename}`,
           isPrimary: index === primaryImageIndex,
@@ -118,7 +134,8 @@ export async function POST(request: NextRequest) {
     const productData = {
       name,
       slug,
-      description,
+      shortDescription,
+      story,
       price: {
         amount: price,
         currency,
@@ -127,15 +144,29 @@ export async function POST(request: NextRequest) {
         quantity: stock,
         available: stock > 0,
       },
+      points: {
+        purchase: points,
+      },
       category: [category],
       meta: {
         players,
         duration,
+        age,
+        difficulty,
         moods,
         badges,
       },
+      howToPlay: {
+        setup: howToPlaySetup,
+        gameplay: howToPlayGameplay,
+        winning: howToPlayWinning,
+      },
+      keyFeatures,
+      whatYouGet,
+      faqs,
       media: {
         thumbnail,
+        images: savedImages.map(img => img.url), // Compatibility
       },
       images: savedImages,
       createdAt: new Date(),

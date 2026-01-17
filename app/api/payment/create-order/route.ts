@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const firebaseUid = decodedToken.uid;
 
-    const { amount, cartItems, shippingAddress } = await request.json();
+    const { amount, cartItems, shippingAddress, promoCode, discountAmount } = await request.json();
 
     if (!amount || !cartItems || !shippingAddress || !cartItems.length) {
       return NextResponse.json(
@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
         paymentMethod: "razorpay", // Added required field
         shippingAddress: shippingAddress,
         trackingNumber: null,
+        promoCode: promoCode || null,
+        discountAmount: discountAmount || 0,
       };
 
       const order = await Order.create(orderData);

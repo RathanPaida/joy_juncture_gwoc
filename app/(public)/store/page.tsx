@@ -28,44 +28,66 @@ type StoreProduct = {
   };
 };
 
+import connectDb from "@/lib/mongodb";
+import Product from "@/models/Product";
+
 async function getProducts(searchParams: { [key: string]: string | string[] | undefined }) {
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL ||
-      (typeof window !== "undefined"
-        ? window.location.origin
-        : "http://localhost:3000");
+    await connectDb();
 
-    // Construct query string from searchParams
-    const params = new URLSearchParams();
-    if (searchParams.page) params.append("page", searchParams.page as string);
-    if (searchParams.limit) params.append("limit", searchParams.limit as string);
-    if (searchParams.category) params.append("category", searchParams.category as string);
-    if (searchParams.mood) params.append("mood", searchParams.mood as string);
-    if (searchParams.players) params.append("players", searchParams.players as string);
+    // Parse filters
+    const query: any = {};
 
-    // console.log("Fetching products with params:", params.toString());
-
-    const res = await fetch(`${baseUrl}/api/products?${params.toString()}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      console.error("Failed to fetch products:", res.status, res.statusText);
-      return { items: [] };
+    // Category (Occasion)
+    if (searchParams.category) {
+      const categories = (searchParams.category as string).split(",");
+      query.category = { $in: categories.map(c => new RegExp(c, "i")) };
     }
 
-    const data = await res.json();
+    // Gametype
+    if (searchParams.gametype) {
+      query.gametype = new RegExp(searchParams.gametype as string, "i");
+    }
 
-    // Transform products to ensure meta has required fields
-    const transformedItems = data.items.map((item: any) => ({
+    // Mood
+    if (searchParams.mood) {
+      const moods = (searchParams.mood as string).split(",");
+      query["meta.moods"] = { $in: moods.map(m => new RegExp(m, "i")) };
+    }
+
+    // Players
+    if (searchParams.players) {
+      const playerList = (searchParams.players as string).split(",");
+      query["meta.players"] = { $in: playerList.map(p => new RegExp(p, "i")) };
+    }
+
+    // Pagination
+    const page = parseInt(searchParams.page as string || "1");
+    const limit = parseInt(searchParams.limit as string || "50"); // Higher default limit for store
+    const skip = (page - 1) * limit;
+
+    const items = await Product.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    // Transform and serialize
+    const transformedItems = items.map((item: any) => ({
       ...item,
+      _id: item._id.toString(),
+      price: {
+        amount: item.price?.amount || 0,
+        currency: item.price?.currency || 'INR',
+      },
       meta: {
         players: item.meta?.players || "N/A",
         duration: item.meta?.duration || "N/A",
         age: item.meta?.age || "N/A",
         ...item.meta,
       },
+      createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : undefined,
+      updatedAt: item.updatedAt ? new Date(item.updatedAt).toISOString() : undefined,
     }));
 
     return { items: transformedItems };

@@ -7,6 +7,7 @@ import { ObjectId, MongoClient } from 'mongodb';
 import { Order } from '@/models/Order';
 import { User, Transaction } from '@/models/User';
 import { verifyIdToken } from '@/lib/firebase-admin';
+import { sendEventRegistrationEmail, sendOrderConfirmationEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -232,6 +233,21 @@ async function handleEventPayment(
     );
     console.log('✅ Order status updated');
 
+    // Send confirmation email
+    try {
+      console.log('📧 Sending event registration email to:', order.userEmail);
+      await sendEventRegistrationEmail(
+        order.userEmail,
+        order.userName,
+        event.name,
+        event.date || new Date(), // Fallback if date missing
+        event.location || 'Online' // Fallback if location missing
+      );
+    } catch (emailError) {
+      console.error('❌ Failed to send event registration email:', emailError);
+      // Don't fail the request if email fails
+    }
+
     return NextResponse.json({
       success: true,
       registrationId: registrationResult.insertedId.toString(),
@@ -298,7 +314,7 @@ async function handleProductPayment(
     const orders = await Order.find({
       firebaseUid: firebaseUid,
       razorpayPaymentId: razorpay_payment_id
-    });
+    }).lean();
 
     const totalAmount = orders.reduce(
       (sum, order) => sum + order.totalAmount,
@@ -346,8 +362,50 @@ async function handleProductPayment(
         console.log('✅ Transaction record created for product purchase');
       } catch (txError) {
         console.error('❌ Transaction creation error:', txError);
-        // Continue even if transaction logging fails
       }
+    }
+
+    // Mark coupon as used if promo code exists in order
+    if (orders.length > 0 && orders[0].promoCode) {
+      try {
+        await User.updateOne(
+          { firebaseUid: firebaseUid, "redeemedCoupons.code": orders[0].promoCode },
+          { $set: { "redeemedCoupons.$.isUsed": true } }
+        );
+        console.log("✅ Coupon marked as used:", orders[0].promoCode);
+      } catch (err) {
+        console.error("❌ Failed to mark coupon as used:", err);
+      }
+    }
+
+    // Send order confirmation email
+    try {
+      if (orders.length > 0) {
+        const firstOrder = orders[0];
+        const userEmail = firstOrder.shippingAddress?.email;
+        const userName = firstOrder.shippingAddress?.fullName || 'Valued Customer';
+
+        if (userEmail) {
+          const orderItems = orders.map((o: any) => ({
+            name: o.productName,
+            quantity: o.quantity,
+            price: o.price
+          }));
+
+          console.log('📧 Sending order confirmation email to:', userEmail);
+          await sendOrderConfirmationEmail(
+            userEmail,
+            userName,
+            razorpay_order_id,
+            totalAmount,
+            orderItems
+          );
+        } else {
+          console.log('⚠️ No email found in shipping address, skipping email.');
+        }
+      }
+    } catch (emailError) {
+      console.error('❌ Failed to send order confirmation email:', emailError);
     }
 
     // 🎯 CLEAR THE CART AFTER SUCCESSFUL PAYMENT
@@ -355,40 +413,40 @@ async function handleProductPayment(
     console.log("🧹 ATTEMPTING TO CLEAR CART");
     console.log("========================================");
     // console.log("FirebaseUid:", firebaseUid);
-    
+
     try {
       // Use the same MongoDB connection as the cart API
       const cartClient = new MongoClient(process.env.MONGODB_URI!);
       await cartClient.connect();
-      
+
       try {
         const db = cartClient.db("joyjuncture");
         const cartCollection = db.collection("cart");
-        
+
         // Find all cart items for this user
         const existingItems = await cartCollection.find({ userId: firebaseUid }).toArray();
-        
+
         console.log("📦 Cart items found:", existingItems.length);
-        
+
         if (existingItems.length > 0) {
           console.log("📦 Items to delete:");
           existingItems.forEach((item: any, index: number) => {
             console.log(`   ${index + 1}. ${item.productName} (${item.quantity}x)`);
           });
         }
-        
+
         // Delete all cart items
         const cartDeleteResult = await cartCollection.deleteMany({ userId: firebaseUid });
-        
+
         console.log("🗑️ Delete result:", {
           acknowledged: cartDeleteResult.acknowledged,
           deletedCount: cartDeleteResult.deletedCount
         });
-        
+
         // Verify deletion
         const verifyItems = await cartCollection.find({ userId: firebaseUid }).toArray();
         console.log("✅ Remaining items after delete:", verifyItems.length);
-        
+
         if (verifyItems.length === 0) {
           console.log("🎉 CART SUCCESSFULLY DELETED!");
         } else {
@@ -397,7 +455,7 @@ async function handleProductPayment(
       } finally {
         await cartClient.close();
       }
-      
+
       console.log("========================================\n");
     } catch (cartError: any) {
       console.error("\n========================================");

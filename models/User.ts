@@ -10,14 +10,26 @@ export interface IUser extends Document {
   authProvider: "local" | "firebase" | "google";
   totalPoints: number;
   level: number;
-  streak: { type: Number; default: 0 }; // ← ADD THIS
-  lastLogin?: Date; // ← ADD THIS
+  streak: { type: Number; default: 0 };
+  lastLogin?: Date;
+  lastDailyClaim?: Date; // Added for daily reward tracking
   lastActivity?: Date;
   achievements: Array<{
     achievementId: string;
     unlocked: boolean;
     progress: number;
     unlockedAt?: Date;
+  }>;
+  redeemedCoupons: Array<{
+    rewardId: string;
+    code: string;
+    name: string;
+    discountType: "percentage" | "fixed";
+    discountValue: number;
+    minOrderAmount: number;
+    isUsed: boolean;
+    redeemedAt: Date;
+    expiryDate?: Date;
   }>;
   walletBalance: number;
   referralCode?: string;
@@ -105,6 +117,8 @@ const userSchema = new Schema<IUser>(
       default: 0,
       min: 0,
     },
+    lastLogin: Date,
+    lastDailyClaim: Date,
     lastActivity: {
       type: Date,
       default: Date.now,
@@ -128,6 +142,34 @@ const userSchema = new Schema<IUser>(
         unlockedAt: Date,
       },
     ],
+    redeemedCoupons: {
+      type: [
+        {
+          rewardId: String,
+          code: String,
+          name: String,
+          discountType: {
+            type: String,
+            default: "fixed",
+          },
+          discountValue: Number,
+          minOrderAmount: {
+            type: Number,
+            default: 0,
+          },
+          isUsed: {
+            type: Boolean,
+            default: false,
+          },
+          redeemedAt: {
+            type: Date,
+            default: Date.now,
+          },
+          expiryDate: Date,
+        },
+      ],
+      default: [],
+    },
     walletBalance: {
       type: Number,
       default: 0,

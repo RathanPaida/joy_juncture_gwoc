@@ -106,7 +106,7 @@ export default function ProfilePage() {
   const auth = getAuth();
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'events' | 'products' | 'blogs' | 'history'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'products' | 'blogs' | 'history' | 'coupons'>('events');
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
@@ -115,6 +115,7 @@ export default function ProfilePage() {
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
+  const [coupons, setCoupons] = useState<any[]>([]); // ADDED STATE
 
   useEffect(() => {
     if (!authLoading) {
@@ -184,6 +185,9 @@ export default function ProfilePage() {
       if (walletRes.ok) {
         const data = await walletRes.json();
         setWalletInfo(data.wallet);
+        // Filter out used coupons
+        const activeCoupons = (data.wallet.coupons || []).filter((c: any) => !c.isUsed);
+        setCoupons(activeCoupons);
       }
 
       if (transactionsRes.ok) {
@@ -391,6 +395,13 @@ export default function ProfilePage() {
           My Blogs ({userBlogs.length})
         </button>
         <button
+          className={`tab-btn ${activeTab === 'coupons' ? 'active' : ''}`}
+          onClick={() => setActiveTab('coupons')}
+        >
+          <Gift size={18} />
+          My Coupons ({coupons.length})
+        </button>
+        <button
           className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
           onClick={() => setActiveTab('history')}
         >
@@ -583,6 +594,88 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Coupons Tab */}
+        {activeTab === 'coupons' && (
+          <div className="coupons-list">
+            {coupons.length === 0 ? (
+              <div className="empty-state">
+                <Gift className="empty-icon" />
+                <h3>No Coupons Yet</h3>
+                <p>Redeem your points for exciting rewards!</p>
+                <button className="btn-primary" onClick={() => router.push('/walletandpoints')}>
+                  Go to Rewards
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                {coupons.map((coupon, idx) => (
+                  <div key={idx} className="coupon-card" style={{
+                    background: '#1a1a1a',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    border: '1px solid #333',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#FF8C00' }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                      <h3 style={{ margin: 0, color: '#fff' }}>{coupon.name}</h3>
+                      <span style={{
+                        background: 'rgba(76, 175, 80, 0.2)',
+                        color: '#4CAF50',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>Active</span>
+                    </div>
+
+                    <div style={{
+                      background: '#000',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px dashed #444',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '15px',
+                      cursor: 'pointer'
+                    }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(coupon.code);
+                        alert('Code copied!');
+                      }}
+                      title="Click to copy"
+                    >
+                      <span style={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', color: '#FF8C00', letterSpacing: '1px' }}>{coupon.code}</span>
+                      <Edit size={14} color="#666" />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#aaa', fontSize: '14px' }}>
+                        {coupon.discountType === 'percentage' ? `${coupon.discountValue}% Off` : `₹${coupon.discountValue} Off`}
+                      </span>
+                      <button style={{
+                        background: 'transparent',
+                        color: '#FF8C00',
+                        border: '1px solid #FF8C00',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px'
+                      }}
+                        onClick={() => router.push('/cart')}
+                      >
+                        Use Now
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}

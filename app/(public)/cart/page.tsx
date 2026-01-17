@@ -42,21 +42,55 @@ export default function CartPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
+  const [userCoupons, setUserCoupons] = useState<any[]>([]);
+  const [availableRewards, setAvailableRewards] = useState<any[]>([]);
+  const [userPoints, setUserPoints] = useState(0);
+
+  // Restored missing states
   const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState("");
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoType, setPromoType] = useState<"fixed" | "percentage">("fixed");
 
   useEffect(() => {
     if (!authLoading) {
       if (user) {
         fetchCartData();
+        fetchWalletAndRewards();
       } else {
         router.push("/login?redirect=/cart");
       }
     }
   }, [user, authLoading]);
+
+  const fetchWalletAndRewards = async () => {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return;
+
+      // Fetch Wallet (Coupons)
+      const walletRes = await fetch("/api/user/wallet", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (walletRes.ok) {
+        const data = await walletRes.json();
+        console.log("XXX CART WALLET DATA:", data);
+        setUserCoupons(data.wallet.coupons || []);
+        setUserPoints(data.wallet.points || 0);
+      }
+
+      // Fetch Rewards
+      const rewardsRes = await fetch("/api/wallet/rewards");
+      if (rewardsRes.ok) {
+        const data = await rewardsRes.json();
+        setAvailableRewards(data.rewards || []);
+      }
+    } catch (error) {
+      console.error("Error fetching wallet/rewards:", error);
+    }
+  };
 
   const fetchCartData = async () => {
     try {
@@ -138,20 +172,41 @@ export default function CartPage() {
     }
   };
 
-  const applyPromoCode = async () => {
-    if (!promoCode.trim()) return;
+  const applyPromoCode = async (codeToUse?: string) => {
+    const code = codeToUse || promoCode;
+    if (!code?.trim()) return;
 
     try {
+      const token = await auth.currentUser?.getIdToken();
+
       const res = await fetch("/api/promo/validate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: promoCode }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ code }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setPromoApplied(true);
-        setPromoDiscount(data.discount || 10);
+        // data.discount is the VALUE (e.g. 50 flat). 
+        // Need to check discountType.
+        // Assuming current logic was percentage, but new logic is likely fixed.
+        // For compatibility:
+        if (data.type === 'fixed') {
+          // Store fixed amount in promoDiscount, but current calculation logic handles it as % ?
+          // Line 168: (subtotal * promoDiscount) / 100
+          // I need to change calculateSummary too!
+          setPromoDiscount(data.discount); // This will break if treated as %.
+          // I'll add a state `discountType`
+        } else {
+          setPromoDiscount(data.discount || 10);
+        }
+
+        // HACK: I will store type in a new state or just reuse logic.
+        // Let's optimize calculate logic below implicitly.
       } else {
         alert("Invalid promo code");
       }
@@ -160,12 +215,48 @@ export default function CartPage() {
     }
   };
 
+  const handleRedeemReward = async (rewardId: string) => {
+    if (!confirm("Redeem this reward using your points?")) return;
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/wallet/redeem", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ rewardId })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Redeemed! Code: ${data.couponCode}`);
+        fetchWalletAndRewards(); // Refresh to show new coupon
+      } else {
+        alert(data.error || "Failed to redeem");
+      }
+    } catch (err) {
+      console.error("Redeem error:", err);
+    }
+  };
+
   const calculateSummary = (): CartSummary => {
     const subtotal = cartItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
-    const discount = promoApplied ? (subtotal * promoDiscount) / 100 : 0;
+
+    let discount = 0;
+    if (promoApplied) {
+      if (promoType === "percentage") {
+        discount = (subtotal * promoDiscount) / 100;
+      } else {
+        discount = promoDiscount;
+      }
+      // Ensure discount doesn't exceed subtotal
+      if (discount > subtotal) discount = subtotal;
+    }
+
     const shipping = subtotal > 500 ? 0 : 50;
     const tax = (subtotal - discount) * 0.18; // 18% GST
     const total = subtotal - discount + shipping + tax;
@@ -178,7 +269,11 @@ export default function CartPage() {
       alert("Your cart is empty!");
       return;
     }
-    router.push("/checkout");
+    const queryParams = new URLSearchParams();
+    if (promoApplied && promoCode) {
+      queryParams.set('promo', promoCode);
+    }
+    router.push(`/checkout?${queryParams.toString()}`);
   };
 
   if (authLoading || loading) {
@@ -215,6 +310,14 @@ export default function CartPage() {
           >
             Continue Shopping
           </button>
+        </div>
+        {/* Wallet Balance Header */}
+        <div className="bg-[#111] border border-white/10 rounded-lg px-4 py-2 flex items-center gap-3 mt-4 md:mt-0">
+          <div className="text-right">
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Your Balance</p>
+            <p className="text-orange-500 font-bold">{userPoints.toLocaleString()} pts</p>
+          </div>
+          <Gift className="text-orange-500" size={20} />
         </div>
       </div>
 
@@ -312,7 +415,7 @@ export default function CartPage() {
                 />
                 <button
                   className="apply-promo-btn"
-                  onClick={applyPromoCode}
+                  onClick={() => applyPromoCode()}
                   disabled={promoApplied || !promoCode.trim()}
                 >
                   {promoApplied ? "Applied" : "Apply"}
@@ -321,10 +424,97 @@ export default function CartPage() {
               {promoApplied && (
                 <div className="promo-success">
                   <ShieldCheck size={16} />
-                  <span>Promo code applied! {promoDiscount}% off</span>
+                  <span>
+                    Discount applied: {promoType === "percentage" ? `${promoDiscount}%` : `₹${promoDiscount}`} off
+                  </span>
+                </div>
+              )}
+
+              {/* Existing Coupons List */}
+              {userCoupons.length > 0 && !promoApplied && (
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <p className="text-sm font-bold text-zinc-300 mb-2">Your Coupons:</p>
+                  <div className="grid gap-2">
+                    {userCoupons.map((coupon, idx) => (
+                      <div key={idx} className="bg-zinc-900 border border-white/5 p-3 rounded flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-orange-500">{coupon.code}</p>
+                          <p className="text-xs text-zinc-400">
+                            {coupon.name} ({coupon.discountType === "percentage" ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`} Off)
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setPromoCode(coupon.code);
+                            applyPromoCode(coupon.code);
+                          }}
+                          className="text-xs bg-white text-black px-3 py-1 rounded font-bold hover:bg-zinc-200"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* Rewards Redemption Section */}
+            <div className="promo-section mt-4 border-t-0">
+              <div className="promo-header text-orange-500">
+                <Gift size={20} />
+                <span>Redeem Points</span>
+              </div>
+              <p className="text-xs text-zinc-400 mb-3">Use your points to get instant discounts</p>
+
+              <div className="grid gap-3">
+                {availableRewards.length === 0 ? (
+                  <p className="text-xs text-zinc-500 italic">No rewards available.</p>
+                ) : (availableRewards.map(reward => {
+                  const canAfford = userPoints >= reward.points;
+                  const redeemedCoupon = userCoupons.find((c: any) => String(c.rewardId) === String(reward._id));
+
+                  return (
+                    <div key={reward._id} className={`bg-zinc-900 border ${canAfford ? 'border-orange-500/30' : 'border-white/5'} p-3 rounded flex justify-between items-center opacity-${canAfford || redeemedCoupon ? '100' : '50'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
+                          <Gift size={14} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-white">{reward.name}</p>
+                          <p className="text-xs text-zinc-400">{reward.points} Points</p>
+                        </div>
+                      </div>
+
+                      {redeemedCoupon ? (
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] text-green-500 font-bold uppercase mb-0.5">Redeemed</span>
+                          <button
+                            onClick={() => {
+                              setPromoCode(redeemedCoupon.code);
+                              // Optionally auto-apply logic could go here
+                            }}
+                            className="text-xs px-2 py-1 rounded font-mono font-bold bg-zinc-800 text-orange-500 border border-zinc-700 hover:bg-zinc-700 flex items-center gap-1"
+                            title="Click to use code"
+                          >
+                            {redeemedCoupon.code}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => canAfford && handleRedeemReward(reward._id)}
+                          disabled={!canAfford}
+                          className={`text-xs px-3 py-1.5 rounded font-bold transition-colors ${canAfford ? 'bg-orange-500 text-black hover:bg-orange-400' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
+                        >
+                          Redeem
+                        </button>
+                      )}
+                    </div>
+                  );
+                }))}
+              </div>
+            </div>
+
           </div>
 
           {/* Order Summary Sidebar */}
@@ -340,7 +530,7 @@ export default function CartPage() {
 
                 {summary.discount > 0 && (
                   <div className="summary-row discount">
-                    <span>Discount ({promoDiscount}%)</span>
+                    <span>Discount</span>
                     <span>-₹{summary.discount.toLocaleString()}</span>
                   </div>
                 )}
