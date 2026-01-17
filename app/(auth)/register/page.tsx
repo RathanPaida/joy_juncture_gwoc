@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  createUserWithEmailAndPassword, 
+import {
+  createUserWithEmailAndPassword,
   signInWithPopup,
   getRedirectResult,
 } from "firebase/auth";
 import { auth, googleProvider, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { Eye, EyeOff } from "lucide-react";
 import "./register.css";
 
 export default function RegisterPage() {
@@ -21,6 +22,8 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [generatedOtp, setGeneratedOtp] = useState("");
   const [error, setError] = useState("");
@@ -34,9 +37,9 @@ export default function RegisterPage() {
   const syncUserToMongoDB = async (user: any, additionalData: any = {}) => {
     try {
       const idToken = await user.getIdToken();
-      
+
       console.log('🔄 Syncing user to MongoDB...', user.uid);
-      
+
       const response = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: {
@@ -44,16 +47,18 @@ export default function RegisterPage() {
           'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
+          firebaseUid: user.uid, // FIXED: Add firebaseUid
           email: user.email,
           name: additionalData.name || user.displayName || user.email?.split('@')[0],
           avatar: additionalData.avatar || user.photoURL || 'https://i.pravatar.cc/150?img=12',
+          authProvider: additionalData.authProvider || 'firebase', // FIXED: Add authProvider
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         console.warn('⚠️ MongoDB sync failed:', errorData);
-        return null;
+        throw new Error(errorData.message || 'Sync failed');
       }
 
       const data = await response.json();
@@ -61,7 +66,7 @@ export default function RegisterPage() {
       return data;
     } catch (error: any) {
       console.error('❌ MongoDB sync error:', error);
-      return null;
+      throw error; // FIXED: Throw error instead of returning null to handle it properly
     }
   };
 
@@ -74,7 +79,7 @@ export default function RegisterPage() {
 
         setGoogleLoading(true);
         const result = await getRedirectResult(auth);
-        
+
         if (result && result.user) {
           sessionStorage.removeItem('googleSignInAttempt');
           const user = result.user;
@@ -107,6 +112,7 @@ export default function RegisterPage() {
           await syncUserToMongoDB(user, {
             name: user.displayName,
             avatar: user.photoURL,
+            authProvider: 'google', // FIXED: Specify Google provider
           });
 
           if (isAdmin) {
@@ -140,61 +146,38 @@ export default function RegisterPage() {
     return Math.floor(100000 + Math.random() * 900000).toString();
   };
 
-  // Send OTP via email
+  // Send OTP via Backend API
   const sendOTPEmail = async (email: string, otpCode: string) => {
-    const emailJsConfigured = 
-      process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID &&
-      process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID &&
-      process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
+    try {
+      console.log('🔄 Requesting OTP email via backend API...');
+      const response = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp: otpCode }),
+      });
 
-    if (emailJsConfigured) {
-      try {
-        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            service_id: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
-            template_id: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
-            user_id: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY,
-            template_params: {
-              user_email: email,
-              passcode: otpCode,
-              time: '15 minutes',
-            }
-          })
-        });
+      const data = await response.json();
 
-        if (response.ok) {
-          console.log('✅ OTP sent via EmailJS');
-          return true;
-        } else {
-          const errorData = await response.text();
-          console.error('EmailJS error:', errorData);
-          throw new Error('EmailJS failed');
-        }
-      } catch (error) {
-        console.warn('EmailJS failed, using development mode:', error);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP email');
       }
-    }
 
-    // Development mode fallback
-    console.log('🔐 DEVELOPMENT MODE - OTP for', email, ':', otpCode);
-    console.log('%c OTP CODE: ' + otpCode, 'background: #222; color: #bada55; font-size: 20px; padding: 10px;');
-    
-    const userConfirmed = window.confirm(
-      `📧 EMAIL SERVICE NOT CONFIGURED\n\n` +
-      `Your OTP code is: ${otpCode}\n\n` +
-      `Copy this code and click OK to continue.\n` +
-      `(In production, this will be sent to your email)`
-    );
-    
-    if (!userConfirmed) {
-      throw new Error('User cancelled OTP');
+      console.log('✅ OTP sent successfully via backend');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send OTP:', error);
+
+      // Fallback for development if API fails (optional, good for debugging)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ API failed. Displaying OTP in console for Dev:', otpCode);
+        alert(`DEV MODE: Your OTP is ${otpCode} (Check console for details)`);
+        return true;
+      }
+
+      throw error;
     }
-    
-    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -210,6 +193,13 @@ export default function RegisterPage() {
 
     if (!formData.email.trim()) {
       setError("Email is required");
+      return;
+    }
+
+    // FIXED: Better email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address");
       return;
     }
 
@@ -244,7 +234,7 @@ export default function RegisterPage() {
       // Move to OTP verification step
       setStep('otp');
       setSuccess(`OTP sent to ${formData.email}`);
-      
+
     } catch (err: any) {
       console.error("Error sending OTP:", err);
       setError("Failed to send OTP. Please try again.");
@@ -311,19 +301,23 @@ export default function RegisterPage() {
       }
 
       // Sync to MongoDB - CRITICAL STEP
-      const syncResult = await syncUserToMongoDB(user, {
-        name: tempUserData.name,
-        avatar: 'https://i.pravatar.cc/150?img=12',
-      });
-
-      if (!syncResult) {
-        console.warn("⚠️ MongoDB sync failed, but account was created");
+      try {
+        await syncUserToMongoDB(user, {
+          name: tempUserData.name,
+          avatar: 'https://i.pravatar.cc/150?img=12',
+          authProvider: 'firebase', // FIXED: Specify Firebase provider
+        });
+        console.log("✅ MongoDB sync successful");
+      } catch (syncError: any) {
+        console.error("❌ MongoDB sync failed:", syncError);
+        // FIXED: Show warning but don't block registration
+        alert("⚠️ Account created but sync failed. Please contact support if you experience issues.");
       }
 
       // Success!
-      alert("✅ Account created successfully!");
+      setSuccess("Account created successfully! Redirecting to login...");
 
-      // Clear form
+      // FIXED: Clear form and wait before redirect
       setFormData({
         name: "",
         email: "",
@@ -334,8 +328,10 @@ export default function RegisterPage() {
       setAgreeTerms(false);
       setTempUserData(null);
 
-      // Redirect to login
-      router.push("/login");
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
 
     } catch (err: any) {
       console.error("❌ Registration error:", err);
@@ -357,13 +353,15 @@ export default function RegisterPage() {
   const handleResendOTP = async () => {
     setError("");
     setSuccess("");
-    
+
     const otpCode = generateOTP();
     setGeneratedOtp(otpCode);
-    
+
     try {
       await sendOTPEmail(tempUserData.email, otpCode);
       setSuccess("OTP resent successfully!");
+      // FIXED: Clear success message after 3 seconds
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError("Failed to resend OTP");
     }
@@ -422,10 +420,16 @@ export default function RegisterPage() {
       }
 
       // Sync to MongoDB
-      await syncUserToMongoDB(user, {
-        name: user.displayName,
-        avatar: user.photoURL,
-      });
+      try {
+        await syncUserToMongoDB(user, {
+          name: user.displayName,
+          avatar: user.photoURL,
+          authProvider: 'google', // FIXED: Specify Google provider
+        });
+      } catch (syncError: any) {
+        console.error("❌ MongoDB sync failed:", syncError);
+        // Continue anyway - user is authenticated
+      }
 
       if (isAdmin) {
         router.push("/admin/dashboard");
@@ -434,7 +438,7 @@ export default function RegisterPage() {
       }
     } catch (err: any) {
       console.error("❌ Google sign-up error:", err);
-      
+
       if (err.code === 'auth/popup-blocked') {
         setError("Please allow popups for this site, or we'll redirect you automatically.");
       } else if (err.code === "auth/popup-closed-by-user") {
@@ -495,6 +499,7 @@ export default function RegisterPage() {
                 placeholder="Enter 6-digit OTP"
                 maxLength={6}
                 required
+                autoFocus // FIXED: Auto-focus on OTP input
                 style={{
                   textAlign: 'center',
                   fontSize: '24px',
@@ -512,12 +517,13 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={handleResendOTP}
+                disabled={loading} // FIXED: Disable while loading
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#10B981',
+                  color: loading ? '#94A3B8' : '#10B981',
                   textDecoration: 'underline',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   fontSize: '14px'
                 }}
               >
@@ -526,13 +532,19 @@ export default function RegisterPage() {
               <span style={{ margin: '0 8px', color: '#64748B' }}>|</span>
               <button
                 type="button"
-                onClick={() => setStep('form')}
+                onClick={() => {
+                  setStep('form');
+                  setOtp('');
+                  setError('');
+                  setSuccess('');
+                }}
+                disabled={loading} // FIXED: Disable while loading
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#10B981',
+                  color: loading ? '#94A3B8' : '#10B981',
                   textDecoration: 'underline',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   fontSize: '14px'
                 }}
               >
@@ -565,6 +577,19 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {success && (
+            <div className="success-message" style={{
+              padding: '12px',
+              backgroundColor: '#d4edda',
+              color: '#155724',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              textAlign: 'center'
+            }}>
+              <span>{success}</span>
+            </div>
+          )}
+
           <div className="input-group">
             <label htmlFor="name">Full Name</label>
             <input
@@ -575,6 +600,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               placeholder="Enter your full name"
               required
+              disabled={loading} // FIXED: Disable while loading
             />
           </div>
 
@@ -588,33 +614,82 @@ export default function RegisterPage() {
               onChange={handleChange}
               placeholder="Enter your email"
               required
+              disabled={loading} // FIXED: Disable while loading
             />
           </div>
 
           <div className="input-group">
             <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Create a password (min. 6 characters)"
-              required
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Create a password (min. 6 characters)"
+                required
+                disabled={loading} // FIXED: Disable while loading
+                style={{ width: "100%", paddingRight: "40px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#64748B",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           <div className="input-group">
             <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm your password"
-              required
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm your password"
+                required
+                disabled={loading} // FIXED: Disable while loading
+                style={{ width: "100%", paddingRight: "40px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#64748B",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           <div className="terms-group">
@@ -624,6 +699,7 @@ export default function RegisterPage() {
                 checked={agreeTerms}
                 onChange={(e) => setAgreeTerms(e.target.checked)}
                 className="terms-checkbox"
+                disabled={loading} // FIXED: Disable while loading
               />
               <span>
                 I agree to the{" "}
@@ -638,7 +714,7 @@ export default function RegisterPage() {
             </label>
           </div>
 
-          <button type="submit" className="register-btn" disabled={loading}>
+          <button type="submit" className="register-btn" disabled={loading || !agreeTerms}>
             {loading ? "Sending OTP..." : "Send OTP"}
           </button>
 
@@ -650,10 +726,10 @@ export default function RegisterPage() {
             type="button"
             className="google-btn"
             onClick={handleGoogleSignUp}
-            disabled={googleLoading}
+            disabled={googleLoading || loading}
             style={{
-              opacity: googleLoading ? 0.7 : 1,
-              cursor: googleLoading ? 'not-allowed' : 'pointer',
+              opacity: (googleLoading || loading) ? 0.7 : 1,
+              cursor: (googleLoading || loading) ? 'not-allowed' : 'pointer',
             }}
           >
             <svg className="google-icon" viewBox="0 0 24 24">
@@ -678,9 +754,9 @@ export default function RegisterPage() {
           </button>
 
           {googleLoading && (
-            <p style={{ 
-              textAlign: 'center', 
-              color: '#64748B', 
+            <p style={{
+              textAlign: 'center',
+              color: '#64748B',
               fontSize: '13px',
               marginTop: '12px'
             }}>

@@ -19,8 +19,12 @@ export async function GET(request: NextRequest) {
 
     // Fetch user's wallet from User model
     const user = await User.findOne({ firebaseUid: userId })
-      .select("walletBalance totalPoints")
+      .select("walletBalance totalPoints redeemedCoupons")
       .lean();
+
+    console.log("🔍 USER/WALLET API HIT - User ID:", user?._id);
+    console.log("🔍 USER/WALLET API HIT - All Keys:", user ? Object.keys(user) : "null");
+    console.log("🔍 USER/WALLET API HIT - Redeemed Raw:", user?.redeemedCoupons);
 
     if (!user) {
       return NextResponse.json({
@@ -49,9 +53,12 @@ export async function GET(request: NextRequest) {
       success: true,
       wallet: {
         balance: user.walletBalance || 0,
+        points: user.totalPoints || 0,
         totalSpent: totalSpent,
         totalEarned: totalEarned,
         transactions: transactions.length,
+        transactionHistory: transactions.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+        coupons: user.redeemedCoupons?.filter((c: any) => !c.isUsed) || []
       },
     });
   } catch (error: any) {

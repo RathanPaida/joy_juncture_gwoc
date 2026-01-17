@@ -25,15 +25,22 @@ import {
   Package,
   CalendarDays,
   Car,
+  Image,
 } from "lucide-react";
 import "./admin-navbar.css";
 
 const adminMenuItems = [
   {
-    title: "Public",
-    icon: <LayoutDashboard size={20} />,
+    title: "Public Site",
+    icon: <ChevronRight size={20} />,
     path: "/home",
     color: "#ff6600",
+  },
+  {
+    title: "Dashboard",
+    icon: <LayoutDashboard size={20} />,
+    path: "/admin/dashboard",
+    color: "#8b5cf6",
   },
   {
     title: "Store",
@@ -66,6 +73,32 @@ const adminMenuItems = [
       },
     ],
     color: "#ff3300",
+  },
+  {
+    title: "Gallery",
+    icon: <Image size={20} />,
+    path: "/admin/gallery",
+    dropdown: [
+      {
+        id: "main-gallery",
+        label: "Main Gallery",
+        path: "/admin/gallery",
+        icon: <Image size={16} />,
+      },
+      {
+        id: "exp-gallery",
+        label: "Exp. Gallery",
+        path: "/admin/experiences-gallery",
+        icon: <Image size={16} />,
+      },
+      {
+        id: "game-images",
+        label: "Game Images",
+        path: "/admin/game-images",
+        icon: <Gamepad2 size={16} />,
+      },
+    ],
+    color: "#e84393",
   },
   {
     title: "Events",

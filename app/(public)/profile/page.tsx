@@ -24,7 +24,10 @@ import {
   Package,
   CreditCard,
   Users,
-  Coins
+  Coins,
+  Gamepad2,
+  Flame,
+  Gift
 } from 'lucide-react';
 import './profile.css';
 
@@ -35,12 +38,24 @@ interface UserProfile {
   photoURL?: string;
   phoneNumber?: string;
   role: string;
-  totalPoints: number; // ADDED
-  walletBalance: number; // ADDED
-  level: number; // ADDED
-  streak: number; // ADDED
+  totalPoints: number;
+  walletBalance: number;
+  level: number;
+  streak: number;
   createdAt: string;
   lastLogin?: string;
+  redeemedCoupons?: Array<{
+    rewardId: string;
+    code: string;
+    name: string;
+    description: string;
+    discountType: "percentage" | "fixed";
+    discountValue: number;
+    discountAmount: number;
+    status: 'available' | 'used';
+    redeemedAt: string;
+    usedAt?: string;
+  }>;
 }
 
 interface RegisteredEvent {
@@ -87,19 +102,32 @@ interface WalletInfo {
   transactions: number;
 }
 
+interface Transaction {
+  _id: string;
+  type: string;
+  amount: number;
+  description: string;
+  status: string;
+  createdAt: string;
+  metadata?: any;
+}
+
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const auth = getAuth();
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'events' | 'products' | 'blogs'>('events');
-  
+  const [activeTab, setActiveTab] = useState<'events' | 'products' | 'blogs' | 'history' | 'coupons'>('events');
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
   const [purchasedProducts, setPurchasedProducts] = useState<PurchasedProduct[]>([]);
   const [userBlogs, setUserBlogs] = useState<UserBlog[]>([]);
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filterType, setFilterType] = useState<string>('all');
+  const [coupons, setCoupons] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -124,8 +152,7 @@ export default function ProfilePage() {
 
       const token = await currentUser.getIdToken();
 
-      // Fetch all profile data in parallel
-      const [profileRes, eventsRes, productsRes, blogsRes, walletRes] = await Promise.all([
+      const [profileRes, eventsRes, productsRes, blogsRes, walletRes, transactionsRes] = await Promise.all([
         fetch('/api/user/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
@@ -140,12 +167,17 @@ export default function ProfilePage() {
         }),
         fetch('/api/user/wallet', {
           headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('/api/wallet/transactions?limit=50', {
+          headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
 
       if (profileRes.ok) {
         const data = await profileRes.json();
         setProfile(data.profile);
+        // Use profile's redeemed coupons if wallet API doesn't provide them nicely
+        // But logic below prioritizes wallet API's coupons
       }
 
       if (eventsRes.ok) {
@@ -166,6 +198,15 @@ export default function ProfilePage() {
       if (walletRes.ok) {
         const data = await walletRes.json();
         setWalletInfo(data.wallet);
+        // Prioritize wallet API coupons if available, otherwise fallback to profile
+        // Filter mainly available ones or show all with status
+        const allCoupons = data.wallet.coupons || [];
+        setCoupons(allCoupons);
+      }
+
+      if (transactionsRes.ok) {
+        const data = await transactionsRes.json();
+        setTransactions(data.transactions || []);
       }
 
     } catch (error) {
@@ -213,7 +254,7 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <div className="profile-header">
         <div className="profile-banner"></div>
-        
+
         <div className="profile-info-section">
           <div className="profile-page-avatar-container">
             <div className="profile-page-avatar">
@@ -241,12 +282,11 @@ export default function ProfilePage() {
               </span>
               <span className="profile-joined">
                 <Calendar size={14} />
-                Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  year: 'numeric' 
+                Joined {new Date(profile.createdAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  year: 'numeric'
                 })}
               </span>
-              {/* ADDED: Show level and points */}
               <span className="profile-level">
                 <Trophy size={14} />
                 Level {profile.level || 1}
@@ -286,18 +326,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ADDED: Total Points Card
-        <div className="stat-card points">
-          <div className="stat-icon points-icon">
-            <Coins size={24} />
-          </div>
-          <div className="stat-content">
-            <h3>Total Points</h3>
-            <p className="stat-value"></p>
-            <span className="stat-label">Joy Points earned</span>
-          </div>
-        </div> */}
-
         <div className="stat-card">
           <div className="stat-icon events">
             <Trophy size={24} />
@@ -331,7 +359,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ADDED: Streak Card */}
         <div className="stat-card streak">
           <div className="stat-icon streak-icon">
             <Star size={24} />
@@ -367,6 +394,20 @@ export default function ProfilePage() {
           <FileText size={18} />
           My Blogs ({userBlogs.length})
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'coupons' ? 'active' : ''}`}
+          onClick={() => setActiveTab('coupons')}
+        >
+          <Gift size={18} />
+          My Coupons ({coupons.length})
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          <Wallet size={18} />
+          Wallet History
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -392,7 +433,7 @@ export default function ProfilePage() {
                       {event.status}
                     </span>
                   </div>
-                  
+
                   <div className="event-details">
                     <div className="detail-item">
                       <Calendar size={16} />
@@ -421,7 +462,7 @@ export default function ProfilePage() {
                     <span className="event-date">
                       Registered on {new Date(event.registeredAt).toLocaleDateString()}
                     </span>
-                    <button 
+                    <button
                       className="btn-view"
                       onClick={() => router.push(`/events/${event.eventId}`)}
                     >
@@ -452,7 +493,7 @@ export default function ProfilePage() {
                   <div className="product-image">
                     <img src={product.productImage} alt={product.productName} />
                   </div>
-                  
+
                   <div className="product-info">
                     <div className="product-header">
                       <h3>{product.productName}</h3>
@@ -460,7 +501,7 @@ export default function ProfilePage() {
                         {product.status}
                       </span>
                     </div>
-                    
+
                     <div className="product-details">
                       <div className="detail-row">
                         <span>Quantity:</span>
@@ -481,7 +522,7 @@ export default function ProfilePage() {
                         <Clock size={14} />
                         {new Date(product.purchaseDate).toLocaleDateString()}
                       </span>
-                      <button 
+                      <button
                         className="btn-view"
                         onClick={() => router.push(`/orders/${product._id}`)}
                       >
@@ -543,7 +584,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="blog-actions">
-                      <button 
+                      <button
                         className="btn-view"
                         onClick={() => router.push(`/blog/${blog.slug}`)}
                       >
@@ -554,6 +595,195 @@ export default function ProfilePage() {
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {/* Coupons Tab */}
+        {activeTab === 'coupons' && (
+          <div className="coupons-list">
+            {coupons.length === 0 ? (
+              <div className="empty-state">
+                <Gift className="empty-icon" />
+                <h3>No Coupons Yet</h3>
+                <p>Redeem your points for exciting rewards!</p>
+                <button className="btn-primary" onClick={() => router.push('/walletandpoints')}>
+                  Go to Rewards
+                </button>
+              </div>
+            ) : (
+              <div className="coupons-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                {coupons.map((coupon, index) => (
+                  <div key={index} className="coupon-card" style={{
+                    background: '#1a1a1a',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    border: '1px solid #333',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    <div className="coupon-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                      <span className={`coupon-status ${coupon.status}`} style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        background: coupon.status === 'available' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: coupon.status === 'available' ? '#22c55e' : '#ef4444'
+                      }}>
+                        {coupon.status}
+                      </span>
+                      <Gift size={20} color="#fca311" />
+                    </div>
+
+                    <h3 style={{ margin: '0 0 10px 0', color: '#fff', fontSize: '18px' }}>{coupon.name}</h3>
+                    <p style={{ color: '#888', fontSize: '14px', marginBottom: '20px' }}>{coupon.description}</p>
+
+                    <div className="coupon-code-box" style={{
+                      background: '#000',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      border: '1px dashed #444',
+                      marginBottom: '15px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(coupon.code);
+                        alert('Code copied!');
+                      }}
+                      title="Click to copy"
+                    >
+                      <span style={{
+                        color: '#fca311',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        letterSpacing: '1px',
+                        fontFamily: 'monospace'
+                      }}>
+                        {coupon.code}
+                      </span>
+                      <Edit size={14} color="#666" />
+                    </div>
+
+                    <div className="coupon-actions" style={{ display: 'flex', gap: '10px' }}>
+                      {coupon.status === 'available' && (
+                        <button style={{
+                          flex: 1,
+                          background: 'transparent',
+                          color: '#fca311',
+                          border: '1px solid #fca311',
+                          padding: '8px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          transition: 'all 0.2s'
+                        }}
+                          onClick={() => router.push('/cart')}
+                        >
+                          Use Now
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="coupon-footer" style={{
+                      marginTop: '15px',
+                      paddingTop: '15px',
+                      borderTop: '1px solid #333',
+                      fontSize: '12px',
+                      color: '#666'
+                    }}>
+                      Redeemed on {new Date(coupon.redeemedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* History Tab */}
+        {activeTab === 'history' && (
+          <div className="history-list">
+            <div className="filter-controls" style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {[
+                { id: 'all', label: 'All Transactions', icon: <Wallet size={16} /> },
+                { id: 'purchase', label: 'Purchases', icon: <ShoppingBag size={16} /> },
+                { id: 'event', label: 'Events', icon: <Calendar size={16} /> },
+                { id: 'game', label: 'Games', icon: <Gamepad2 size={16} /> },
+                { id: 'daily_login', label: 'Daily Login', icon: <Flame size={16} /> },
+                { id: 'referral', label: 'Referrals', icon: <Users size={16} /> },
+                { id: 'bonus', label: 'Bonuses', icon: <Star size={16} /> },
+                { id: 'achievement', label: 'Achievements', icon: <Trophy size={16} /> },
+                { id: 'redeem', label: 'Redemptions', icon: <Gift size={16} /> }
+              ].map(filter => (
+                <button
+                  key={filter.id}
+                  className={`filter-btn ${filterType === filter.id ? 'active' : ''}`}
+                  onClick={() => setFilterType(filter.id)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '24px',
+                    border: '1px solid #333',
+                    background: filterType === filter.id ? '#fca311' : 'rgba(255, 255, 255, 0.05)',
+                    color: filterType === filter.id ? '#000' : '#fff',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {filter.icon}
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="transactions-list">
+              {transactions
+                .filter(t => filterType === 'all' || t.type === filterType)
+                .length === 0 ? (
+                <div className="empty-state">
+                  <Wallet className="empty-icon" />
+                  <h3>No Transactions</h3>
+                  <p>No transactions found for this category</p>
+                </div>
+              ) : (
+                transactions
+                  .filter(t => filterType === 'all' || t.type === filterType)
+                  .map((transaction) => (
+                    <div key={transaction._id} className="transaction-card">
+                      <div className={`transaction-icon ${transaction.type}`}>
+                        {transaction.type === 'purchase' && <ShoppingBag size={20} />}
+                        {transaction.type === 'event' && <Trophy size={20} />}
+                        {transaction.type === 'game' && <Gamepad2 size={20} />}
+                        {transaction.type === 'bonus' && <Star size={20} />}
+                        {transaction.type === 'redeem' && <Gift size={20} />}
+                        {transaction.type === 'daily_login' && <Flame size={20} />}
+                        {(!['purchase', 'event', 'game', 'bonus', 'redeem', 'daily_login'].includes(transaction.type)) && <Wallet size={20} />}
+                      </div>
+
+                      <div className="transaction-info">
+                        <h3>{transaction.description}</h3>
+                        <span className="transaction-date">
+                          {new Date(transaction.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className={`transaction-amount ${transaction.type === 'redeem' || transaction.type === 'purchase' ? 'negative' : 'positive'}`}>
+                        {transaction.type === 'redeem' || transaction.type === 'purchase' ? '-' : '+'}
+                        {transaction.amount} pts
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -57,19 +57,23 @@ export default function AdminGamesPage() {
     players: "",
     duration: "",
     features: [""],
-    imageUrl: "",
+    imageUrl: "", // Keep for legacy/fallback
   });
 
+  // New state for file upload
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const colors = {
-    primary: "#ff8c00",
-    secondary: "#ffb347",
-    dark: "#0b0b0b",
-    light: "#121212",
-    text: "#f5f5f5",
-    textLight: "#b3b3b3",
-    border: "#2a2a2a",
-    background: "#141414",
-    success: "#10b981",
+    primary: "var(--primary-orange)",
+    secondary: "var(--primary-orange-light)",
+    dark: "var(--bg-black)",
+    light: "var(--bg-card)",
+    text: "var(--foreground)",
+    textLight: "#a3a3a3",
+    border: "var(--border-color)",
+    background: "var(--bg-black)",
+    success: "var(--primary-orange)", // Unify success to orange theme
     danger: "#ef4444",
   };
 
@@ -147,6 +151,8 @@ export default function AdminGamesPage() {
       features: [""],
       imageUrl: "",
     });
+    setSelectedFile(null);
+    setPreviewUrl(null);
     setIsModalOpen(true);
   };
 
@@ -158,6 +164,8 @@ export default function AdminGamesPage() {
 
     setEditingGame(game);
     setGameForm({ ...game });
+    setSelectedFile(null);
+    setPreviewUrl(game.imageUrl || null);
     setIsModalOpen(true);
   };
 
@@ -177,17 +185,32 @@ export default function AdminGamesPage() {
       setError(null);
 
       const method = editingGame ? "PUT" : "POST";
-      const body = editingGame
-        ? JSON.stringify({ id: editingGame.id, ...gameForm })
-        : JSON.stringify(gameForm);
+
+      const formData = new FormData();
+      if (editingGame) formData.append('id', editingGame.id);
+      formData.append('name', gameForm.name);
+      formData.append('description', gameForm.description);
+      formData.append('regularPrice', gameForm.regularPrice);
+      formData.append('salePrice', gameForm.salePrice);
+      formData.append('players', gameForm.players);
+      formData.append('duration', gameForm.duration);
+      formData.append('category', JSON.stringify(gameForm.category));
+      formData.append('features', JSON.stringify(gameForm.features));
+
+      if (selectedFile) {
+        formData.append('image', selectedFile);
+      } else if (gameForm.imageUrl) {
+        // preserve existing URL if no new file
+        formData.append('imageUrl', gameForm.imageUrl);
+      }
 
       const res = await fetch("/api/games", {
         method,
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          // Content-Type not needed for FormData
         },
-        body,
+        body: formData,
       });
 
       const data = await res.json();
@@ -1113,7 +1136,7 @@ export default function AdminGamesPage() {
                 </button>
               </div>
 
-              {/* Image URL */}
+              {/* Image Upload */}
               <div>
                 <label
                   style={{
@@ -1123,25 +1146,89 @@ export default function AdminGamesPage() {
                     fontWeight: 600,
                   }}
                 >
-                  Image URL *
+                  Game Image *
                 </label>
-                <input
-                  type="text"
-                  value={gameForm.imageUrl}
-                  onChange={(e) =>
-                    setGameForm({ ...gameForm, imageUrl: e.target.value })
-                  }
-                  placeholder="https://example.com/image.jpg"
+
+                {previewUrl && (
+                  <div style={{ marginBottom: '1rem', position: 'relative', width: 'fit-content' }}>
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      style={{
+                        maxWidth: '200px',
+                        maxHeight: '200px',
+                        borderRadius: '8px',
+                        border: `1px solid ${colors.border}`
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setPreviewUrl(null);
+                        setGameForm(prev => ({ ...prev, imageUrl: '' }));
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: -10,
+                        right: -10,
+                        background: colors.danger,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                <div
                   style={{
-                    width: "100%",
-                    padding: "12px",
+                    border: `2px dashed ${colors.border}`,
+                    borderRadius: '8px',
+                    padding: '20px',
+                    textAlign: 'center',
                     background: colors.light,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: "8px",
-                    color: colors.text,
-                    fontSize: "1rem",
+                    cursor: 'pointer',
+                    position: 'relative'
                   }}
-                />
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedFile(file);
+                        setPreviewUrl(URL.createObjectURL(file));
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <div style={{ pointerEvents: 'none' }}>
+                    <p style={{ color: colors.text, marginBottom: '0.5rem', fontWeight: 600 }}>
+                      {selectedFile ? selectedFile.name : "Click or Drag to Upload Image"}
+                    </p>
+                    <p style={{ color: colors.textLight, fontSize: '0.85rem' }}>
+                      Supports JPG, PNG, WebP
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Save */}

@@ -1,0 +1,165 @@
+/* app/admin/users/users.css */
+
+.users-actions-bar {
+    margin-bottom: 24px;
+    background: var(--bg-card);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.users-search-form {
+    display: flex;
+    align-items: center;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 16px;
+    max-width: 400px;
+}
+
+.users-search-form:focus-within {
+    border-color: var(--primary-orange);
+}
+
+.users-search-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    margin-left: 10px;
+    width: 100%;
+    outline: none;
+}
+
+.search-icon {
+    color: #666;
+}
+
+/* Table Styles */
+.users-table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #e2e8f0;
+}
+
+.users-table th {
+    text-align: left;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid var(--border-color);
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.users-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.users-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.users-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* User Cell */
+.user-cell-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar-small {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-orange-hover) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.user-name {
+    font-weight: 500;
+    color: #fff;
+}
+
+.user-email {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+/* Role Badges */
+.role-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.role-badge.admin,
+.role-badge.super_admin {
+    background: rgba(249, 115, 22, 0.2);
+    color: var(--primary-orange);
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.role-badge.user,
+.role-badge.viewer {
+    background: rgba(148, 163, 184, 0.1);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+/* Pagination */
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    color: #94a3b8;
+}
+
+.pagination-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: var(--primary-orange);
+    color: var(--primary-orange);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.users-loading {
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+}

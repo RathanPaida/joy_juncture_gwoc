@@ -22,6 +22,7 @@ interface Blog {
   excerpt: string;
   content: string;
   coverImage?: string;
+  images?: string[];
   category: string;
   tags: string[];
   author: {
@@ -68,6 +69,7 @@ const BlogDetailPage: React.FC = () => {
       setDebugInfo(`Attempting to fetch blog with slug: ${slug}`);
 
       // First, let's check what blogs are available
+      // Note: We don't return early here because the list API excludes 'content'
       const listResponse = await fetch("/api/blogs");
       if (listResponse.ok) {
         const listData = await listResponse.json();
@@ -79,41 +81,6 @@ const BlogDetailPage: React.FC = () => {
             status: b.status,
           })),
         );
-
-        const availableSlugs = listData.blogs?.map((b: Blog) => b.slug) || [];
-        console.log("🔗 Available slugs:", availableSlugs);
-        setDebugInfo(
-          (prev) =>
-            prev +
-            `\n\nAvailable slugs: ${availableSlugs.join(", ")}\nLooking for: ${slug}`,
-        );
-
-        // Check if the slug exists in the list
-        const matchingBlog = listData.blogs?.find((b: Blog) => b.slug === slug);
-        if (matchingBlog) {
-          console.log("✅ Found matching blog in list:", matchingBlog.title);
-
-          // Check if it's published or user is author
-          if (
-            matchingBlog.status === "published" ||
-            (user && matchingBlog.createdBy.userId === user.uid)
-          ) {
-            setBlog(matchingBlog);
-            setLoading(false);
-            return;
-          } else {
-            setError("This article is not yet published.");
-            setLoading(false);
-            return;
-          }
-        } else {
-          console.log("❌ No matching blog found in list");
-          setDebugInfo(
-            (prev) =>
-              prev +
-              `\n\n❌ The slug "${slug}" was not found in the blog list.`,
-          );
-        }
       }
 
       // If direct list lookup didn't work, try the API endpoints
@@ -248,12 +215,64 @@ const BlogDetailPage: React.FC = () => {
           )}
         </div>
 
-        {/* Cover Image */}
-        {blog.coverImage && (
-          <div className="blog-cover-image">
-            <img src={blog.coverImage} alt={blog.title} />
-          </div>
-        )}
+        {/* Carousel / Cover Image */}
+        {(() => {
+          const allImages = [];
+          if (blog.coverImage) allImages.push(blog.coverImage);
+          if (blog.images && blog.images.length > 0) allImages.push(...blog.images);
+
+          if (allImages.length === 0) return null;
+
+          if (allImages.length === 1) {
+            return (
+              <div className="blog-cover-image">
+                <img src={allImages[0]} alt={blog.title} />
+              </div>
+            );
+          }
+
+          // Carousel Logic
+          const [currentSlide, setCurrentSlide] = useState(0);
+
+          const nextSlide = () => {
+            setCurrentSlide((prev) => (prev + 1) % allImages.length);
+          };
+
+          const prevSlide = () => {
+            setCurrentSlide((prev) => (prev - 1 + allImages.length) % allImages.length);
+          };
+
+          return (
+            <div className="blog-cover-image relative group">
+              <img src={allImages[currentSlide]} alt={`${blog.title} - Slide ${currentSlide + 1}`} className="w-full h-full object-cover transition-opacity duration-500" />
+
+              {/* Navigation Buttons */}
+              <button
+                onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              >
+                <FaArrowLeft />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              >
+                <FaArrowLeft style={{ transform: 'rotate(180deg)' }} />
+              </button>
+
+              {/* Dots */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                {allImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`w-2 h-2 rounded-full transition-colors ${currentSlide === idx ? 'bg-orange-500' : 'bg-white/50 hover:bg-white'}`}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Blog Content */}
         <article className="blog-article">
@@ -287,8 +306,17 @@ const BlogDetailPage: React.FC = () => {
                 </span>
               ))}
             </div>
+
+            {blog.excerpt && (
+              <p className="blog-excerpt text-xl text-gray-300 italic my-6 border-l-4 border-orange-500 pl-4 py-2">
+                {blog.excerpt}
+              </p>
+            )}
           </header>
 
+
+
+          {/* Blog Content */}
           <div className="blog-content">
             <ReactMarkdown>{blog.content}</ReactMarkdown>
           </div>

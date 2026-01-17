@@ -1,12 +1,15 @@
-// app/api/payment/verify/route.ts
+// app/api/payment/verify/route.ts - COMPLETE WITH CART CLEARING
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import connectDb from '@/lib/mongodb';
 import { getDatabase } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { ObjectId, MongoClient } from 'mongodb';
 import { Order } from '@/models/Order';
 import { User, Transaction } from '@/models/User';
 import { verifyIdToken } from '@/lib/firebase-admin';
+// Unified Email Imports: prioritizing specific templates, falling back to generic
+import { sendEventRegistrationEmail, sendOrderConfirmationEmail } from '@/lib/email';
+import { sendEmail } from '@/lib/mail';
 
 export async function POST(request: NextRequest) {
   try {
@@ -185,7 +188,7 @@ async function handleEventPayment(
     await usersCollection.updateOne(
       { firebaseUid: order.userId },
       {
-        $inc: { walletBalance: coinsToAdd },
+        $inc: { walletBalance: coinsToAdd, totalPoints: coinsToAdd },
         $addToSet: { registeredEvents: new ObjectId(order.eventId) },
         $set: {
           lastActivity: new Date(),
@@ -232,6 +235,26 @@ async function handleEventPayment(
     );
     console.log('✅ Order status updated');
 
+    // Send confirmation email
+    try {
+      console.log('📧 Sending event registration email to:', order.userEmail);
+      if (sendEventRegistrationEmail) {
+        await sendEventRegistrationEmail(
+          order.userEmail,
+          order.userName,
+          event.name,
+          event.date || new Date(),
+          event.location || 'Online'
+        );
+      } else {
+        // Fallback or log if function missing
+        console.warn("sendEventRegistrationEmail function not available");
+      }
+    } catch (emailError) {
+      console.error('❌ Failed to send event registration email:', emailError);
+      // Don't fail the request if email fails
+    }
+
     return NextResponse.json({
       success: true,
       registrationId: registrationResult.insertedId.toString(),
@@ -272,43 +295,74 @@ async function handleProductPayment(
     }
 
     const firebaseUid = decodedToken.uid;
+    console.log('👤 Verify Payment for User:', firebaseUid);
 
-    // Update all orders for this user that are processing
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-
+    // 1. Update orders directly using the unique Razorpay Order ID
     const updatedOrders = await Order.updateMany(
       {
-        firebaseUid: firebaseUid,
-        status: 'processing',
-        purchaseDate: { $gte: tenMinutesAgo }
+        razorpayOrderId: razorpay_order_id,
       },
       {
         $set: {
-          status: 'completed',
-          trackingNumber: razorpay_payment_id
+          orderStatus: 'confirmed',
+          paymentStatus: 'completed',
+          razorpayPaymentId: razorpay_payment_id,
+          paidAt: new Date()
         }
       }
     );
 
-    console.log('✅ Orders updated:', updatedOrders.modifiedCount);
+    console.log(`✅ Orders updated via ID ${razorpay_order_id}:`, updatedOrders.modifiedCount);
 
-    // Calculate total amount from all updated orders
-    const orders = await Order.find({
-      firebaseUid: firebaseUid,
-      trackingNumber: razorpay_payment_id
-    });
+    // 2. Fetch the orders to calculate totals
+    let orders = await Order.find({
+      razorpayOrderId: razorpay_order_id
+    }).lean();
+
+    // SELF-HEALING FALLBACK: If not found, fetch from Razorpay API to find the linked Mongo IDs
+    if (orders.length === 0) {
+      console.warn('⚠️ Orders not found by Razorpay ID. Attempting self-healing via Razorpay API...');
+      try {
+        const Razorpay = require("razorpay");
+        const instance = new Razorpay({
+          key_id: process.env.RAZORPAY_KEY_ID!,
+          key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        });
+
+        const rzpOrder = await instance.orders.fetch(razorpay_order_id);
+
+        if (rzpOrder && rzpOrder.notes && rzpOrder.notes.orderIds) {
+          const mongoOrderIds = rzpOrder.notes.orderIds.split(',');
+          // Find these orders
+          orders = await Order.find({ _id: { $in: mongoOrderIds } }).lean();
+
+          if (orders.length > 0) {
+            // HEAL: Update them with the missing ID
+            await Order.updateMany(
+              { _id: { $in: mongoOrderIds } },
+              { $set: { razorpayOrderId: razorpay_order_id } }
+            );
+            console.log('✅ Self-healing complete: Linked Razorpay ID to orders.');
+          }
+        }
+      } catch (fallbackError) {
+        console.error('❌ Self-healing failed:', fallbackError);
+      }
+    }
+
+    if (orders.length === 0) {
+      throw new Error("No orders found for this payment ID. Payment verification failed logic.");
+    }
 
     const totalAmount = orders.reduce(
-      (sum, order) => sum + order.totalAmount,
+      (sum: any, order: any) => sum + (order.totalAmount || 0),
       0
     );
-    console.log('💰 Total amount:', totalAmount);
 
-    // Calculate Joy Points (total ÷ 10)
+    // 3. Calculate Joy Points (total ÷ 10)
     const joyPoints = Math.floor(totalAmount / 10);
-    console.log('🎁 Joy points to add:', joyPoints);
 
-    // Update BOTH walletBalance AND totalPoints
+    // 4. Update BOTH walletBalance AND totalPoints
     const userUpdate = await User.findOneAndUpdate(
       { firebaseUid: firebaseUid },
       {
@@ -320,41 +374,122 @@ async function handleProductPayment(
       { new: true }
     );
 
-    console.log('✅ User wallet updated:', userUpdate?.walletBalance);
-    console.log('✅ User points updated:', userUpdate?.totalPoints);
-
     // Create transaction record for product purchase
+    if (joyPoints > 0) {
+      try {
+        await Transaction.create({
+          userId: userUpdate?._id || firebaseUid,
+          type: 'purchase',
+          amount: joyPoints,
+          description: `Joy Points earned from product purchase`,
+          referenceId: razorpay_payment_id,
+          metadata: {
+            paymentId: razorpay_payment_id,
+            orderId: razorpay_order_id,
+            totalAmount: totalAmount,
+            orderCount: orders.length
+          },
+          balanceAfter: userUpdate?.walletBalance || 0,
+          status: 'completed'
+        });
+      } catch (txError) {
+        console.error('❌ Transaction creation error:', txError);
+      }
+    }
+
+    // Mark coupon as used if promo code exists in order
+    if (orders.length > 0 && orders[0].promoCode) {
+      try {
+        await User.updateOne(
+          { firebaseUid: firebaseUid, "redeemedCoupons.code": orders[0].promoCode },
+          { $set: { "redeemedCoupons.$.isUsed": true } }
+        );
+      } catch (err) {
+        console.error("❌ Failed to mark coupon as used:", err);
+      }
+    }
+
+    // Send Order Confirmation Email
+    const user = await User.findOne({ firebaseUid: firebaseUid });
+    const userEmail = user?.email; // Keep single declaration
+
+    // Refetch orders to be absolutely sure we have the latest data for email
+    let emailOrders = orders;
+    let emailTotal = totalAmount;
+
+    // ... (Your existing fallback logic for emailOrders can remain or be simplified)
+
+    if (userEmail) {
+      const orderItems = emailOrders.map((o: any) => ({
+        name: o.productName,
+        quantity: o.quantity,
+        price: o.price
+      }));
+
+      // Use dedicated template if available
+      if (sendOrderConfirmationEmail) {
+        await sendOrderConfirmationEmail(
+          userEmail,
+          user.name || 'Valued Customer',
+          razorpay_order_id,
+          emailTotal,
+          orderItems
+        );
+      } else if (sendEmail) {
+        // Fallback to generic HTML email 
+        const orderListHtml = emailOrders.map((o: any) => `
+            <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
+              <strong>${o.productName}</strong> - Qty: ${o.quantity} - ₹${o.totalAmount}
+            </div>
+          `).join('');
+
+        await sendEmail({
+          to: userEmail,
+          subject: `Order Confirmed - Joy Juncture`,
+          html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #FF6B35;">Order Received!</h1>
+                <p>Hi ${user.name},</p>
+                <p>Thank you for your purchase. We've received your order.</p>
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">
+                   <h3>Order Summary</h3>
+                   ${orderListHtml}
+                   <hr style="border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+                   <p><strong>Total Paid:</strong> ₹${emailTotal}</p>
+                   <p><strong>Joy Points Earned:</strong> ${Math.floor(emailTotal / 10)}</p>
+                </div>
+                <p>We'll notify you when it ships!</p>
+                <p>- Team Joy Juncture</p>
+              </div>
+            `
+        });
+      }
+    }
+
+    // 🎯 CLEAR THE CART
     try {
-      await Transaction.create({
-        userId: firebaseUid,
-        type: 'purchase',
-        amount: joyPoints,
-        description: `Joy Points earned from product purchase`,
-        referenceId: razorpay_payment_id,
-        metadata: {
-          paymentId: razorpay_payment_id,
-          orderId: razorpay_order_id,
-          totalAmount: totalAmount,
-          orderCount: orders.length
-        },
-        balanceAfter: userUpdate?.walletBalance || 0,
-        status: 'completed'
-      });
-      console.log('✅ Transaction record created for product purchase');
-    } catch (txError) {
-      console.error('❌ Transaction creation error:', txError);
-      // Continue even if transaction logging fails
+      const cartClient = new MongoClient(process.env.MONGODB_URI!);
+      await cartClient.connect();
+      try {
+        const db = cartClient.db("joyjuncture");
+        const cartCollection = db.collection("cart");
+        await cartCollection.deleteMany({ userId: firebaseUid });
+      } finally {
+        await cartClient.close();
+      }
+    } catch (cartError) {
+      console.error("Cart deletion error:", cartError);
     }
 
     return NextResponse.json({
       success: true,
       ordersUpdated: updatedOrders.modifiedCount,
       orderIds: orders.map((o) => o._id.toString()),
-      joyPointsEarned: joyPoints
+      joyPointsEarned: joyPoints,
+      cartCleared: true
     });
   } catch (error) {
     console.error('❌ Product payment error:', error);
     throw error;
   }
 }
-

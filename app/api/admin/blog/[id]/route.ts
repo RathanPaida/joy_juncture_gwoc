@@ -1,18 +1,22 @@
 // app/api/admin/blog/[id]/route.ts
-// Fixed for Next.js 15 - params is now a Promise
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
 import { Blog } from "@/models/Blog";
 import { User } from "@/models/User";
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
-// PUT - Update blog
+function generateUniqueId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// PUT - Update blog with image upload
 export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Await params (Next.js 15 requirement)
     const params = await context.params;
 
     // Verify authentication
@@ -72,8 +76,62 @@ export async function PUT(
       );
     }
 
-    // Get update data
-    const updateData = await request.json();
+    // Parse FormData for image upload
+    const formData = await request.formData();
+    const blogDataStr = formData.get('blogData') as string;
+    const coverImageFile = formData.get('coverImage') as File | null;
+    const additionalImages = formData.getAll('images') as File[];
+
+    if (!blogDataStr) {
+      return NextResponse.json(
+        { success: false, error: 'Blog data is required' },
+        { status: 400 }
+      );
+    }
+
+    const updateData = JSON.parse(blogDataStr);
+    let coverImageUrl = updateData.coverImage || blog.coverImage || '';
+
+    // Start with existing images (ensure it's an array)
+    const currentImages = updateData.images || blog.images || [];
+    const newImageUrls: string[] = [];
+
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blogs');
+
+    try {
+      await mkdir(uploadsDir, { recursive: true });
+    } catch (error) {
+      // Directory already exists
+    }
+
+    // Handle Cover Image Update
+    if (coverImageFile) {
+      const bytes = await coverImageFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const ext = coverImageFile.name.split('.').pop();
+      const filename = `${generateUniqueId()}_cover.${ext}`;
+      const filepath = path.join(uploadsDir, filename);
+
+      await writeFile(filepath, buffer);
+      coverImageUrl = `/uploads/blogs/${filename}`;
+    }
+
+    // Handle Additional Images Upload
+    if (additionalImages && additionalImages.length > 0) {
+      for (const imgFile of additionalImages) {
+        if (imgFile instanceof File) {
+          const bytes = await imgFile.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+          const ext = imgFile.name.split('.').pop();
+          const filename = `${generateUniqueId()}_${Math.random().toString(36).substr(2, 5)}.${ext}`;
+          const filepath = path.join(uploadsDir, filename);
+
+          await writeFile(filepath, buffer);
+          newImageUrls.push(`/uploads/blogs/${filename}`);
+        }
+      }
+    }
+
     console.log("Update data received:", Object.keys(updateData));
 
     // Update slug if title changed
@@ -100,6 +158,12 @@ export async function PUT(
 
     // Apply updates
     Object.assign(blog, updateData);
+    blog.coverImage = coverImageUrl;
+    // Merge new images with preserved existing ones
+    // Note: updateData.images comes from frontend and should contain the list of retained existing images
+    // We add newly uploaded images to that list.
+    blog.images = [...(updateData.images || []), ...newImageUrls];
+
     blog.updatedAt = new Date();
 
     await blog.save();
@@ -125,7 +189,6 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Await params (Next.js 15 requirement)
     const params = await context.params;
 
     // Verify authentication

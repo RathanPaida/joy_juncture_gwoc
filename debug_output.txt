@@ -1,0 +1,21 @@
+{
+  "collections": [
+    "events",
+    "transactions",
+    "users",
+    "products",
+    "registrations"
+  ],
+  "productCount": 7,
+  "distinctGametypes": [
+    "board-game"
+  ],
+  "missingGametypeDocs": 0,
+  "sampleGametypes": [
+    "board-game",
+    "board-game",
+    "board-game",
+    "board-game",
+    "board-game"
+  ]
+}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Plus, Trash2, Package, AlertCircle, Edit, Search, Download, X } from 'lucide-react';
 import Image from 'next/image';
 import './admin-products.css';
+import { FILTERS } from '@/app/components/StoreFilters';
 
 interface Product {
   _id: string;
@@ -14,8 +15,8 @@ interface Product {
   media: { thumbnail: string };
   images?: Array<{ url: string; isPrimary: boolean }>;
   stock: { quantity: number; available: boolean };
-  meta?: { 
-    players?: string; 
+  meta?: {
+    players?: string;
     duration?: string;
     moods?: string[];
     badges?: string[];
@@ -33,7 +34,7 @@ export default function AdminProductsPage() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterPlayers, setFilterPlayers] = useState('all');
   const [filterMood, setFilterMood] = useState('all');
-  const [filterOccasion, setFilterOccasion] = useState('all');
+  const [filterBadges, setFilterBadges] = useState('all');
 
   useEffect(() => {
     fetchProducts();
@@ -58,10 +59,8 @@ export default function AdminProductsPage() {
     if (filterPlayers !== 'all') {
       filtered = filtered.filter(product => {
         const players = product.meta?.players || '';
-        if (filterPlayers === '2') return players.includes('2');
-        if (filterPlayers === '3-4') return players.includes('3') || players.includes('4');
-        if (filterPlayers === '5+') return players.includes('5') || players.includes('6') || players.includes('8');
-        return true;
+        // Simple string matching based on the filter option
+        return players.includes(filterPlayers.replace('+', ''));
       });
     }
 
@@ -71,14 +70,14 @@ export default function AdminProductsPage() {
       );
     }
 
-    if (filterOccasion !== 'all') {
+    if (filterBadges !== 'all') {
       filtered = filtered.filter(product =>
-        product.meta?.badges?.some(badge => badge.toLowerCase().includes(filterOccasion.toLowerCase()))
+        product.meta?.badges?.some(badge => badge.toLowerCase().includes(filterBadges.toLowerCase()))
       );
     }
 
     setFilteredProducts(filtered);
-  }, [searchQuery, filterCategory, filterPlayers, filterMood, filterOccasion, products]);
+  }, [searchQuery, filterCategory, filterPlayers, filterMood, filterBadges, products]);
 
   const fetchProducts = async () => {
     try {
@@ -166,25 +165,25 @@ export default function AdminProductsPage() {
 
   const getStockStatus = (product: Product) => {
     if (!product.stock.available || product.stock.quantity === 0) {
-      return { 
-        label: 'Out of Stock', 
+      return {
+        label: 'Out of Stock',
         className: 'stock-badge stock-out'
       };
     }
     if (product.stock.quantity <= 5) {
-      return { 
-        label: `Critical (${product.stock.quantity})`, 
+      return {
+        label: `Critical (${product.stock.quantity})`,
         className: 'stock-badge stock-critical'
       };
     }
     if (product.stock.quantity <= 20) {
-      return { 
-        label: `Low (${product.stock.quantity})`, 
+      return {
+        label: `Low (${product.stock.quantity})`,
         className: 'stock-badge stock-low'
       };
     }
-    return { 
-      label: `${product.stock.quantity} units`, 
+    return {
+      label: `${product.stock.quantity} units`,
       className: 'stock-badge stock-good'
     };
   };
@@ -261,14 +260,16 @@ export default function AdminProductsPage() {
               </div>
 
               {/* Category Filter */}
+              {/* Category Filter (Occasion) */}
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
                 className="filter-select"
               >
-                <option value="all">All Categories</option>
-                <option value="board-game">Board Games</option>
-                <option value="card-game">Card Games</option>
+                <option value="all">All Occasions</option>
+                {FILTERS.occasion.options.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
 
               {/* Export CSV */}
@@ -294,7 +295,7 @@ export default function AdminProductsPage() {
           {/* Quick Filters */}
           <div className="quick-filters">
             <span className="filter-label">Quick Filters:</span>
-            
+
             {/* Players Filter */}
             <select
               value={filterPlayers}
@@ -302,9 +303,9 @@ export default function AdminProductsPage() {
               className="filter-chip filter-chip-players"
             >
               <option value="all">👥 All Players</option>
-              <option value="2">2 Players</option>
-              <option value="3-4">3-4 Players</option>
-              <option value="5+">5+ Players</option>
+              {FILTERS.players.options.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
 
             {/* Mood Filter */}
@@ -314,20 +315,18 @@ export default function AdminProductsPage() {
               className="filter-chip filter-chip-mood"
             >
               <option value="all">😊 All Moods</option>
-              <option value="party">🎉 Party</option>
-              <option value="strategic">🧠 Strategic</option>
-              <option value="family-friendly">👨‍👩‍👧 Family</option>
-              <option value="competitive">⚔️ Competitive</option>
-              <option value="chill">😌 Chill</option>
+              {FILTERS.mood.options.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
 
-            {/* Occasion Filter */}
+            {/* Badges Filter */}
             <select
-              value={filterOccasion}
-              onChange={(e) => setFilterOccasion(e.target.value)}
+              value={filterBadges}
+              onChange={(e) => setFilterBadges(e.target.value)}
               className="filter-chip filter-chip-occasion"
             >
-              <option value="all">🎪 All Occasions</option>
+              <option value="all">🏆 All Badges</option>
               <option value="bestseller">🏆 Bestseller</option>
               <option value="new">✨ New Release</option>
               <option value="trending">🔥 Trending</option>
@@ -335,7 +334,7 @@ export default function AdminProductsPage() {
             </select>
 
             {/* Stock Status Chips */}
-            <button 
+            <button
               onClick={() => {
                 const criticalProducts = products.filter(p => p.stock.quantity <= 5 && p.stock.quantity > 0);
                 setFilteredProducts(criticalProducts);
@@ -345,7 +344,7 @@ export default function AdminProductsPage() {
               🚨 Critical Stock ({products.filter(p => p.stock.quantity <= 5 && p.stock.quantity > 0).length})
             </button>
 
-            <button 
+            <button
               onClick={() => {
                 const lowStockProducts = products.filter(p => p.stock.quantity > 5 && p.stock.quantity <= 20);
                 setFilteredProducts(lowStockProducts);
@@ -356,13 +355,13 @@ export default function AdminProductsPage() {
             </button>
 
             {/* Clear All Filters */}
-            {(filterCategory !== 'all' || filterPlayers !== 'all' || filterMood !== 'all' || filterOccasion !== 'all' || searchQuery) && (
+            {(filterCategory !== 'all' || filterPlayers !== 'all' || filterMood !== 'all' || filterBadges !== 'all' || searchQuery) && (
               <button
                 onClick={() => {
                   setFilterCategory('all');
                   setFilterPlayers('all');
                   setFilterMood('all');
-                  setFilterOccasion('all');
+                  setFilterBadges('all');
                   setSearchQuery('');
                   setFilteredProducts(products);
                 }}
@@ -420,6 +419,7 @@ export default function AdminProductsPage() {
                                 alt={product.name}
                                 fill
                                 className="product-img"
+                                unoptimized
                               />
                               {imageCount > 1 && (
                                 <div className="image-badge">
@@ -496,18 +496,18 @@ export default function AdminProductsPage() {
               <Package size={64} className="empty-icon" />
               <p className="empty-title">No products found</p>
               <p className="empty-message">
-                {searchQuery || filterCategory !== 'all' || filterPlayers !== 'all' || filterMood !== 'all' || filterOccasion !== 'all' 
-                  ? 'Try adjusting your search or filters' 
+                {searchQuery || filterCategory !== 'all' || filterPlayers !== 'all' || filterMood !== 'all' || filterBadges !== 'all'
+                  ? 'Try adjusting your search or filters'
                   : 'Start by adding your first product'}
               </p>
-              {(searchQuery || filterCategory !== 'all' || filterPlayers !== 'all' || filterMood !== 'all' || filterOccasion !== 'all') && (
+              {(searchQuery || filterCategory !== 'all' || filterPlayers !== 'all' || filterMood !== 'all' || filterBadges !== 'all') && (
                 <button
                   onClick={() => {
                     setSearchQuery('');
                     setFilterCategory('all');
                     setFilterPlayers('all');
                     setFilterMood('all');
-                    setFilterOccasion('all');
+                    setFilterBadges('all');
                     setFilteredProducts(products);
                   }}
                   className="btn btn-export"
@@ -530,7 +530,7 @@ export default function AdminProductsPage() {
                 {selectedProducts.length} selected
               </span>
             </div>
-            
+
             <div className="divider"></div>
 
             <div className="bulk-actions">

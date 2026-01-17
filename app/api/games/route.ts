@@ -2,6 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAccess } from "@/lib/admin-middleware";
 import { connectDb } from "@/lib/mongodb";
 import { Game } from "@/models/Game";
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
+
+// Helper to save file
+async function saveFile(file: File, folder: string): Promise<string> {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  const ext = file.name.split('.').pop() || 'jpg';
+  const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads', folder);
+
+  try {
+    await mkdir(uploadsDir, { recursive: true });
+  } catch (error) {
+    // Ignore if exists
+  }
+
+  const filepath = path.join(uploadsDir, filename);
+  await writeFile(filepath, buffer);
+  return `/uploads/${folder}/${filename}`;
+}
 
 /* ================= GET ALL GAMES ================= */
 export async function GET(req: NextRequest) {
@@ -51,6 +72,7 @@ export async function GET(req: NextRequest) {
 }
 
 /* ================= CREATE GAME ================= */
+/* ================= CREATE GAME ================= */
 export async function POST(req: NextRequest) {
   try {
     const { authorized, error, admin } = await checkAdminAccess(req);
@@ -62,31 +84,50 @@ export async function POST(req: NextRequest) {
     }
 
     await connectDb();
-    const body = await req.json();
 
-    // Validate required fields based on your CardGame interface
-    const requiredFields = ["name", "description", "category"];
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        return NextResponse.json(
-          { success: false, error: `Missing required field: ${field}` },
-          { status: 400 },
-        );
-      }
+    // Switch to FormData
+    const formData = await req.formData();
+
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    const regularPrice = formData.get('regularPrice') as string;
+    const salePrice = formData.get('salePrice') as string;
+    const category = JSON.parse(formData.get('category') as string || '[]');
+    const players = formData.get('players') as string;
+    const duration = formData.get('duration') as string;
+    const features = JSON.parse(formData.get('features') as string || '[]');
+
+    // Handle Image Upload
+    const imageFile = formData.get('image') as File | null;
+    let imageUrl = '';
+
+    if (imageFile && imageFile.size > 0) {
+      imageUrl = await saveFile(imageFile, 'games');
+    } else {
+      // Fallback for text URL if user managed to send it, or error
+      imageUrl = (formData.get('imageUrl') as string) || "";
+    }
+
+    // Validate required fields
+    if (!name || !description) {
+      return NextResponse.json(
+        { success: false, error: `Missing required fields` },
+        { status: 400 },
+      );
     }
 
     // Transform data for database storage
     const gameData = {
-      name: body.name,
-      title: body.name, // Store both for compatibility
-      description: body.description,
-      regularPrice: body.regularPrice || body.price || "0",
-      salePrice: body.salePrice || "",
-      category: Array.isArray(body.category) ? body.category : [body.category],
-      players: body.players || "1-4",
-      duration: body.duration || "30-60 mins",
-      features: Array.isArray(body.features) ? body.features : [],
-      imageUrl: body.imageUrl || body.image || "",
+      name,
+      title: name,
+      description,
+      regularPrice: regularPrice || "0",
+      salePrice: salePrice || "",
+      category: Array.isArray(category) ? category : [category],
+      players: players || "1-4",
+      duration: duration || "30-60 mins",
+      features: Array.isArray(features) ? features : [],
+      imageUrl,
       createdBy: {
         userId: admin?.id || "unknown-admin",
         userEmail: admin?.email || admin?.id || "unknown@example.com",
@@ -96,7 +137,7 @@ export async function POST(req: NextRequest) {
 
     const game = await Game.create(gameData);
 
-    // Return formatted response matching CardGame interface
+    // Return formatted response
     const formattedGame = {
       id: game._id.toString(),
       name: game.name,
@@ -122,15 +163,12 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: any) {
     console.error("POST game error:", err);
-
-    // Handle duplicate errors
     if (err.code === 11000) {
       return NextResponse.json(
         { success: false, error: "Game with this name already exists" },
         { status: 409 },
       );
     }
-
     return NextResponse.json(
       { success: false, error: err.message || "Failed to create game" },
       { status: 500 },
@@ -138,6 +176,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/* ================= UPDATE GAME ================= */
 /* ================= UPDATE GAME ================= */
 export async function PUT(req: NextRequest) {
   try {
@@ -150,8 +189,10 @@ export async function PUT(req: NextRequest) {
     }
 
     await connectDb();
-    const body = await req.json();
-    const { id, ...updateData } = body;
+
+    // Switch to FormData
+    const formData = await req.formData();
+    const id = formData.get('id') as string;
 
     if (!id) {
       return NextResponse.json(
@@ -160,19 +201,31 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // Transform update data if needed
-    const transformedData = { ...updateData };
-    if (updateData.category && !Array.isArray(updateData.category)) {
-      transformedData.category = [updateData.category];
-    }
-    if (updateData.features && !Array.isArray(updateData.features)) {
-      transformedData.features = [updateData.features];
+    // Extract fields
+    const updateData: any = {};
+    const fields = ['name', 'description', 'regularPrice', 'salePrice', 'players', 'duration'];
+    fields.forEach(f => {
+      const val = formData.get(f);
+      if (val !== null) updateData[f] = val;
+    });
+
+    // JSON fields
+    const category = formData.get('category');
+    if (category) updateData.category = JSON.parse(category as string);
+
+    const features = formData.get('features');
+    if (features) updateData.features = JSON.parse(features as string);
+
+    // Handle Image
+    const imageFile = formData.get('image') as File | null;
+    if (imageFile && imageFile.size > 0) {
+      updateData.imageUrl = await saveFile(imageFile, 'games');
     }
 
     const updatedGame = await Game.findByIdAndUpdate(
       id,
       {
-        ...transformedData,
+        ...updateData,
         lastEditedBy: admin?.id || "unknown-admin",
       },
       { new: true, runValidators: true },
@@ -210,14 +263,12 @@ export async function PUT(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("PUT game error:", err);
-
     if (err.code === 11000) {
       return NextResponse.json(
         { success: false, error: "Game with this name already exists" },
         { status: 409 },
       );
     }
-
     return NextResponse.json(
       { success: false, error: err.message || "Failed to update game" },
       { status: 500 },

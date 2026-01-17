@@ -43,11 +43,11 @@
 //       });
 
 //       const gameData = await response.json();
-      
+
 //       if (gameData.success) {
 //         // Store game data in session storage
 //         sessionStorage.setItem(`currentGame_${game.id}`, JSON.stringify(gameData));
-        
+
 //         // Redirect to game page
 //         window.location.href = `/games/${game.id}?gameId=${gameData.gameId}`;
 //       }
@@ -86,10 +86,10 @@
 //             {game.id.toUpperCase()}
 //           </span>
 //         </div>
-        
+
 //         <h3 className="text-xl font-bold text-gray-800 mb-2">{game.title}</h3>
 //         <p className="text-gray-600 mb-4">{game.description}</p>
-        
+
 //         <div className="mb-6">
 //           <p className="text-sm font-medium text-gray-700 mb-2">Select Difficulty:</p>
 //           <div className="flex gap-2">
@@ -107,7 +107,7 @@
 //               </button>
 //             ))}
 //           </div>
-          
+
 //           <div className="mt-3 flex items-center justify-between">
 //             <div className="text-sm text-gray-600">
 //               <span className="font-semibold">Reward:</span>
@@ -122,7 +122,7 @@
 //             )}
 //           </div>
 //         </div>
-        
+
 //         <button
 //           onClick={handleStartGame}
 //           disabled={isLoading || !user}
@@ -146,7 +146,7 @@
 //             'Login to Play'
 //           )}
 //         </button>
-        
+
 //         {!user && (
 //           <p className="text-sm text-center text-gray-500 mt-3">
 //             <Link href="/login" className="text-blue-600 hover:underline">
@@ -193,7 +193,7 @@ export default function GameCard({ game, user, onGameStart }: GameCardProps) {
     try {
       // Get authentication token based on your auth system
       let token = '';
-      
+
       // Check different token methods based on your auth system
       if (typeof user.getIdToken === 'function') {
         // Firebase Auth
@@ -218,7 +218,7 @@ export default function GameCard({ game, user, onGameStart }: GameCardProps) {
         // No token available, try without auth for development
         token = 'demo-token';
       }
-      
+
       const response = await fetch('/api/games/start', {
         method: 'POST',
         headers: {
@@ -232,11 +232,11 @@ export default function GameCard({ game, user, onGameStart }: GameCardProps) {
       });
 
       const gameData = await response.json();
-      
+
       if (gameData.success) {
         // Store game data in session storage
         sessionStorage.setItem(`currentGame_${game.id}`, JSON.stringify(gameData));
-        
+
         // Redirect to game page
         window.location.href = `/games/${game.id}?gameId=${gameData.gameId}`;
       } else {
@@ -244,7 +244,7 @@ export default function GameCard({ game, user, onGameStart }: GameCardProps) {
       }
     } catch (error) {
       console.error('Error starting game:', error);
-      
+
       // For development, create a mock game if API fails
       if (process.env.NODE_ENV === 'development') {
         console.log('Creating mock game for development');
@@ -262,7 +262,7 @@ export default function GameCard({ game, user, onGameStart }: GameCardProps) {
   // Mock game data for development
   const createMockGameData = (gameType: string, difficulty: string) => {
     const gameId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const baseData = {
       success: true,
       gameId,
@@ -271,7 +271,7 @@ export default function GameCard({ game, user, onGameStart }: GameCardProps) {
       maxCoins: getRewardForDifficulty(difficulty),
       hasTimeBonus: difficulty !== 'easy'
     };
-    
+
     // Add game-specific data
     switch (gameType) {
       case 'sudoku':
@@ -305,10 +305,10 @@ export default function GameCard({ game, user, onGameStart }: GameCardProps) {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'hard': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'easy': return 'bg-green-900/40 text-green-400 border-green-500/50';
+      case 'medium': return 'bg-yellow-900/40 text-yellow-400 border-yellow-500/50';
+      case 'hard': return 'bg-red-900/40 text-red-400 border-red-500/50';
+      default: return 'bg-gray-800 text-gray-400 border-gray-700';
     }
   };
 
@@ -318,65 +318,64 @@ export default function GameCard({ game, user, onGameStart }: GameCardProps) {
       'word-guesser': { easy: 5, medium: 15, hard: 30 },
       crossword: { easy: 15, medium: 35, hard: 70 }
     };
-    
+
     const gameRewards = rewards[game.id as keyof typeof rewards];
     return gameRewards?.[difficulty as keyof typeof gameRewards] || 10;
   };
 
   return (
-    <div className={`${game.color} rounded-xl shadow-lg overflow-hidden transition-transform hover:scale-[1.02]`}>
+    <div className="bg-neutral-900 border border-neutral-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(255,140,0,0.15)] hover:border-orange-500/50 group">
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-4xl">{game.icon}</div>
-          <span className="text-sm font-semibold px-3 py-1 rounded-full bg-white/50">
+          <div className="text-4xl filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_0_8px_rgba(255,140,0,0.5)] transition-all">{game.icon}</div>
+          <span className="text-xs font-bold tracking-wider px-3 py-1 rounded-full bg-neutral-800 text-orange-500 border border-orange-500/20">
             {game.id.toUpperCase()}
           </span>
         </div>
-        
-        <h3 className="text-xl font-bold text-gray-800 mb-2">{game.title}</h3>
-        <p className="text-gray-600 mb-4">{game.description}</p>
-        
+
+        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-orange-400 transition-colors">{game.title}</h3>
+        <p className="text-gray-400 mb-6 text-sm leading-relaxed">{game.description}</p>
+
         <div className="mb-6">
-          <p className="text-sm font-medium text-gray-700 mb-2">Select Difficulty:</p>
-          <div className="flex gap-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Select Difficulty</p>
+          <div className="flex gap-2 flex-wrap">
             {game.difficulties.map((difficulty) => (
               <button
                 key={difficulty}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  selectedDifficulty === difficulty
-                    ? `${getDifficultyColor(difficulty)} ring-2 ring-offset-2 ring-current`
-                    : 'bg-white/70 text-gray-600 hover:bg-white'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${selectedDifficulty === difficulty
+                    ? `${getDifficultyColor(difficulty)} ring-1 ring-offset-0 ring-current`
+                    : 'bg-neutral-800 text-gray-400 border-neutral-700 hover:bg-neutral-700 hover:border-neutral-600'
+                  }`}
                 onClick={() => setSelectedDifficulty(difficulty)}
               >
                 {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
               </button>
             ))}
           </div>
-          
-          <div className="mt-3 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              <span className="font-semibold">Reward:</span>
-              <span className="ml-2 font-bold text-lg text-yellow-600">
-                {getRewardForDifficulty(selectedDifficulty)} coins
+
+          <div className="mt-4 flex items-center justify-between bg-neutral-950/50 p-3 rounded-lg border border-neutral-800">
+            <div className="text-sm text-gray-400 flex items-center">
+              <span className="font-medium mr-2">Reward:</span>
+              <span className="font-bold text-base text-orange-400 flex items-center">
+                {getRewardForDifficulty(selectedDifficulty)}
+                <span className="ml-1 text-xs text-orange-500/80 uppercase">Coins</span>
               </span>
             </div>
             {selectedDifficulty !== 'easy' && (
-              <span className="text-xs px-2 py-1 rounded bg-white/50">
-                + time bonus
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-500/30">
+                TIME BONUS
               </span>
             )}
           </div>
         </div>
-        
+
         <button
           onClick={handleStartGame}
           disabled={isLoading || !user}
-          className={`w-full py-3 rounded-lg font-semibold transition-colors ${
-            user
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          } ${isLoading ? 'opacity-75' : ''}`}
+          className={`w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-300 relative overflow-hidden group/btn ${user
+              ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white hover:from-orange-500 hover:to-red-500 shadow-lg shadow-orange-900/20 hover:shadow-orange-700/40'
+              : 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-neutral-700'
+            } ${isLoading ? 'opacity-75' : ''}`}
         >
           {isLoading ? (
             <span className="flex items-center justify-center">
@@ -384,28 +383,32 @@ export default function GameCard({ game, user, onGameStart }: GameCardProps) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              Starting Game...
+              INITIALIZING...
             </span>
           ) : user ? (
-            'Play Now'
+            <>
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                PLAY NOW <span className="transition-transform group-hover/btn:translate-x-1">→</span>
+              </span>
+            </>
           ) : (
-            'Login to Play'
+            'LOGIN TO PLAY'
           )}
         </button>
-        
+
         {!user && (
-          <p className="text-sm text-center text-gray-500 mt-3">
-            <Link href="/login" className="text-blue-600 hover:underline">
+          <p className="text-xs text-center text-gray-600 mt-4">
+            <Link href="/login" className="text-orange-500 hover:text-orange-400 hover:underline transition-colors">
               Sign in
             </Link>{' '}
             to earn coins!
           </p>
         )}
-        
+
         {/* Development mode indicator */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 text-xs text-gray-500 text-center">
-            Development mode: Mock games available
+          <div className="mt-4 text-[10px] text-gray-700 text-center uppercase tracking-widest font-mono">
+            Dev Mode Active
           </div>
         )}
       </div>

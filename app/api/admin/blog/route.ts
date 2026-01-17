@@ -4,6 +4,12 @@ import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
 import { Blog } from "@/models/Blog";
 import { User } from "@/models/User";
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
+
+function generateUniqueId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
 async function verifyAdmin(token: string) {
   const decodedToken = await adminAuth.verifyIdToken(token);
@@ -48,8 +54,8 @@ export async function GET(request: NextRequest) {
     // Admin/editor can see all blogs, viewers only see their own
     const query =
       userRole === "admin" ||
-      userRole === "super_admin" ||
-      userRole === "editor"
+        userRole === "super_admin" ||
+        userRole === "editor"
         ? {}
         : { "createdBy.userId": firebaseUid };
 
@@ -68,7 +74,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new blog
+// POST - Create new blog with image upload
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -93,7 +99,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const blogData = await request.json();
+    // Parse FormData for image upload
+    const formData = await request.formData();
+    const blogDataStr = formData.get('blogData') as string;
+    const coverImageFile = formData.get('coverImage') as File | null;
+    const additionalImages = formData.getAll('images') as File[];
+
+    if (!blogDataStr) {
+      return NextResponse.json(
+        { success: false, error: 'Blog data is required' },
+        { status: 400 }
+      );
+    }
+
+    const blogData = JSON.parse(blogDataStr);
+    let coverImageUrl = blogData.coverImage || '';
+    const uploadedImageUrls: string[] = [];
+
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blogs');
+
+    try {
+      await mkdir(uploadsDir, { recursive: true });
+    } catch (error) {
+      // Directory already exists
+    }
+
+    // Handle Cover Image
+    if (coverImageFile) {
+      const bytes = await coverImageFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const ext = coverImageFile.name.split('.').pop();
+      const filename = `${generateUniqueId()}_cover.${ext}`;
+      const filepath = path.join(uploadsDir, filename);
+
+      await writeFile(filepath, buffer);
+      coverImageUrl = `/uploads/blogs/${filename}`;
+    }
+
+    // Handle Additional Images
+    if (additionalImages && additionalImages.length > 0) {
+      for (const imgFile of additionalImages) {
+        if (imgFile instanceof File) {
+          const bytes = await imgFile.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+          const ext = imgFile.name.split('.').pop();
+          const filename = `${generateUniqueId()}_${Math.random().toString(36).substr(2, 5)}.${ext}`;
+          const filepath = path.join(uploadsDir, filename);
+
+          await writeFile(filepath, buffer);
+          uploadedImageUrls.push(`/uploads/blogs/${filename}`);
+        }
+      }
+    }
 
     // Generate slug from title
     const slug = blogData.title
@@ -107,6 +164,8 @@ export async function POST(request: NextRequest) {
 
     const blog = await Blog.create({
       ...blogData,
+      coverImage: coverImageUrl,
+      images: uploadedImageUrls,
       slug,
       readTime,
       createdBy: {

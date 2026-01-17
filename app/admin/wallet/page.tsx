@@ -1,8 +1,8 @@
-// app/admin/wallet/page.tsx - FIXED getIdToken Error
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import {
   FaCoins,
@@ -19,6 +19,7 @@ import {
   FaExclamationCircle,
   FaSpinner,
   FaHistory,
+  FaTicketAlt,
 } from "react-icons/fa";
 import "./admin-wallet.css";
 
@@ -69,7 +70,7 @@ const AdminWalletPage: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "criteria" | "rewards" | "achievements" | "stats"
+    "criteria" | "rewards" | "achievements" | "stats" | "users"
   >("rewards");
 
   // Data states
@@ -79,46 +80,43 @@ const AdminWalletPage: React.FC = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
 
   // Edit states
-  const [editingCriteria, setEditingCriteria] = useState<PointsCriteria | null>(
-    null,
-  );
+  const [editingCriteria, setEditingCriteria] = useState<PointsCriteria | null>(null);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
-  const [editingAchievement, setEditingAchievement] =
-    useState<Achievement | null>(null);
+  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null);
 
   // Modal states
   const [showCriteriaModal, setShowCriteriaModal] = useState(false);
   const [showRewardModal, setShowRewardModal] = useState(false);
   const [showAchievementModal, setShowAchievementModal] = useState(false);
 
-  // Helper function to get auth token
+  // Clear Wallet State
+  const [clearIdentifier, setClearIdentifier] = useState("");
+  const [clearing, setClearing] = useState(false);
+
+  // FIXED: Get auth token directly from Firebase
   const getAuthToken = async () => {
-    if (!user) return null;
-
     try {
-      // Try Firebase getIdToken method
-      if (typeof user.getIdToken === "function") {
-        return await user.getIdToken(true);
+      // Get current user from Firebase directly
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        console.error("❌ No authenticated user");
+        return null;
       }
 
-      // Try accessing token directly (for some auth implementations)
-      if (user.token) {
-        return user.token;
+      console.log("✅ Getting token for user:", currentUser.email);
+
+      // Force refresh token
+      const token = await currentUser.getIdToken(true);
+
+      if (!token) {
+        console.error("❌ Token is empty");
+        return null;
       }
 
-      // Try accessing accessToken
-      if (user.accessToken) {
-        return user.accessToken;
-      }
-
-      // If user has stsTokenManager (Firebase)
-      if (user.stsTokenManager?.accessToken) {
-        return user.stsTokenManager.accessToken;
-      }
-
-      console.warn("⚠️ Could not get auth token from user object");
-      return null;
-    } catch (error) {
+      console.log("✅ Token obtained, length:", token.length);
+      return token;
+    } catch (error: any) {
       console.error("❌ Error getting auth token:", error);
       return null;
     }
@@ -146,9 +144,7 @@ const AdminWalletPage: React.FC = () => {
 
       if (!token) {
         console.error("❌ No auth token available");
-        alert(
-          "⚠️ Authentication token not available. Please try logging in again.",
-        );
+        alert("⚠️ Authentication token not available. Please try logging in again.");
         router.push("/login?redirect=/admin/wallet");
         return;
       }
@@ -160,9 +156,7 @@ const AdminWalletPage: React.FC = () => {
 
       // Fetch rewards
       try {
-        const rewardsRes = await fetch("/api/admin/wallet/rewards", {
-          headers,
-        });
+        const rewardsRes = await fetch("/api/admin/wallet/rewards", { headers });
         if (rewardsRes.ok) {
           const data = await rewardsRes.json();
           setRewards(data.rewards || []);
@@ -177,9 +171,7 @@ const AdminWalletPage: React.FC = () => {
 
       // Fetch achievements
       try {
-        const achievementsRes = await fetch("/api/admin/wallet/achievements", {
-          headers,
-        });
+        const achievementsRes = await fetch("/api/admin/wallet/achievements", { headers });
         if (achievementsRes.ok) {
           const data = await achievementsRes.json();
           setAchievements(data.achievements || []);
@@ -191,9 +183,7 @@ const AdminWalletPage: React.FC = () => {
 
       // Fetch criteria
       try {
-        const criteriaRes = await fetch("/api/admin/wallet/criteria", {
-          headers,
-        });
+        const criteriaRes = await fetch("/api/admin/wallet/criteria", { headers });
         if (criteriaRes.ok) {
           const data = await criteriaRes.json();
           setPointsCriteria(data.criteria || []);
@@ -258,9 +248,7 @@ const AdminWalletPage: React.FC = () => {
         setEditingReward(null);
         await fetchAllData();
       } else {
-        alert(
-          `❌ Failed to save: ${data.error || data.message || "Unknown error"}`,
-        );
+        alert(`❌ Failed to save: ${data.error || data.message || "Unknown error"}`);
       }
     } catch (error: any) {
       console.error("❌ Error saving reward:", error);
@@ -398,9 +386,7 @@ const AdminWalletPage: React.FC = () => {
         setEditingCriteria(null);
         await fetchAllData();
       } else {
-        alert(
-          `❌ Failed to save: ${data.error || data.message || "Unknown error"}`,
-        );
+        alert(`❌ Failed to save: ${data.error || data.message || "Unknown error"}`);
       }
     } catch (error: any) {
       console.error("❌ Error saving criteria:", error);
@@ -434,14 +420,112 @@ const AdminWalletPage: React.FC = () => {
     }
   };
 
+  const handleClearWallet = async () => {
+    if (!user) return;
+    if (!clearIdentifier) {
+      alert("Please enter a User Email to clear.");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to CLEAR the wallet for user: ${clearIdentifier}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setClearing(true);
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
+
+      // Determine if input is email or ID (simple check)
+      const isEmail = clearIdentifier.includes("@");
+      const body = isEmail
+        ? { targetUserEmail: clearIdentifier }
+        : { targetUserId: clearIdentifier };
+
+      const response = await fetch("/api/admin/wallet/clear", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`✅ Success! ${data.message}. Previous Balance: ${data.previousBalance}`);
+        setClearIdentifier("");
+        fetchAllData(); // Refresh stats
+      } else {
+        alert(`❌ Failed: ${data.error}`);
+      }
+    } catch (error: any) {
+      console.error("❌ Error clearing wallet:", error);
+      alert(`❌ Error: ${error.message}`);
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  // Clear Products Handler
+  const [clearProductIdentifier, setClearProductIdentifier] = useState("");
+  const [clearingProducts, setClearingProducts] = useState(false);
+
+  const handleClearProducts = async () => {
+    if (!clearProductIdentifier) {
+      alert("Please enter a user email");
+      return;
+    }
+
+    if (
+      !confirm(
+        "Are you sure you want to clear this user's PURCHASED PRODUCTS? This cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
+    setClearingProducts(true);
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
+
+      const isEmail = clearProductIdentifier.includes("@");
+      const body = isEmail
+        ? { targetUserEmail: clearProductIdentifier }
+        : { targetUserId: clearProductIdentifier };
+
+      const response = await fetch("/api/admin/products/clear", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`Successfully cleared ${data.deletedCount} products!`);
+        setClearProductIdentifier("");
+      } else {
+        alert("Failed to clear products: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error clearing products:", error);
+      alert("An error occurred");
+    } finally {
+      setClearingProducts(false);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="admin-wallet-page">
         <div className="loading-container">
-          <FaSpinner
-            className="loading-spinner"
-            style={{ animation: "spin 1s linear infinite" }}
-          />
+          <FaSpinner className="loading-spinner" style={{ animation: "spin 1s linear infinite" }} />
           <p>Loading admin panel...</p>
         </div>
       </div>
@@ -473,9 +557,18 @@ const AdminWalletPage: React.FC = () => {
             Logged in as: {user.email || "Unknown User"}
           </p>
         </div>
-        <button className="btn-primary" onClick={fetchAllData}>
-          🔄 Refresh Data
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            className="btn-primary"
+            onClick={() => router.push('/admin/coupons')}
+            style={{ backgroundColor: '#2563eb' }}
+          >
+            <FaTicketAlt /> Manage Coupons
+          </button>
+          <button className="btn-primary" onClick={fetchAllData}>
+            🔄 Refresh Data
+          </button>
+        </div>
       </div>
 
       <div className="admin-tabs">
@@ -502,6 +595,12 @@ const AdminWalletPage: React.FC = () => {
           onClick={() => setActiveTab("stats")}
         >
           <FaChartLine /> Statistics
+        </button>
+        <button
+          className={activeTab === "users" ? "active" : ""}
+          onClick={() => setActiveTab("users")}
+        >
+          <FaUsers /> Manage Users
         </button>
       </div>
 
@@ -798,42 +897,125 @@ const AdminWalletPage: React.FC = () => {
             </div>
           </div>
         )}
+        {activeTab === "users" && (
+          <div className="users-section">
+            <div className="section-header">
+              <h2>User Wallet Management</h2>
+            </div>
+
+            <div className="wallet-card">
+              <div style={{ padding: '20px' }}>
+                <h3>⚠️ Danger Zone: Clear User Wallet</h3>
+                <p style={{ color: '#666', marginBottom: '15px' }}>
+                  This action will reset a user's points and wallet balance to 0. It creates a transaction record of the clearing.
+                </p>
+
+                <div className="form-group" style={{ maxWidth: '400px' }}>
+                  <label>User Email Address</label>
+                  <input
+                    type="text"
+                    placeholder="Enter user email..."
+                    value={clearIdentifier}
+                    onChange={(e) => setClearIdentifier(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '5px',
+                      border: '1px solid #ddd',
+                      marginBottom: '10px'
+                    }}
+                  />
+                  <button
+                    className="btn-danger"
+                    onClick={handleClearWallet}
+                    disabled={clearing}
+                    style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }}
+                  >
+                    {clearing ? <FaSpinner className="animate-spin" /> : <FaTrash />}
+                    {clearing ? "Clearing..." : "Clear User Wallet"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="wallet-card" style={{ marginTop: '20px' }}>
+              <div style={{ padding: '20px' }}>
+                <h3>📦 Danger Zone: Clear Purchased Products</h3>
+                <p style={{ color: '#666', marginBottom: '15px' }}>
+                  This action will delete all PURCHASED PRODUCTS (orders) for a user.
+                </p>
+
+                <div className="form-group" style={{ maxWidth: '400px' }}>
+                  <label>User Email Address</label>
+                  <input
+                    type="text"
+                    placeholder="Enter user email..."
+                    value={clearProductIdentifier}
+                    onChange={(e) => setClearProductIdentifier(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '5px',
+                      border: '1px solid #ddd',
+                      marginBottom: '10px'
+                    }}
+                  />
+                  <button
+                    className="btn-danger"
+                    onClick={handleClearProducts}
+                    disabled={clearingProducts}
+                    style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }}
+                  >
+                    {clearingProducts ? <FaSpinner className="animate-spin" /> : <FaTrash />}
+                    {clearingProducts ? "Clearing Products..." : "Clear User Products"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MODALS */}
-      {showRewardModal && editingReward && (
-        <RewardModal
-          reward={editingReward}
-          onSave={handleSaveReward}
-          onClose={() => {
-            setShowRewardModal(false);
-            setEditingReward(null);
-          }}
-        />
-      )}
+      {
+        showRewardModal && editingReward && (
+          <RewardModal
+            reward={editingReward}
+            onSave={handleSaveReward}
+            onClose={() => {
+              setShowRewardModal(false);
+              setEditingReward(null);
+            }}
+          />
+        )
+      }
 
-      {showAchievementModal && editingAchievement && (
-        <AchievementModal
-          achievement={editingAchievement}
-          onSave={handleSaveAchievement}
-          onClose={() => {
-            setShowAchievementModal(false);
-            setEditingAchievement(null);
-          }}
-        />
-      )}
+      {
+        showAchievementModal && editingAchievement && (
+          <AchievementModal
+            achievement={editingAchievement}
+            onSave={handleSaveAchievement}
+            onClose={() => {
+              setShowAchievementModal(false);
+              setEditingAchievement(null);
+            }}
+          />
+        )
+      }
 
-      {showCriteriaModal && editingCriteria && (
-        <CriteriaModal
-          criteria={editingCriteria}
-          onSave={handleSaveCriteria}
-          onClose={() => {
-            setShowCriteriaModal(false);
-            setEditingCriteria(null);
-          }}
-        />
-      )}
-    </div>
+      {
+        showCriteriaModal && editingCriteria && (
+          <CriteriaModal
+            criteria={editingCriteria}
+            onSave={handleSaveCriteria}
+            onClose={() => {
+              setShowCriteriaModal(false);
+              setEditingCriteria(null);
+            }}
+          />
+        )
+      }
+    </div >
   );
 };
 

@@ -1,9 +1,8 @@
-// app/checkout/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import {
   CreditCard,
@@ -15,8 +14,6 @@ import {
   Home,
   Building,
   ArrowLeft,
-  ShieldCheck,
-  Lock,
   CheckCircle2,
 } from "lucide-react";
 import "./checkout.css";
@@ -50,6 +47,7 @@ declare global {
 export default function CheckoutPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -70,6 +68,16 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const [errors, setErrors] = useState<Partial<ShippingAddress>>({});
 
+  // Merged Coupon/Promo Logic
+  // Supporting both 'promo' and 'coupon' params for backward compatibility
+  const [promoCode, setPromoCode] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [isPromoApplied, setIsPromoApplied] = useState(false);
+
+  // Pincode Logic
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
+  const [calculatedShipping, setCalculatedShipping] = useState<number | null>(null);
+
   useEffect(() => {
     if (!authLoading) {
       if (user) {
@@ -81,6 +89,109 @@ export default function CheckoutPage() {
     }
   }, [user, authLoading]);
 
+  // Handle URL Params for Promos/Coupons
+  useEffect(() => {
+    const code = searchParams.get('promo') || searchParams.get('coupon');
+    if (code && !isPromoApplied) {
+      validatePromo(code);
+    }
+  }, [searchParams]);
+
+  // Pincode Auto-fill & Delivery Fee Effect
+  useEffect(() => {
+    const fetchPincodeDetails = async () => {
+      const pin = shippingAddress.pincode;
+      // Only fetch if 6 digits
+      if (!pin || pin.length !== 6) return;
+
+      setIsPincodeLoading(true);
+      try {
+        // 1. Fetch Location Details
+        const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+        const data = await response.json();
+
+        if (data && data[0].Status === "Success") {
+          const details = data[0].PostOffice[0];
+          setShippingAddress(prev => ({
+            ...prev,
+            city: details.District,
+            state: details.State,
+            country: details.Country || "India"
+          }));
+          setErrors(prev => ({ ...prev, pincode: undefined, city: undefined, state: undefined }));
+        } else {
+          setErrors(prev => ({ ...prev, pincode: "Invalid Pincode" }));
+          // Optional: Clear fields if invalid
+          setShippingAddress(prev => ({ ...prev, city: "", state: "" }));
+        }
+
+        // 2. Fetch Delivery Fee from Backend
+        const deliveryRes = await fetch(`/api/delivery/calculate?pincode=${pin}`);
+        const deliveryData = await deliveryRes.json();
+
+        if (deliveryRes.ok && deliveryData.success) {
+          console.log("🚚 Delivery Fee Calculated:", deliveryData.data);
+          setCalculatedShipping(deliveryData.data.is_free_delivery ? 0 : deliveryData.data.delivery_fee);
+        } else {
+          console.warn("⚠️ Failed to calculate delivery fee, falling back to default logic");
+          setCalculatedShipping(null); // Will fallback to default
+        }
+
+      } catch (error) {
+        console.error("Error fetching pincode/delivery:", error);
+      } finally {
+        setIsPincodeLoading(false);
+      }
+    };
+
+    // Debounce slightly or just call
+    const timer = setTimeout(fetchPincodeDetails, 800);
+    return () => clearTimeout(timer);
+  }, [shippingAddress.pincode]);
+
+
+  const validatePromo = async (code: string) => {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      // Try promo endpoint first, then coupon endpoint if needed, or unified endpoint.
+      // Assuming /api/promo/validate is the new standard.
+      const res = await fetch("/api/promo/validate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPromoCode(code);
+
+        let discount = 0;
+        const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+        if (data.type === 'percentage') {
+          discount = (subtotal * data.discount) / 100;
+        } else {
+          discount = data.discount;
+        }
+
+        if (discount > subtotal) discount = subtotal;
+
+        setDiscountAmount(discount);
+        setIsPromoApplied(true);
+        console.log("✅ Promo applied:", code, "Discount:", discount);
+      } else {
+        // Fallback validation for older coupon system if promo validation fails?
+        // For now assuming one system.
+        console.warn("Promo validation failed");
+      }
+    } catch (error) {
+      console.error("Error validating promo:", error);
+    }
+  };
+
   const loadRazorpayScript = () => {
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -88,20 +199,30 @@ export default function CheckoutPage() {
     document.body.appendChild(script);
   };
 
-  const fetchCartData = async () => {
+  const getFreshToken = async (): Promise<string | null> => {
     try {
       const currentUser = auth.currentUser;
-      if (!currentUser) {
+      if (!currentUser) return null;
+      return await currentUser.getIdToken(true);
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const fetchCartData = async () => {
+    try {
+      if (!user) {
+        router.push("/login?redirect=/checkout");
+        return;
+      }
+      const token = await getFreshToken();
+      if (!token) {
         router.push("/login?redirect=/checkout");
         return;
       }
 
-      const token = await currentUser.getIdToken();
-
       const res = await fetch("/api/cart", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
@@ -112,17 +233,11 @@ export default function CheckoutPage() {
         }
         setCartItems(data.items || []);
 
-        if (currentUser.displayName) {
-          setShippingAddress((prev) => ({
-            ...prev,
-            fullName: currentUser.displayName || "",
-          }));
+        if (user.displayName) {
+          setShippingAddress((prev) => ({ ...prev, fullName: user.displayName || "" }));
         }
-        if (currentUser.email) {
-          setShippingAddress((prev) => ({
-            ...prev,
-            email: currentUser.email || "",
-          }));
+        if (user.email) {
+          setShippingAddress((prev) => ({ ...prev, email: user.email || "" }));
         }
       }
     } catch (error) {
@@ -137,31 +252,36 @@ export default function CheckoutPage() {
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
-    const shipping = subtotal > 500 ? 0 : 50;
-    const tax = subtotal * 0.18;
-    const total = subtotal + shipping + tax;
-    return { subtotal, shipping, tax, total };
+
+    // Shipping Logic: Use API calculated fee if available (even if 0), else fallback
+    let shipping = 0;
+    if (calculatedShipping !== null) {
+      shipping = calculatedShipping;
+    } else {
+      // Fallback default logic
+      shipping = subtotal > 500 ? 0 : 50;
+    }
+
+    const taxableAmount = Math.max(0, subtotal - discountAmount);
+    const tax = taxableAmount * 0.18;
+    const total = taxableAmount + shipping + tax;
+
+    return { subtotal, shipping, tax, total, discount: discountAmount };
   };
 
   const validateAddress = (): boolean => {
     const newErrors: Partial<ShippingAddress> = {};
 
-    if (!shippingAddress.fullName.trim())
-      newErrors.fullName = "Name is required";
+    if (!shippingAddress.fullName.trim()) newErrors.fullName = "Name is required";
     if (!shippingAddress.email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(shippingAddress.email))
-      newErrors.email = "Invalid email";
+    else if (!/\S+@\S+\.\S+/.test(shippingAddress.email)) newErrors.email = "Invalid email";
     if (!shippingAddress.phone.trim()) newErrors.phone = "Phone is required";
-    else if (!/^\d{10}$/.test(shippingAddress.phone))
-      newErrors.phone = "Invalid phone number";
-    if (!shippingAddress.address.trim())
-      newErrors.address = "Address is required";
+    else if (!/^\d{10}$/.test(shippingAddress.phone)) newErrors.phone = "Invalid phone number";
+    if (!shippingAddress.address.trim()) newErrors.address = "Address is required";
     if (!shippingAddress.city.trim()) newErrors.city = "City is required";
     if (!shippingAddress.state.trim()) newErrors.state = "State is required";
-    if (!shippingAddress.pincode.trim())
-      newErrors.pincode = "Pincode is required";
-    else if (!/^\d{6}$/.test(shippingAddress.pincode))
-      newErrors.pincode = "Invalid pincode";
+    if (!shippingAddress.pincode.trim()) newErrors.pincode = "Pincode is required";
+    else if (!/^\d{6}$/.test(shippingAddress.pincode)) newErrors.pincode = "Invalid pincode";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -184,10 +304,13 @@ export default function CheckoutPage() {
   const initiateRazorpayPayment = async () => {
     setProcessing(true);
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!user) return;
+      const token = await getFreshToken();
+      if (!token) {
+        alert("Please login again");
+        return;
+      }
 
-      const token = await currentUser.getIdToken();
       const { total } = calculateTotals();
 
       const orderRes = await fetch("/api/payment/create-order", {
@@ -200,6 +323,9 @@ export default function CheckoutPage() {
           amount: total,
           cartItems,
           shippingAddress,
+          promoCode: isPromoApplied ? promoCode : null,
+          discountAmount: isPromoApplied ? discountAmount : 0,
+          shippingFee: calculateTotals().shipping
         }),
       });
 
@@ -214,7 +340,7 @@ export default function CheckoutPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
-        name: "Your Store Name",
+        name: "Joy Juncture",
         description: "Order Payment",
         order_id: order.id,
         handler: async (response: any) => {
@@ -229,7 +355,7 @@ export default function CheckoutPage() {
           address: shippingAddress.address,
         },
         theme: {
-          color: "#6366f1",
+          color: "#f97316",
         },
         modal: {
           ondismiss: () => {
@@ -247,15 +373,11 @@ export default function CheckoutPage() {
     }
   };
 
-  // Update these two functions in your existing checkout/page.tsx
-
-  // Replace the verifyPayment function:
   const verifyPayment = async (paymentResponse: any, order: any) => {
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-
-      const token = await currentUser.getIdToken();
+      if (!user) return;
+      const token = await getFreshToken();
+      if (!token) return;
 
       const verifyRes = await fetch("/api/payment/verify", {
         method: "POST",
@@ -267,19 +389,11 @@ export default function CheckoutPage() {
           razorpay_payment_id: paymentResponse.razorpay_payment_id,
           razorpay_order_id: paymentResponse.razorpay_order_id,
           razorpay_signature: paymentResponse.razorpay_signature,
+          type: "product",
         }),
       });
 
       if (verifyRes.ok) {
-        const data = await verifyRes.json();
-
-        // Clear cart after successful payment
-        await clearCart();
-
-        // Redirect to success page with Joy Points info
-        const firstOrderId =
-          data.orderIds && data.orderIds[0] ? data.orderIds[0] : "success";
-        const joyPoints = data.joyPointsEarned || 0;
         router.push(`/order-succes`);
       } else {
         const errorData = await verifyRes.json();
@@ -287,22 +401,19 @@ export default function CheckoutPage() {
       }
     } catch (error: any) {
       console.error("Payment verification failed:", error);
-      alert(
-        error.message || "Payment verification failed. Please contact support.",
-      );
+      alert(error.message || "Payment verification failed.");
     } finally {
       setProcessing(false);
     }
   };
 
-  // Replace the placeOrderCOD function:
   const placeOrderCOD = async () => {
     setProcessing(true);
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!user) return;
+      const token = await getFreshToken();
+      if (!token) return;
 
-      const token = await currentUser.getIdToken();
       const totals = calculateTotals();
 
       const orderRes = await fetch("/api/orders/create", {
@@ -316,19 +427,12 @@ export default function CheckoutPage() {
           shippingAddress,
           paymentMethod: "cod",
           total: totals.total,
+          promoCode: isPromoApplied ? promoCode : null,
+          discountAmount: isPromoApplied ? discountAmount : 0
         }),
       });
 
       if (orderRes.ok) {
-        const data = await orderRes.json();
-
-        // Clear cart after successful order
-        await clearCart();
-
-        // Redirect to success page with Joy Points info
-        const firstOrderId =
-          data.orderIds && data.orderIds[0] ? data.orderIds[0] : "success";
-        const joyPoints = data.joyPointsEarned || 0;
         router.push(`/order-succes`);
       } else {
         const errorData = await orderRes.json();
@@ -336,56 +440,12 @@ export default function CheckoutPage() {
       }
     } catch (error: any) {
       console.error("Order creation failed:", error);
-      alert(error.message || "Failed to place order. Please try again.");
+      alert(error.message || "Failed to place order.");
     } finally {
       setProcessing(false);
     }
   };
 
-  const clearCart = async () => {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.log("❌ No current user for cart clearing");
-        return;
-      }
-
-      const token = await currentUser.getIdToken();
-
-      console.log("🧹 Clearing cart...");
-      const response = await fetch("/api/cart/clear", {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const responseText = await response.text();
-      console.log("📝 Cart clear response status:", response.status);
-      console.log("📝 Cart clear response:", responseText);
-
-      if (response.ok) {
-        try {
-          const data = JSON.parse(responseText);
-          console.log("✅ Cart cleared successfully:", data);
-          setCartItems([]); // Clear local state
-        } catch (e) {
-          console.log("✅ Cart cleared (no JSON response)");
-          setCartItems([]); // Clear local state anyway
-        }
-      } else {
-        console.error("❌ Failed to clear cart. Status:", response.status);
-        console.error("Response:", responseText);
-        // Still clear local state to avoid confusion
-        setCartItems([]);
-      }
-    } catch (error) {
-      console.error("❌ Error clearing cart:", error);
-      // Still clear local state
-      setCartItems([]);
-    }
-  };
 
   if (authLoading || loading) {
     return (
@@ -431,6 +491,43 @@ export default function CheckoutPage() {
               </div>
 
               <div className="form-grid">
+                {/* Pincode Section - Moved to Top for Auto-fill */}
+                <div className="form-group full-width" style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #333' }}>
+                  <label style={{ color: '#ff6b00', fontWeight: 'bold' }}>
+                    <MapPin size={18} />
+                    Enter Pincode First *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      value={shippingAddress.pincode}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        setShippingAddress({
+                          ...shippingAddress,
+                          pincode: val,
+                        })
+                      }}
+                      placeholder="Enter 6-digit Pincode to auto-fill details"
+                      maxLength={6}
+                      className={errors.pincode ? "error" : ""}
+                      style={{ fontSize: '1.1rem', letterSpacing: '2px' }}
+                      autoFocus
+                    />
+                    {isPincodeLoading && (
+                      <div className="spinner-small" style={{ position: 'absolute', right: '10px', top: '12px' }}></div>
+                    )}
+                  </div>
+                  {errors.pincode && (
+                    <span className="error-text">{errors.pincode}</span>
+                  )}
+                  {shippingAddress.city && (
+                    <p style={{ fontSize: '12px', color: '#10B981', marginTop: '4px' }}>
+                      ✓ {shippingAddress.city}, {shippingAddress.state}, {shippingAddress.country}
+                    </p>
+                  )}
+                </div>
+
                 <div className="form-group full-width">
                   <label>
                     <User size={18} />
@@ -534,8 +631,10 @@ export default function CheckoutPage() {
                         city: e.target.value,
                       })
                     }
-                    placeholder="City"
+                    placeholder="Auto-filled from Pincode"
                     className={errors.city ? "error" : ""}
+                    readOnly
+                    style={{ backgroundColor: '#222', cursor: 'not-allowed' }}
                   />
                   {errors.city && (
                     <span className="error-text">{errors.city}</span>
@@ -553,8 +652,10 @@ export default function CheckoutPage() {
                         state: e.target.value,
                       })
                     }
-                    placeholder="State"
+                    placeholder="Auto-filled from Pincode"
                     className={errors.state ? "error" : ""}
+                    readOnly
+                    style={{ backgroundColor: '#222', cursor: 'not-allowed' }}
                   />
                   {errors.state && (
                     <span className="error-text">{errors.state}</span>
@@ -562,35 +663,17 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="form-group">
-                  <label>Pincode *</label>
+                  <label>Country *</label>
                   <input
                     type="text"
-                    value={shippingAddress.pincode}
-                    onChange={(e) =>
-                      setShippingAddress({
-                        ...shippingAddress,
-                        pincode: e.target.value,
-                      })
-                    }
-                    placeholder="6-digit pincode"
-                    maxLength={6}
-                    className={errors.pincode ? "error" : ""}
+                    value={shippingAddress.country}
+                    readOnly
+                    style={{ backgroundColor: '#222', cursor: 'not-allowed' }}
                   />
-                  {errors.pincode && (
-                    <span className="error-text">{errors.pincode}</span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label>Country</label>
-                  <input type="text" value={shippingAddress.country} disabled />
                 </div>
               </div>
 
-              <button
-                className="continue-btn"
-                onClick={handleContinueToPayment}
-              >
+              <button className="btn-primary" onClick={handleContinueToPayment}>
                 Continue to Payment
               </button>
             </div>
@@ -601,133 +684,118 @@ export default function CheckoutPage() {
                 <h2>Payment Method</h2>
               </div>
 
-              <div className="payment-methods">
-                <label
+              <div className="payment-options">
+                <div
                   className={`payment-option ${paymentMethod === "razorpay" ? "selected" : ""}`}
+                  onClick={() => setPaymentMethod("razorpay")}
                 >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="razorpay"
-                    checked={paymentMethod === "razorpay"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  />
-                  <div className="payment-option-content">
-                    <CreditCard size={24} />
-                    <div>
-                      <h3>Credit/Debit Card, UPI, Wallet</h3>
-                      <p>Pay securely via Razorpay</p>
-                    </div>
+                  <div className="radio-circle">
+                    {paymentMethod === "razorpay" && <div className="inner-circle"></div>}
                   </div>
-                  <CheckCircle2 className="check-icon" size={24} />
-                </label>
+                  <div className="option-content">
+                    <span className="option-title">Pay Online (Razorpay)</span>
+                    <span className="option-desc">Cards, UPI, NetBanking, Wallets</span>
+                  </div>
+                </div>
 
-                <label
+                <div
                   className={`payment-option ${paymentMethod === "cod" ? "selected" : ""}`}
+                  onClick={() => setPaymentMethod("cod")}
                 >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="cod"
-                    checked={paymentMethod === "cod"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  />
-                  <div className="payment-option-content">
-                    <Truck size={24} />
-                    <div>
-                      <h3>Cash on Delivery</h3>
-                      <p>Pay when you receive your order</p>
-                    </div>
+                  <div className="radio-circle">
+                    {paymentMethod === "cod" && <div className="inner-circle"></div>}
                   </div>
-                  <CheckCircle2 className="check-icon" size={24} />
-                </label>
+                  <div className="option-content">
+                    <span className="option-title">Cash on Delivery</span>
+                    <span className="option-desc">Pay when you receive the order</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="secure-payment">
-                <Lock size={18} />
-                <span>Your payment information is secure and encrypted</span>
+              <div className="address-summary">
+                <h3>Delivering To:</h3>
+                <p>
+                  <strong>{shippingAddress.fullName}</strong>
+                </p>
+                <p>{shippingAddress.address}</p>
+                <p>
+                  {shippingAddress.city}, {shippingAddress.state} -{" "}
+                  {shippingAddress.pincode}
+                </p>
+                <p>Phone: {shippingAddress.phone}</p>
+                <button className="edit-address-btn" onClick={() => setStep(1)}>
+                  Edit Address
+                </button>
               </div>
 
-              <div className="checkout-actions">
-                <button className="back-to-shipping" onClick={() => setStep(1)}>
-                  Back to Shipping
-                </button>
-                <button
-                  className="place-order-btn"
-                  onClick={handlePlaceOrder}
-                  disabled={processing}
-                >
-                  {processing ? (
-                    <>
-                      <div className="spinner-small"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck size={20} />
-                      Place Order - ₹{total.toLocaleString()}
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                className="btn-primary pay-btn"
+                onClick={handlePlaceOrder}
+                disabled={processing}
+              >
+                {processing ? (
+                  <>
+                    <div className="spinner-small"></div> Processing...
+                  </>
+                ) : (
+                  <>
+                    {paymentMethod === "cod" ? "Place Order" : "Pay Now"} ₹
+                    {total.toLocaleString()}
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>
 
         <div className="checkout-sidebar">
-          <div className="summary-card">
-            <h3>Order Summary</h3>
-
-            <div className="cart-items-summary">
+          <div className="order-summary">
+            <h2>Order Summary</h2>
+            <div className="summary-items">
               {cartItems.map((item) => (
                 <div key={item._id} className="summary-item">
-                  <img src={item.productImage} alt={item.productName} />
-                  <div className="summary-item-details">
-                    <p>{item.productName}</p>
-                    <span>Qty: {item.quantity}</span>
+                  <div className="item-info">
+                    <span className="item-name">
+                      {item.productName} <span className="item-qty">x{item.quantity}</span>
+                    </span>
+                    <span className="item-price">
+                      ₹{(item.price * item.quantity).toLocaleString()}
+                    </span>
                   </div>
-                  <span className="summary-item-price">
-                    ₹{(item.price * item.quantity).toLocaleString()}
-                  </span>
                 </div>
               ))}
             </div>
 
-            <div className="summary-divider"></div>
-
-            <div className="summary-rows">
+            <div className="summary-totals">
               <div className="summary-row">
                 <span>Subtotal</span>
                 <span>₹{subtotal.toLocaleString()}</span>
               </div>
 
+              {isPromoApplied && (
+                <div className="summary-row discount">
+                  <span>Discount ({promoCode})</span>
+                  <span>-₹{discountAmount.toLocaleString()}</span>
+                </div>
+              )}
+
               <div className="summary-row">
                 <span>Shipping</span>
                 <span>{shipping === 0 ? "FREE" : `₹${shipping}`}</span>
               </div>
-
               <div className="summary-row">
                 <span>Tax (18% GST)</span>
                 <span>₹{tax.toLocaleString()}</span>
               </div>
-
-              <div className="summary-divider"></div>
-
-              <div className="summary-row total">
+              <div className="summary-total">
                 <span>Total</span>
                 <span>₹{total.toLocaleString()}</span>
               </div>
             </div>
-          </div>
 
-          <div className="trust-badges">
-            <div className="trust-badge">
-              <ShieldCheck size={20} />
+            <div className="summary-security">
+              <CheckCircle2 size={16} className="text-green-500" />
               <span>Secure Checkout</span>
-            </div>
-            <div className="trust-badge">
-              <Truck size={20} />
-              <span>Fast Delivery</span>
             </div>
           </div>
         </div>

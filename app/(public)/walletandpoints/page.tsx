@@ -1,9 +1,9 @@
-// app/(public)/walletandpoints/page.tsx - COMPLETE WITH ALL FEATURES
+// app/(public)/walletandpoints/page.tsx - COMPLETE FIXED VERSION
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { getAuth } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import {
   FaWallet,
   FaCoins,
@@ -39,14 +39,14 @@ interface Transaction {
   _id: string;
   userId: string;
   type:
-    | "purchase"
-    | "event"
-    | "game"
-    | "daily_login"
-    | "referral"
-    | "bonus"
-    | "achievement"
-    | "redeem";
+  | "purchase"
+  | "event"
+  | "game"
+  | "daily_login"
+  | "referral"
+  | "bonus"
+  | "achievement"
+  | "redeem";
   amount: number;
   description: string;
   createdAt: string;
@@ -97,11 +97,11 @@ interface WalletUser {
   lastActivity: string;
   lastLogin?: string;
   achievements: any[];
+  redeemedCoupons?: any[];
 }
 
 const WalletPointsPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const auth = getAuth();
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -123,7 +123,7 @@ const WalletPointsPage: React.FC = () => {
   const [transactionPage, setTransactionPage] = useState(1);
   const [totalTransactionPages, setTotalTransactionPages] = useState(1);
 
-  // Daily login - UPDATED WITH COUNTDOWN
+  // Daily login
   const [canClaimDaily, setCanClaimDaily] = useState(true);
   const [claimingDaily, setClaimingDaily] = useState(false);
   const [timeUntilNextClaim, setTimeUntilNextClaim] = useState<string>("");
@@ -134,6 +134,9 @@ const WalletPointsPage: React.FC = () => {
   const [showRedeemModal, setShowRedeemModal] = useState<boolean>(false);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [redeeming, setRedeeming] = useState<boolean>(false);
+
+  // Coupon Redemption State
+  const [redeemableCoupons, setRedeemableCoupons] = useState<any[]>([]);
 
   const categories = [
     { id: "all", name: "All Rewards", color: "#FF8C00" },
@@ -155,7 +158,7 @@ const WalletPointsPage: React.FC = () => {
     { id: "redeem", name: "Redemptions", icon: <FaGift /> },
   ];
 
-  // Level helper functions using the imported module
+  // Level helper functions
   const getLevelProgressDisplay = () => {
     if (!walletUser) return 0;
     const progress = getLevelProgress(walletUser.totalPoints, walletUser.level);
@@ -174,12 +177,32 @@ const WalletPointsPage: React.FC = () => {
     return progress.pointsToNextLevel;
   };
 
+  // FIXED: Get Firebase token directly
   const getFirebaseToken = async () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      throw new Error("Not authenticated");
+    try {
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        console.error("❌ No authenticated user");
+        throw new Error("Not authenticated");
+      }
+
+      console.log("✅ Getting token for user:", currentUser.email);
+
+      // Force refresh to get fresh token
+      const token = await currentUser.getIdToken(true);
+
+      if (!token) {
+        console.error("❌ Token is empty");
+        throw new Error("Failed to get authentication token");
+      }
+
+      console.log("✅ Token obtained, length:", token.length);
+      return token;
+    } catch (error: any) {
+      console.error("❌ Error getting token:", error);
+      throw new Error(`Authentication failed: ${error.message}`);
     }
-    return await currentUser.getIdToken();
   };
 
   const createWalletForUser = async () => {
@@ -203,11 +226,13 @@ const WalletPointsPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create wallet: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error ? `${errorData.error}: ${errorData.details || ''}` : `Failed to create wallet: ${response.status}`);
       }
 
       return await response.json();
     } catch (error: any) {
+      console.error("❌ Wallet creation error:", error);
       throw new Error(`Wallet creation failed: ${error.message}`);
     }
   };
@@ -236,7 +261,7 @@ const WalletPointsPage: React.FC = () => {
         console.log("✅ Loaded transactions:", data.transactions?.length);
       }
     } catch (error) {
-      console.error("Error fetching transactions:", error);
+      console.error("❌ Error fetching transactions:", error);
     }
   };
 
@@ -250,6 +275,8 @@ const WalletPointsPage: React.FC = () => {
       setPageLoading(true);
       setError(null);
 
+      console.log("🔄 Fetching wallet data for user:", user.email);
+
       const token = await getFirebaseToken();
 
       // Fetch user wallet data
@@ -258,6 +285,7 @@ const WalletPointsPage: React.FC = () => {
       });
 
       if (walletRes.status === 401 || walletRes.status === 404) {
+        console.log("Creating wallet for new user...");
         await createWalletForUser();
 
         const retryRes = await fetch("/api/wallet", {
@@ -277,13 +305,13 @@ const WalletPointsPage: React.FC = () => {
         throw new Error("Failed to load wallet data");
       }
 
-      // Fetch transactions separately
+      // Fetch transactions
       await fetchTransactions(transactionPage, transactionFilter);
 
-      // Check if can claim daily reward
+      // Check daily reward status
       await checkDailyRewardStatus();
 
-      // Fetch active rewards
+      // Fetch rewards
       const rewardsRes = await fetch("/api/wallet/rewards");
       if (rewardsRes.ok) {
         const rewardsData = await rewardsRes.json();
@@ -318,6 +346,25 @@ const WalletPointsPage: React.FC = () => {
         ).filter((c: PointsCriteria) => c.isActive !== false);
         setPointsCriteria(activeCriteria);
       }
+
+
+      // NEW: Fetch Redeemable Coupons
+      const couponsRes = await fetch("/api/coupons?status=active", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log("Coupons API Status:", couponsRes.status);
+
+      if (couponsRes.ok) {
+        const cData = await couponsRes.json();
+        console.log("Coupons Data:", cData);
+        // Show ALL coupons for debugging
+        const rCoupons = cData.coupons || [];
+        console.log("Redeemable Coupons:", rCoupons);
+        setRedeemableCoupons(rCoupons);
+      } else {
+        console.error("Coupons API Failed");
+      }
     } catch (err: any) {
       console.error("❌ Error fetching wallet data:", err);
       setError(
@@ -328,7 +375,6 @@ const WalletPointsPage: React.FC = () => {
     }
   };
 
-  // UPDATED: Check daily reward status with API call
   const checkDailyRewardStatus = async () => {
     try {
       const token = await getFirebaseToken();
@@ -338,9 +384,14 @@ const WalletPointsPage: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        console.error("Failed to check daily reward status");
+        return;
+      }
 
       const data = await response.json();
+
+      console.log("Daily reward status:", data);
 
       setCanClaimDaily(data.canClaim);
       setStreak(data.currentStreak || 0);
@@ -349,13 +400,15 @@ const WalletPointsPage: React.FC = () => {
         const nextClaim = new Date(data.nextClaimAt);
         setNextClaimDate(nextClaim);
         updateCountdown(nextClaim);
+      } else if (data.canClaim) {
+        setTimeUntilNextClaim("");
+        setNextClaimDate(null);
       }
     } catch (error) {
       console.error("Daily reward status error:", error);
     }
   };
 
-  // NEW: Countdown timer function
   const updateCountdown = (nextClaimAt: string | Date) => {
     const updateTimer = () => {
       const now = new Date().getTime();
@@ -365,6 +418,8 @@ const WalletPointsPage: React.FC = () => {
       if (distance < 0) {
         setTimeUntilNextClaim("Available now!");
         setCanClaimDaily(true);
+        setNextClaimDate(null);
+        clearInterval(interval);
         return;
       }
 
@@ -380,10 +435,9 @@ const WalletPointsPage: React.FC = () => {
     return interval;
   };
 
-  // UPDATED: Claim daily reward with enhanced feedback
   const claimDailyReward = async () => {
     if (!canClaimDaily) {
-      alert("You have already claimed your daily reward today!");
+      alert(`You've already claimed today's reward! Next claim in: ${timeUntilNextClaim}`);
       return;
     }
 
@@ -401,34 +455,36 @@ const WalletPointsPage: React.FC = () => {
         },
       });
 
-      console.log("Response status:", response.status);
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        console.error("Response is not JSON");
-        throw new Error("Server returned an invalid response");
-      }
-
       const data = await response.json();
-      console.log("Response data:", data);
+      console.log("Claim response:", data);
 
       if (response.ok && data.success) {
         setCanClaimDaily(false);
         setStreak(data.streak);
         setUserPoints(data.newBalance);
 
-        const nextClaim = new Date(data.nextClaimAt);
-        setNextClaimDate(nextClaim);
-        updateCountdown(nextClaim);
+        if (data.nextClaimAt) {
+          const nextClaim = new Date(data.nextClaimAt);
+          setNextClaimDate(nextClaim);
+          updateCountdown(nextClaim);
+        }
 
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 3000);
 
+        let message = `🎁 Daily Reward Claimed!\n\n+${data.points} points!\n`;
+        message += `Current streak: ${data.streak} days\n`;
+        message += `New balance: ${data.newBalance} points`;
+
+        if (data.leveledUp) {
+          message += `\n\n🎉 LEVEL UP! You reached Level ${data.level}!`;
+        }
+
+        alert(message);
+
         await fetchWalletData();
-        return;
       } else {
-        // Already claimed or error
-        setCanClaimDaily(false); // Disable button
+        setCanClaimDaily(false);
 
         if (data.timeRemaining) {
           const nextClaim = new Date(data.canClaimAt);
@@ -453,9 +509,9 @@ const WalletPointsPage: React.FC = () => {
     setStreak(walletData.user?.streak || 0);
     setUserName(
       walletData.user?.name ||
-        user?.displayName ||
-        user?.email?.split("@")[0] ||
-        "Player",
+      user?.displayName ||
+      user?.email?.split("@")[0] ||
+      "Player",
     );
   };
 
@@ -475,7 +531,6 @@ const WalletPointsPage: React.FC = () => {
     }
   }, [transactionPage, transactionFilter]);
 
-  // NEW: Countdown timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
@@ -546,6 +601,39 @@ const WalletPointsPage: React.FC = () => {
     }
   };
 
+  const handleRedeemCoupon = async (coupon: any) => {
+    if (userPoints < coupon.coinsRequired) {
+      alert(`Insufficient points! You need ${coupon.coinsRequired - userPoints} more points.`);
+      return;
+    }
+
+    if (!confirm(`Redeem "${coupon.name}" for ${coupon.coinsRequired} points?`)) return;
+
+    try {
+      const token = await getFirebaseToken();
+      const res = await fetch("/api/wallet/redeem-coupon", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ couponId: coupon._id })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`🎉 Success! Coupon Code: ${data.coupon.code}\n\nCopied to clipboard!`);
+        navigator.clipboard.writeText(data.coupon.code);
+        fetchWalletData(); // Refresh points
+      } else {
+        alert(data.error || "Redemption failed");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    }
+  };
+
   const renderIcon = (iconName: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
       FaGamepad: <FaGamepad />,
@@ -565,6 +653,10 @@ const WalletPointsPage: React.FC = () => {
       FaInfoCircle: <FaInfoCircle />,
     };
     return iconMap[iconName] || <FaStar />;
+  };
+
+  const getRedeemedCoupon = (rewardId: string) => {
+    return walletUser?.redeemedCoupons?.find(c => c.rewardId === rewardId);
   };
 
   const getTransactionIcon = (type: string) => {
@@ -678,7 +770,6 @@ const WalletPointsPage: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="wallet-page">
       {showConfetti && (
@@ -704,6 +795,7 @@ const WalletPointsPage: React.FC = () => {
           </div>
         </div>
       )}
+
 
       {/* Header */}
       <section className="wallet-hero">
@@ -799,10 +891,12 @@ const WalletPointsPage: React.FC = () => {
                   </button>
                 ) : (
                   <div className="streak-info">
-                    <p className="claimed-text">✓ Claimed today!</p>
+                    <p className="claimed-text">
+                      <FaCheck /> Already claimed today!
+                    </p>
                     {timeUntilNextClaim && (
                       <p className="countdown-text">
-                        Next in: <strong>{timeUntilNextClaim}</strong>
+                        Next reward in: <strong>{timeUntilNextClaim}</strong>
                       </p>
                     )}
                   </div>
@@ -865,7 +959,7 @@ const WalletPointsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Available Rewards */}
+      {/* Available Rewards
       <section className="rewards-section">
         <div className="container">
           <div className="section-header">
@@ -905,60 +999,108 @@ const WalletPointsPage: React.FC = () => {
             </div>
           ) : (
             <div className="rewards-grid">
-              {filteredRewards.map((reward) => (
-                <div key={reward._id} className="reward-card">
-                  <div
-                    className="reward-icon"
-                    style={{ backgroundColor: reward.color || "#FF8C00" }}
-                  >
-                    {renderIcon(reward.icon)}
-                  </div>
-                  <div className="reward-content">
-                    <div className="reward-header">
-                      <h4>{reward.name}</h4>
-                      {reward.stock > 0 && reward.stock < 10 && (
-                        <span className="stock-badge">
-                          Only {reward.stock} left!
-                        </span>
+              {filteredRewards.map((reward) => {
+                const redeemedCoupon = getRedeemedCoupon(reward._id);
+                const isRedeemed = !!redeemedCoupon;
+
+                return (
+                  <div key={reward._id} className="reward-card">
+                    <div
+                      className="reward-icon"
+                      style={{ backgroundColor: reward.color || "#FF8C00" }}
+                    >
+                      {renderIcon(reward.icon)}
+                    </div>
+                    <div className="reward-content">
+                      <div className="reward-header">
+                        <h4>{reward.name}</h4>
+                        {reward.stock > 0 && reward.stock < 10 && (
+                          <span className="stock-badge">
+                            Only {reward.stock} left!
+                          </span>
+                        )}
+                        {reward.stock <= 0 && (
+                          <span className="stock-badge out-of-stock">
+                            Out of Stock
+                          </span>
+                        )}
+                      </div>
+                      <p className="reward-desc">{reward.description}</p>
+
+                      {isRedeemed ? (
+                        <div className="redeemed-info" style={{
+                          background: '#f0fdf4',
+                          padding: '10px',
+                          borderRadius: '6px',
+                          border: '1px dashed #22c55e',
+                          margin: '10px 0'
+                        }}>
+                          <p style={{ color: '#166534', fontSize: '0.9em', marginBottom: '5px' }}>
+                            <FaCheck /> Redeemed! Code:
+                          </p>
+                          <p style={{
+                            fontFamily: 'monospace',
+                            fontSize: '1.2em',
+                            fontWeight: 'bold',
+                            color: '#15803d',
+                            textAlign: 'center',
+                            letterSpacing: '1px'
+                          }}>
+                            {redeemedCoupon?.code}
+                          </p>
+                          <p style={{ fontSize: '0.8em', color: '#666', marginTop: '5px' }}>
+                            Status: {redeemedCoupon?.status === 'used' ? 'Used' : 'Available'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="reward-footer">
+                          <span className="reward-points">
+                            <FaCoins /> {reward.points} points
+                          </span>
+                          <button
+                            className={`redeem-btn ${userPoints >= reward.points && reward.stock > 0
+                              ? "available"
+                              : "locked"
+                              }`}
+                            onClick={() => handleRedeem(reward)}
+                            disabled={
+                              userPoints < reward.points || reward.stock <= 0
+                            }
+                          >
+                            {userPoints >= reward.points && reward.stock > 0
+                              ? "Redeem"
+                              : reward.stock <= 0
+                                ? "Out of Stock"
+                                : "Need More Points"}
+                          </button>
+                        </div>
                       )}
-                      {reward.stock <= 0 && (
-                        <span className="stock-badge out-of-stock">
-                          Out of Stock
-                        </span>
+
+                      {isRedeemed && (
+                        <button
+                          className="redeem-btn"
+                          disabled
+                          style={{
+                            background: '#e5e7eb',
+                            color: '#6b7280',
+                            cursor: 'not-allowed',
+                            width: '100%',
+                            marginTop: '5px'
+                          }}
+                        >
+                          Already Redeemed
+                        </button>
                       )}
                     </div>
-                    <p className="reward-desc">{reward.description}</p>
-                    <div className="reward-footer">
-                      <span className="reward-points">
-                        <FaCoins /> {reward.points} points
-                      </span>
-                      <button
-                        className={`redeem-btn ${
-                          userPoints >= reward.points && reward.stock > 0
-                            ? "available"
-                            : "locked"
-                        }`}
-                        onClick={() => handleRedeem(reward)}
-                        disabled={
-                          userPoints < reward.points || reward.stock <= 0
-                        }
-                      >
-                        {userPoints >= reward.points && reward.stock > 0
-                          ? "Redeem"
-                          : reward.stock <= 0
-                            ? "Out of Stock"
-                            : "Need More Points"}
-                      </button>
-                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
-      </section>
+      </section> */}
 
-      {/* Achievements */}
+      {/* Achievements
       <section className="achievements-section">
         <div className="container">
           <div className="section-header">
@@ -1029,9 +1171,106 @@ const WalletPointsPage: React.FC = () => {
             )}
           </div>
         </div>
+      </section> */}
+
+      {/* NEW: Exclusive Coupons Section */}
+      {/* Exclusive Coupons Section */}
+      <section className="rewards-section" style={{ marginBottom: '2rem' }}>
+        <div className="container">
+          <div className="section-header">
+            <h2>Exclusive <span className="highlight">Coupons</span></h2>
+            <p>Redeem your points for special discounts!</p>
+          </div>
+
+          {redeemableCoupons.length === 0 ? (
+            <div className="empty-state" style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+              <div style={{ fontSize: '40px', marginBottom: '10px' }}>🏷️</div>
+              <p>No exclusive coupons available at the moment.</p>
+            </div>
+          ) : (
+            <div className="rewards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+              {redeemableCoupons.map((coupon) => {
+                const isRedeemed = walletUser?.redeemedCoupons?.some((rc: any) => rc.rewardId === coupon._id);
+                const userUsage = isRedeemed ? walletUser?.redeemedCoupons?.find((rc: any) => rc.rewardId === coupon._id) : null;
+
+                return (
+                  <div key={coupon._id} className="reward-card" style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '15px'
+                  }}>
+                    <div className="reward-icon" style={{
+                      backgroundColor: "#FF6B6B",
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px'
+                    }}>
+                      <FaGift />
+                    </div>
+                    <div className="reward-content">
+                      <h4 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '5px' }}>{coupon.name}</h4>
+                      <p className="description" style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '15px' }}>{coupon.description}</p>
+                      <div className="cost-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="points" style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#FFCC00', fontWeight: 'bold' }}>
+                          <FaCoins /> {coupon.coinsRequired}
+                        </div>
+                        {isRedeemed ? (
+                          <div className="redeemed-info">
+                            <span className="code-badge"
+                              onClick={() => {
+                                navigator.clipboard.writeText(userUsage.code);
+                                alert("Code copied!");
+                              }}
+                              style={{
+                                background: '#2ECC71',
+                                color: '#fff',
+                                padding: '5px 10px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                userSelect: 'none'
+                              }}
+                            >
+                              {userUsage.code} (Copy)
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            className="redeem-btn"
+                            onClick={() => handleRedeemCoupon(coupon)}
+                            disabled={userPoints < coupon.coinsRequired}
+                            style={{
+                              background: userPoints < coupon.coinsRequired ? '#555' : '#FF6B6B',
+                              color: '#fff',
+                              border: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '8px',
+                              cursor: userPoints < coupon.coinsRequired ? 'not-allowed' : 'pointer',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            Redeem
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* Transaction History - ENHANCED & DYNAMIC */}
+      {/* Transaction History */}
       <section className="transactions-section">
         <div className="container">
           <div className="section-header">
@@ -1041,7 +1280,6 @@ const WalletPointsPage: React.FC = () => {
             <p className="section-subtitle">Track all your point activities</p>
           </div>
 
-          {/* Transaction Filters */}
           <div className="transaction-filters">
             <FaFilter className="filter-icon" />
             <div className="filter-buttons">
@@ -1112,7 +1350,6 @@ const WalletPointsPage: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Show metadata if available */}
                       {transaction.metadata &&
                         Object.keys(transaction.metadata).length > 0 && (
                           <div className="transaction-metadata">
@@ -1161,7 +1398,6 @@ const WalletPointsPage: React.FC = () => {
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalTransactionPages > 1 && (
                 <div className="pagination">
                   <button
@@ -1255,7 +1491,6 @@ const WalletPointsPage: React.FC = () => {
                   disabled={redeeming}
                   style={{ backgroundColor: selectedReward.color || "#FF8C00" }}
                 >
-                  {redeeming ? "Processing..." : "Confirm Redemption"}
                 </button>
               </div>
             </div>

@@ -1,678 +1,1112 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/app/contexts/AuthContext';
-import { auth } from '@/lib/firebase';
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Timer, RefreshCw, Trophy, HelpCircle,
+  Zap, Lock, Coins, AlertCircle, Gamepad2,
+  Check, X, Grid, BookOpen, Lightbulb
+} from "lucide-react";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { getAuth } from "firebase/auth";
+import "./crossword-game.css";
 
-interface Cell {
-  letter: string;
-  correct: string;
-  number?: number;
-  isBlack?: boolean;
-  across?: number;
-  down?: number;
-}
+/* ---------------- TYPES ---------------- */
 
-interface CrosswordGameProps {
-  gameData: {
+interface User {
+  _id: string;
+  name: string;
+  userPoints: number;
+  gamesPlayed?: Array<{
     gameId: string;
-    puzzle: Cell[][];
-    solution: Cell[][];
-    clues: Array<{
-      number: number;
-      direction: 'across' | 'down';
-      clue: string;
-    }>;
-    size: number;
-    maxCoins?: number;
-    hasTimeBonus?: boolean;
-  };
-  onComplete: (result: any) => void;
+    gameName: string;
+    playedAt: Date;
+    score?: number;
+    pointsEarned: number;
+    completed: boolean;
+  }>;
 }
 
-export default function CrosswordGame({ gameData, onComplete }: CrosswordGameProps) {
-  const { user } = useAuth();
-  const [grid, setGrid] = useState<Cell[][]>(gameData.puzzle);
-  const [selectedCell, setSelectedCell] = useState<[number, number] | null>(null);
-  const [selectedDirection, setSelectedDirection] = useState<'across' | 'down'>('across');
-  const [time, setTime] = useState(0);
-  const [gameComplete, setGameComplete] = useState(false);
-  const [mistakes, setMistakes] = useState(0);
-  const [revealedCells, setRevealedCells] = useState(0);
-  const [currentClue, setCurrentClue] = useState<{
-    number: number;
-    direction: 'across' | 'down';
-    clue: string;
-  } | null>(null);
-  
-  const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
+interface CrosswordClue {
+  number: number;
+  direction: 'across' | 'down';
+  clue: string;
+  answer: string;
+  row: number;
+  col: number;
+  length: number;
+  solved: boolean;
+}
 
-  // Initialize refs
-  useEffect(() => {
-    inputRefs.current = Array(gameData.size)
-      .fill(null)
-      .map(() => Array(gameData.size).fill(null));
-  }, [gameData.size]);
+interface CrosswordCell {
+  row: number;
+  col: number;
+  value: string;
+  isBlack: boolean;
+  isSelected: boolean;
+  isCorrect: boolean | null;
+  number: number | null;
+}
 
-  // Timer
-  useEffect(() => {
-    if (!gameComplete) {
-      const timer = setInterval(() => {
-        setTime(prev => prev + 1);
-      }, 1000);
+const CROSSWORD_GAME_ID = "crossword";
+const CROSSWORD_GAME_NAME = "Game Crossword";
+const BASE_COINS = 5;
+const HINT_COUNT = 3;
 
-      return () => clearInterval(timer);
+/* ---------------- CROSSWORD PUZZLES ---------------- */
+interface PuzzleData {
+  id: number;
+  title: string;
+  clues: Omit<CrosswordClue, 'solved'>[];
+}
+
+const CROSSWORD_PUZZLES: PuzzleData[] = [
+  {
+    id: 1,
+    title: "Game Terms Crossword",
+    clues: [
+      // Across clues
+      { number: 1, direction: 'across', clue: "Winning move in chess", answer: "CHECKMATE", row: 0, col: 0, length: 9 },
+      { number: 4, direction: 'across', clue: "Video game controller button", answer: "START", row: 2, col: 0, length: 5 },
+      { number: 6, direction: 'across', clue: "Game character's representation", answer: "AVATAR", row: 4, col: 0, length: 6 },
+      { number: 8, direction: 'across', clue: "Points earned in games", answer: "SCORE", row: 6, col: 0, length: 5 },
+      { number: 9, direction: 'across', clue: "Underground area in RPGs", answer: "DUNGEON", row: 7, col: 0, length: 7 },
+
+      // Down clues
+      { number: 2, direction: 'down', clue: "Card game wild card", answer: "JOKER", row: 0, col: 2, length: 5 },
+      { number: 3, direction: 'down', clue: "Strategy game resource", answer: "GOLD", row: 0, col: 4, length: 4 },
+      { number: 5, direction: 'down', clue: "Game level or phase", answer: "STAGE", row: 2, col: 6, length: 5 },
+      { number: 7, direction: 'down', clue: "Mission in RPGs", answer: "QUEST", row: 4, col: 8, length: 5 },
+    ]
+  },
+  {
+    id: 2,
+    title: "Gaming Platform Crossword",
+    clues: [
+      // Across clues
+      { number: 1, direction: 'across', clue: "Nintendo's famous plumber", answer: "MARIO", row: 0, col: 0, length: 5 },
+      { number: 4, direction: 'across', clue: "Xbox console model", answer: "SERIESX", row: 2, col: 0, length: 7 },
+      { number: 6, direction: 'across', clue: "PlayStation controller feature", answer: "VIBRATION", row: 4, col: 0, length: 9 },
+      { number: 8, direction: 'across', clue: "Nintendo's handheld device", answer: "SWITCH", row: 6, col: 0, length: 6 },
+
+      // Down clues
+      { number: 2, direction: 'down', clue: "Sony's gaming console", answer: "PLAYSTATION", row: 0, col: 2, length: 11 },
+      { number: 3, direction: 'down', clue: "Microsoft's gaming service", answer: "GAMEPASS", row: 0, col: 4, length: 8 },
+      { number: 5, direction: 'down', clue: "Steam's parent company", answer: "VALVE", row: 2, col: 6, length: 5 },
+      { number: 7, direction: 'down', clue: "Online gaming platform", answer: "STEAM", row: 4, col: 8, length: 5 },
+    ]
+  }
+];
+
+/* ---------------- HELPER FUNCTIONS ---------------- */
+
+const hasPlayedToday = (user: User | null, gameId: string): boolean => {
+  if (!user || !user.gamesPlayed) return false;
+
+  const now = new Date();
+  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  // Check ALL records for this game, not just the first one found
+  return user.gamesPlayed.some((game) => {
+    if (game.gameId !== gameId) return false;
+
+    const playedDate = new Date(game.playedAt);
+    const playedUTC = new Date(Date.UTC(
+      playedDate.getUTCFullYear(),
+      playedDate.getUTCMonth(),
+      playedDate.getUTCDate()
+    ));
+
+    return playedUTC.getTime() === todayUTC.getTime();
+  });
+};
+
+const getNextPlayTime = (user: User | null, gameId: string): string => {
+  if (!user || !user.gamesPlayed) return "Play Now";
+
+  // Find the LATEST play record for this game
+  const gameRecords = user.gamesPlayed
+    .filter((game) => game.gameId === gameId)
+    .sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
+
+  if (gameRecords.length === 0) return "Play Now";
+
+  const lastPlayed = gameRecords[0];
+  const playedDate = new Date(lastPlayed.playedAt);
+  const playedUTC = new Date(Date.UTC(
+    playedDate.getUTCFullYear(),
+    playedDate.getUTCMonth(),
+    playedDate.getUTCDate()
+  ));
+
+  const todayUTC = new Date(Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate()
+  ));
+
+  // If played today (or in future??), calculate time until tomorrow
+  if (playedUTC.getTime() >= todayUTC.getTime()) {
+    const tomorrowUTC = new Date(playedUTC);
+    tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
+
+    const nowUTC = new Date();
+    const diff = tomorrowUTC.getTime() - nowUTC.getTime();
+
+    if (diff <= 0) return "Play Now";
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
     }
-  }, [gameComplete]);
+  }
 
-  // Find clue for selected cell
+  return "Play Now";
+};
+
+/* ---------------- CREATE CROSSWORD GRID ---------------- */
+const createCrosswordGrid = (clues: Omit<CrosswordClue, 'solved'>[]): { grid: CrosswordCell[][], clues: CrosswordClue[] } => {
+  const grid: CrosswordCell[][] = [];
+  const gridSize = 12;
+
+  // Initialize empty grid
+  for (let row = 0; row < gridSize; row++) {
+    grid[row] = [];
+    for (let col = 0; col < gridSize; col++) {
+      grid[row][col] = {
+        row,
+        col,
+        value: '',
+        isBlack: true,
+        isSelected: false,
+        isCorrect: null,
+        number: null
+      };
+    }
+  }
+
+  // Place clues on grid
+  const placedClues = clues.map(clue => ({
+    ...clue,
+    solved: false
+  }));
+
+  placedClues.forEach(clue => {
+    const { row, col, length, direction, number } = clue;
+
+    // Place letters
+    for (let i = 0; i < length; i++) {
+      const currentRow = direction === 'across' ? row : row + i;
+      const currentCol = direction === 'across' ? col + i : col;
+
+      if (currentRow < gridSize && currentCol < gridSize) {
+        grid[currentRow][currentCol].isBlack = false;
+
+        // Add clue number
+        if (i === 0) {
+          grid[currentRow][currentCol].number = number;
+        }
+      }
+    }
+  });
+
+  return { grid, clues: placedClues };
+};
+
+/* ---------------- COMPONENT ---------------- */
+
+export default function CrosswordGame() {
+  const router = useRouter();
+  const { user: authUser, loading: authLoading } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [canPlay, setCanPlay] = useState(true);
+  const [nextPlayTime, setNextPlayTime] = useState("");
+  const [gameMessage, setGameMessage] = useState("");
+
+  const [grid, setGrid] = useState<CrosswordCell[][]>([]);
+  const [clues, setClues] = useState<CrosswordClue[]>([]);
+  const [selectedClue, setSelectedClue] = useState<CrosswordClue | null>(null);
+  const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
+  const [time, setTime] = useState(0);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameCompleted, setGameCompleted] = useState(false);
+  const [earnedCoins, setEarnedCoins] = useState(0);
+  const [feedback, setFeedback] = useState("");
+  const [inputValue, setInputValue] = useState("");
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  /* ---------------- GET TOKEN HELPER ---------------- */
+  const getIdToken = async (): Promise<string | null> => {
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) return null;
+      return await currentUser.getIdToken();
+    } catch (error) {
+      console.error("Error getting ID token:", error);
+      return null;
+    }
+  };
+
+  /* ---------------- FETCH USER DATA HELPER ---------------- */
+  const fetchUserData = useCallback(async () => {
+    try {
+      const token = await getIdToken();
+      if (!token) return null;
+
+      const res = await fetch("/api/user/me", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.success ? data.user : null;
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      return null;
+    }
+  }, []);
+
+  /* ---------------- AUTHENTICATION CHECK ---------------- */
   useEffect(() => {
-    if (!selectedCell) {
-      setCurrentClue(null);
+    if (authLoading) return;
+    if (!authUser) {
+      router.push("/login");
       return;
     }
 
-    const [row, col] = selectedCell;
-    const cell = grid[row][col];
-    
-    if (cell.isBlack) return;
+    const initUser = async () => {
+      const userData = await fetchUserData();
+      if (userData) {
+        setUser(userData);
+        const playedToday = hasPlayedToday(userData, CROSSWORD_GAME_ID);
+        setCanPlay(!playedToday);
 
-    const clueNumber = selectedDirection === 'across' ? cell.across : cell.down;
-    if (!clueNumber) return;
+        if (playedToday) {
+          setNextPlayTime(getNextPlayTime(userData, CROSSWORD_GAME_ID));
+          setGameMessage("🚫 You have already played Crossword today!");
+        }
+        setLoading(false);
+      } else {
+        router.push("/login");
+      }
+    };
 
-    const clue = gameData.clues.find(c => 
-      c.number === clueNumber && c.direction === selectedDirection
+    initUser();
+  }, [authUser, authLoading, router, fetchUserData]);
+
+  /* ---------------- UPDATE TIMER FOR NEXT PLAY ---------------- */
+  useEffect(() => {
+    if (!canPlay) {
+      const interval = setInterval(() => {
+        setNextPlayTime(getNextPlayTime(user, CROSSWORD_GAME_ID));
+      }, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [canPlay, user]);
+
+  /* ---------------- INITIALIZE GAME ---------------- */
+  const initializeGame = useCallback(() => {
+    if (!canPlay) return;
+
+    // Select random puzzle
+    const puzzle = CROSSWORD_PUZZLES[Math.floor(Math.random() * CROSSWORD_PUZZLES.length)];
+    const { grid: newGrid, clues: newClues } = createCrosswordGrid(puzzle.clues);
+
+    setGrid(newGrid);
+    setClues(newClues);
+    setSelectedClue(null);
+    setSelectedCell(null);
+    setTime(0);
+    setHintsUsed(0);
+    setGameStarted(false);
+    setGameCompleted(false);
+    setEarnedCoins(0);
+    setFeedback("");
+    setInputValue("");
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    // Focus input
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  }, [canPlay]);
+
+  useEffect(() => {
+    if (canPlay && user) {
+      initializeGame();
+    }
+  }, [canPlay, user, initializeGame]);
+
+  /* ---------------- TIMER ---------------- */
+  useEffect(() => {
+    if (gameStarted && !gameCompleted && canPlay) {
+      timerRef.current = setInterval(() => {
+        setTime(prev => prev + 1);
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [gameStarted, gameCompleted, canPlay]);
+
+  /* ---------------- GAME LOGIC ---------------- */
+  const handleCellClick = (row: number, col: number) => {
+    if (gameCompleted || !canPlay || grid[row][col].isBlack) return;
+
+    if (!gameStarted) setGameStarted(true);
+
+    // Update selected cell
+    const newGrid = [...grid];
+    newGrid.forEach(r => r.forEach(c => { c.isSelected = false; }));
+    newGrid[row][col].isSelected = true;
+    setGrid(newGrid);
+    setSelectedCell({ row, col });
+
+    // Find clue for this cell
+    const clue = clues.find(c =>
+      (c.direction === 'across' && c.row === row && col >= c.col && col < c.col + c.length) ||
+      (c.direction === 'down' && c.col === col && row >= c.row && row < c.row + c.length)
     );
 
     if (clue) {
-      setCurrentClue(clue);
-    }
-  }, [selectedCell, selectedDirection, grid, gameData.clues]);
-
-  const handleCellClick = (row: number, col: number) => {
-    const cell = grid[row][col];
-    if (cell.isBlack) return;
-
-    // If clicking the same cell, toggle direction
-    if (selectedCell && selectedCell[0] === row && selectedCell[1] === col) {
-      const cellHasAcross = cell.across !== undefined;
-      const cellHasDown = cell.down !== undefined;
-      
-      if (cellHasAcross && cellHasDown) {
-        setSelectedDirection(prev => prev === 'across' ? 'down' : 'across');
-      }
-    } else {
-      // Select new cell
-      setSelectedCell([row, col]);
-      
-      // Auto-select appropriate direction
-      const cellHasAcross = cell.across !== undefined;
-      const cellHasDown = cell.down !== undefined;
-      
-      if (cellHasAcross && !cellHasDown) {
-        setSelectedDirection('across');
-      } else if (cellHasDown && !cellHasAcross) {
-        setSelectedDirection('down');
-      }
+      setSelectedClue(clue);
     }
 
-    // Focus the input
-    setTimeout(() => {
-      const inputEl = inputRefs.current[row]?.[col];
-      if (inputEl) {
-        inputEl.focus();
-        inputEl.select();
-      }
-    }, 0);
+    // Focus input
+    inputRef.current?.focus();
   };
 
-  const handleLetterInput = (row: number, col: number, letter: string) => {
-    if (gameComplete || letter.length > 1) return;
-    
-    // Only allow letters
-    if (letter && !/^[A-Za-z]$/.test(letter)) return;
+  const handleClueClick = (clue: CrosswordClue) => {
+    if (gameCompleted || !canPlay) return;
+
+    if (!gameStarted) setGameStarted(true);
+
+    setSelectedClue(clue);
+
+    // Select first cell of the clue
+    const newGrid = [...grid];
+    newGrid.forEach(r => r.forEach(c => { c.isSelected = false; }));
+    newGrid[clue.row][clue.col].isSelected = true;
+    setGrid(newGrid);
+    setSelectedCell({ row: clue.row, col: clue.col });
+
+    // Focus input
+    inputRef.current?.focus();
+  };
+
+  const handleInput = (letter: string) => {
+    if (!selectedCell || gameCompleted || !canPlay || !selectedClue) return;
 
     const newGrid = [...grid];
-    const upperLetter = letter.toUpperCase();
-    newGrid[row][col] = { ...newGrid[row][col], letter: upperLetter };
+    const cell = newGrid[selectedCell.row][selectedCell.col];
+
+    // Only allow letters
+    if (!/^[A-Z]$/i.test(letter)) return;
+
+    cell.value = letter.toUpperCase();
+
+    // Move to next cell in clue direction
+    let nextCell = null;
+    if (selectedClue.direction === 'across') {
+      if (selectedCell.col < selectedClue.col + selectedClue.length - 1) {
+        nextCell = { row: selectedCell.row, col: selectedCell.col + 1 };
+      }
+    } else {
+      if (selectedCell.row < selectedClue.row + selectedClue.length - 1) {
+        nextCell = { row: selectedCell.row + 1, col: selectedCell.col };
+      }
+    }
+
+    if (nextCell && !newGrid[nextCell.row][nextCell.col].isBlack) {
+      newGrid.forEach(r => r.forEach(c => { c.isSelected = false; }));
+      newGrid[nextCell.row][nextCell.col].isSelected = true;
+      setSelectedCell(nextCell);
+    }
+
     setGrid(newGrid);
+    setInputValue("");
 
-    // Check if this letter is incorrect
-    if (upperLetter && upperLetter !== gameData.solution[row][col].letter) {
-      setMistakes(prev => prev + 1);
-    }
-
-    // Auto-move to next cell if letter was entered
-    if (letter) {
-      setTimeout(() => {
-        moveToNextCell(row, col);
-      }, 10);
-    }
-
-    // Check completion
-    checkCompletion(newGrid);
+    // Check if clue is complete
+    checkClueCompletion(selectedClue, newGrid);
   };
 
-  const moveToNextCell = (currentRow: number, currentCol: number) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (gameCompleted || !canPlay || !selectedCell) return;
+
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      const newGrid = [...grid];
+      const cell = newGrid[selectedCell.row][selectedCell.col];
+      cell.value = '';
+      setGrid(newGrid);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' ||
+      e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      moveSelection(e.key);
+    } else if (e.key.length === 1 && /^[A-Za-z]$/.test(e.key)) {
+      handleInput(e.key.toUpperCase());
+    }
+  };
+
+  const moveSelection = (direction: string) => {
     if (!selectedCell) return;
 
-    const [selRow, selCol] = selectedCell;
-    let nextRow = selRow;
-    let nextCol = selCol;
+    let newRow = selectedCell.row;
+    let newCol = selectedCell.col;
 
-    if (selectedDirection === 'across') {
-      nextCol++;
-      // Skip black cells
-      while (nextCol < gameData.size && grid[selRow][nextCol]?.isBlack) {
-        nextCol++;
-      }
-      if (nextCol >= gameData.size) {
-        return; // Stay at current position
-      }
-    } else {
-      nextRow++;
-      // Skip black cells
-      while (nextRow < gameData.size && grid[nextRow]?.[selCol]?.isBlack) {
-        nextRow++;
-      }
-      if (nextRow >= gameData.size) {
-        return; // Stay at current position
-      }
+    switch (direction) {
+      case 'ArrowLeft': newCol--; break;
+      case 'ArrowRight': newCol++; break;
+      case 'ArrowUp': newRow--; break;
+      case 'ArrowDown': newRow++; break;
     }
 
-    // Ensure within bounds and valid cell
-    if (nextRow < gameData.size && nextCol < gameData.size && 
-        grid[nextRow]?.[nextCol] && !grid[nextRow][nextCol].isBlack) {
-      setSelectedCell([nextRow, nextCol]);
-      setTimeout(() => {
-        const inputEl = inputRefs.current[nextRow]?.[nextCol];
-        if (inputEl) {
-          inputEl.focus();
-          inputEl.select();
-        }
-      }, 0);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent, row: number, col: number) => {
-    if (gameComplete) return;
-
-    switch (e.key) {
-      case 'ArrowUp':
-        e.preventDefault();
-        moveDirection(row, col, -1, 0);
-        setSelectedDirection('down');
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        moveDirection(row, col, 1, 0);
-        setSelectedDirection('down');
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        moveDirection(row, col, 0, -1);
-        setSelectedDirection('across');
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        moveDirection(row, col, 0, 1);
-        setSelectedDirection('across');
-        break;
-      case 'Backspace':
-      case 'Delete':
-        e.preventDefault();
-        const newGrid = [...grid];
-        newGrid[row][col] = { ...newGrid[row][col], letter: '' };
-        setGrid(newGrid);
-        // Move back one cell on backspace if current cell is empty
-        if (!grid[row][col].letter) {
-          if (selectedDirection === 'across' && col > 0) {
-            moveDirection(row, col, 0, -1);
-          } else if (selectedDirection === 'down' && row > 0) {
-            moveDirection(row, col, -1, 0);
-          }
-        }
-        break;
-      case 'Tab':
-        e.preventDefault();
-        if (e.shiftKey) {
-          setSelectedDirection(selectedDirection === 'across' ? 'down' : 'across');
-        } else {
-          moveToNextCell(row, col);
-        }
-        break;
-      case ' ':
-        e.preventDefault();
-        setSelectedDirection(selectedDirection === 'across' ? 'down' : 'across');
-        break;
-    }
-  };
-
-  const moveDirection = (row: number, col: number, rowDelta: number, colDelta: number) => {
-    let newRow = row + rowDelta;
-    let newCol = col + colDelta;
-
-    // Find next valid cell
+    // Find nearest non-black cell in that direction
     while (
-      newRow >= 0 && newRow < gameData.size &&
-      newCol >= 0 && newCol < gameData.size &&
-      grid[newRow]?.[newCol]?.isBlack
+      newRow >= 0 && newRow < grid.length &&
+      newCol >= 0 && newCol < grid[0].length &&
+      grid[newRow][newCol].isBlack
     ) {
-      newRow += rowDelta;
-      newCol += colDelta;
+      switch (direction) {
+        case 'ArrowLeft': newCol--; break;
+        case 'ArrowRight': newCol++; break;
+        case 'ArrowUp': newRow--; break;
+        case 'ArrowDown': newRow++; break;
+      }
     }
 
-    if (
-      newRow >= 0 && newRow < gameData.size &&
-      newCol >= 0 && newCol < gameData.size &&
-      grid[newRow]?.[newCol]
-    ) {
-      setSelectedCell([newRow, newCol]);
-      setTimeout(() => {
-        const inputEl = inputRefs.current[newRow]?.[newCol];
-        if (inputEl) {
-          inputEl.focus();
-          inputEl.select();
-        }
-      }, 0);
+    if (newRow >= 0 && newRow < grid.length &&
+      newCol >= 0 && newCol < grid[0].length &&
+      !grid[newRow][newCol].isBlack) {
+      handleCellClick(newRow, newCol);
     }
   };
 
-  const checkCompletion = (currentGrid: Cell[][]) => {
-    const isComplete = currentGrid.every((row, rowIndex) =>
-      row.every((cell, colIndex) => {
-        if (cell.isBlack) return true;
-        return cell.letter && cell.letter === gameData.solution[rowIndex][colIndex].letter;
-      })
+  const checkClueCompletion = (clue: CrosswordClue, currentGrid: CrosswordCell[][]) => {
+    let isComplete = true;
+    let isCorrect = true;
+
+    for (let i = 0; i < clue.answer.length; i++) {
+      const row = clue.direction === 'across' ? clue.row : clue.row + i;
+      const col = clue.direction === 'across' ? clue.col + i : clue.col;
+
+      const cell = currentGrid[row][col];
+      const expectedLetter = clue.answer[i];
+
+      if (!cell.value) {
+        isComplete = false;
+        break;
+      }
+
+      if (cell.value !== expectedLetter) {
+        isCorrect = false;
+      }
+    }
+
+    if (isComplete) {
+      const newClues = [...clues];
+      const clueIndex = newClues.findIndex(c =>
+        c.number === clue.number && c.direction === clue.direction
+      );
+
+      if (clueIndex !== -1) {
+        newClues[clueIndex].solved = isCorrect;
+        setClues(newClues);
+
+        if (isCorrect) {
+          setFeedback(`✅ Correct! "${clue.answer}" is right!`);
+          setTimeout(() => setFeedback(""), 2000);
+
+          // Check if all clues are solved
+          const allSolved = newClues.every(c => c.solved);
+          if (allSolved) {
+            finishGame(true);
+          }
+        } else {
+          setFeedback("❌ Some letters are incorrect. Keep trying!");
+          setTimeout(() => setFeedback(""), 2000);
+        }
+      }
+    }
+  };
+
+  const useHint = () => {
+    if (hintsUsed >= HINT_COUNT || gameCompleted || !canPlay || !selectedClue) return;
+
+    const newGrid = [...grid];
+    const newClues = [...clues];
+    const clueIndex = newClues.findIndex(c =>
+      c.number === selectedClue.number && c.direction === selectedClue.direction
     );
 
-    if (isComplete && !gameComplete) {
-      handleComplete(currentGrid);
+    if (clueIndex !== -1 && !newClues[clueIndex].solved) {
+      // Reveal one random letter from the clue
+      const unrevealedPositions = [];
+      for (let i = 0; i < selectedClue.answer.length; i++) {
+        const row = selectedClue.direction === 'across' ? selectedClue.row : selectedClue.row + i;
+        const col = selectedClue.direction === 'across' ? selectedClue.col + i : selectedClue.col;
+
+        if (!newGrid[row][col].value) {
+          unrevealedPositions.push({ row, col, letter: selectedClue.answer[i] });
+        }
+      }
+
+      if (unrevealedPositions.length > 0) {
+        const randomPos = unrevealedPositions[Math.floor(Math.random() * unrevealedPositions.length)];
+        newGrid[randomPos.row][randomPos.col].value = randomPos.letter;
+        newGrid[randomPos.row][randomPos.col].isCorrect = true;
+
+        setGrid(newGrid);
+        setHintsUsed(prev => prev + 1);
+        setFeedback(`💡 Revealed letter "${randomPos.letter}"!`);
+        setTimeout(() => setFeedback(""), 2000);
+
+        // Check if clue is now complete
+        checkClueCompletion(selectedClue, newGrid);
+      }
     }
   };
 
-  const handleComplete = async (completedGrid: Cell[][]) => {
-    if (gameComplete) return; // Prevent double submission
-    
-    setGameComplete(true);
-    
+  const solvePuzzle = () => {
+    if (gameCompleted || !canPlay) return;
+    finishGame(false);
+  };
+
+  /* ---------------- FINISH GAME ---------------- */
+  const calculateCoins = (isWin: boolean): number => {
+    if (!isWin) return 15;
+
+    // Base coins + time bonus + hint penalty + solved clues bonus
+    const solvedClues = clues.filter(c => c.solved).length;
+    const totalClues = clues.length;
+    const cluesBonus = Math.floor((solvedClues / totalClues) * 30);
+    const timeBonus = Math.max(0, Math.floor((600 - time) / 20)); // 10 minutes max
+    const hintPenalty = hintsUsed * 15;
+
+    return Math.max(10, BASE_COINS + cluesBonus + timeBonus - hintPenalty);
+  };
+
+  const finishGame = async (isWin: boolean) => {
+    setGameCompleted(true);
+    const coins = calculateCoins(isWin);
+    setEarnedCoins(coins);
+
+    if (!user) {
+      console.error("❌ No user found when finishing game");
+      return;
+    }
+
     try {
-      const firebaseUser = auth.currentUser;
-      if (!firebaseUser) {
-        console.error('User not authenticated');
+      const token = await getIdToken();
+      if (!token) {
+        setGameMessage("❌ Failed to save your progress. Please check your connection.");
         return;
       }
-      
-      const token = await firebaseUser.getIdToken();
-      const response = await fetch('/api/games/complete', {
-        method: 'POST',
+
+      const solvedClues = clues.filter(c => c.solved).length;
+      const totalClues = clues.length;
+      const score = isWin ? 1000 : Math.floor((solvedClues / totalClues) * 750);
+
+      const markPlayedResponse = await fetch("/api/user/markGamePlayed", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          gameId: gameData.gameId,
-          gameType: 'crossword',
-          solution: completedGrid,
-          timeSpent: time,
-          metadata: {
-            mistakes,
-            revealedCells,
-            gridSize: gameData.size
-          }
+          userId: user._id,
+          gameId: CROSSWORD_GAME_ID,
+          gameName: CROSSWORD_GAME_NAME,
+          score: score,
+          pointsEarned: coins
         })
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to complete game');
-      }
-      
-      const result = await response.json();
-      onComplete(result);
-    } catch (error) {
-      console.error('Error completing game:', error);
-      setGameComplete(false);
-    }
-  };
 
-  const handleCheckSolution = () => {
-    const solutionGrid = gameData.solution;
-    const newGrid = [...grid];
-    let errorCount = 0;
+      const responseData = await markPlayedResponse.json();
 
-    solutionGrid.forEach((row, rowIndex) => {
-      row.forEach((solutionCell, colIndex) => {
-        const userCell = newGrid[rowIndex][colIndex];
-        if (!solutionCell.isBlack && userCell.letter) {
-          if (userCell.letter !== solutionCell.letter) {
-            errorCount++;
-          }
+      if (!markPlayedResponse.ok) {
+        if (responseData.error?.includes("Game already played") ||
+          responseData.error?.includes("once per day")) {
+          setGameMessage("🚫 You have already played this game today! Come back tomorrow.");
+          setCanPlay(false);
+          const tempUser = {
+            ...user,
+            gamesPlayed: [
+              ...(user.gamesPlayed || []),
+              {
+                gameId: CROSSWORD_GAME_ID,
+                gameName: CROSSWORD_GAME_NAME,
+                playedAt: new Date(),
+                score: score,
+                pointsEarned: coins,
+                completed: true
+              }
+            ]
+          };
+          setNextPlayTime(getNextPlayTime(tempUser, CROSSWORD_GAME_ID));
+          return;
         }
-      });
-    });
-
-    if (errorCount === 0) {
-      const allFilled = newGrid.every((row, rowIndex) =>
-        row.every((cell, colIndex) => {
-          if (gameData.solution[rowIndex][colIndex].isBlack) return true;
-          return cell.letter !== '';
-        })
-      );
-      
-      if (allFilled) {
-        handleComplete(newGrid);
-      } else {
-        alert('All cells are correct so far! Keep filling in the remaining cells.');
+        setGameMessage("❌ Failed to save your game progress. Please try again.");
+        return;
       }
-    } else {
-      alert(`You have ${errorCount} incorrect letter${errorCount !== 1 ? 's' : ''}. Keep trying!`);
+
+      if (responseData.success) {
+        // Update local state immediately
+        const newGameRecord = {
+          gameId: CROSSWORD_GAME_ID,
+          gameName: CROSSWORD_GAME_NAME,
+          playedAt: new Date(),
+          score: score,
+          pointsEarned: coins,
+          completed: true
+        };
+
+        const updatedUser = user ? {
+          ...user,
+          userPoints: responseData.totalPoints || user.userPoints,
+          gamesPlayed: [...(user.gamesPlayed || []), newGameRecord]
+        } : null;
+
+        if (updatedUser) {
+          setUser(updatedUser);
+          setNextPlayTime(getNextPlayTime(updatedUser, CROSSWORD_GAME_ID));
+        }
+
+        setCanPlay(false);
+        setGameMessage(isWin
+          ? `🎉 Congratulations! You solved all clues! Earned ${coins} coins.`
+          : `You solved ${solvedClues}/${totalClues} clues. Earned ${coins} coins. Try again tomorrow!`
+        );
+      }
+
+    } catch (error) {
+      console.error("❌ Exception during game completion:", error);
+      setGameMessage("❌ An error occurred while saving your progress. Please try again.");
     }
   };
 
-  const handleRevealCell = () => {
-    if (!selectedCell || gameComplete) return;
-    
-    const [row, col] = selectedCell;
-    const solutionLetter = gameData.solution[row][col].letter;
-    
-    const newGrid = [...grid];
-    newGrid[row][col] = { ...newGrid[row][col], letter: solutionLetter };
-    setGrid(newGrid);
-    setRevealedCells(prev => prev + 1);
-    
-    // Check if complete after reveal
-    checkCompletion(newGrid);
-    
-    // Move to next cell
-    moveToNextCell(row, col);
+  /* ---------------- FORMAT TIME ---------------- */
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getCellClass = (row: number, col: number) => {
-    const cell = grid[row][col];
-    const isSelected = selectedCell && selectedCell[0] === row && selectedCell[1] === col;
-    
-    let isInWord = false;
-    if (selectedCell && !cell.isBlack) {
-      const selectedClueNum = selectedDirection === 'across' 
-        ? grid[selectedCell[0]][selectedCell[1]].across 
-        : grid[selectedCell[0]][selectedCell[1]].down;
-      const currentClueNum = selectedDirection === 'across' ? cell.across : cell.down;
-      isInWord = selectedClueNum === currentClueNum && selectedClueNum !== undefined;
-    }
+  /* ---------------- UI RENDER ---------------- */
+  if (authLoading) {
+    return (
+      <div className="crossword-loading-screen">
+        <div className="crossword-loading-message">Checking authentication...</div>
+      </div>
+    );
+  }
 
-    const baseClasses = [
-      'w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12',
-      'flex items-center justify-center',
-      'border border-gray-300',
-      'text-sm sm:text-base md:text-lg font-bold',
-      'relative',
-      'transition-colors duration-150'
-    ];
+  if (loading) {
+    return (
+      <div className="crossword-loading-screen">
+        <div className="crossword-loading-message">Loading game...</div>
+      </div>
+    );
+  }
 
-    if (cell.isBlack) {
-      baseClasses.push('bg-gray-900');
-    } else if (isSelected) {
-      baseClasses.push('bg-blue-300 ring-2 ring-blue-600 z-10');
-    } else if (isInWord) {
-      baseClasses.push('bg-blue-100');
-    } else {
-      baseClasses.push('bg-white hover:bg-gray-50 cursor-pointer');
-    }
+  if (!user) {
+    return (
+      <div className="crossword-loading-screen">
+        <div className="crossword-loading-message">Redirecting to login...</div>
+      </div>
+    );
+  }
 
-    return baseClasses.join(' ');
-  };
+  // Show "Already Played" screen
+  if (!canPlay && !gameStarted) {
+    return (
+      <div className="crossword-game-container">
+        <div className="crossword-game-wrapper">
+          <header className="crossword-game-header">
+            <div className="crossword-header-card">
+              <div className="crossword-header-content">
+                <div>
+                  <h1 className="crossword-game-title">
+                    <Grid className="crossword-title-icon" />
+                    Game Crossword
+                  </h1>
+                  <p className="crossword-welcome-message">
+                    Welcome, <span className="crossword-username">{user.name}</span>!
+                  </p>
+                </div>
+                <div className="crossword-user-coins">
+                  <div className="crossword-coins-display">
+                    <Coins className="crossword-coins-icon" />
+                    <span className="crossword-coins-value">{user.userPoints}</span>
+                  </div>
+                  <div className="crossword-coins-label">Total Coins</div>
+                </div>
+              </div>
+            </div>
+          </header>
 
-  // Group clues by direction
-  const acrossClues = gameData.clues.filter(clue => clue.direction === 'across');
-  const downClues = gameData.clues.filter(clue => clue.direction === 'down');
+          <div className="crossword-already-played">
+            <div className="crossword-locked-card">
+              <Lock className="crossword-lock-icon" />
+              <h2 className="crossword-locked-title">Game Already Played Today</h2>
+              <p className="crossword-locked-message">
+                {gameMessage || "🚫 You have already played Crossword today!"}
+              </p>
+              <div className="crossword-next-play">
+                <div className="crossword-next-play-label">Next available in:</div>
+                <div className="crossword-next-play-time">{nextPlayTime || "Calculating..."}</div>
+              </div>
+              <p className="crossword-locked-hint">
+                Come back tomorrow for a new crossword puzzle!
+              </p>
+              <button
+                onClick={() => router.push("/zone")}
+                className="crossword-button crossword-button-primary"
+              >
+                <Gamepad2 className="crossword-button-icon" />
+                Return to Game Zone
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (grid.length === 0) {
+    return (
+      <div className="crossword-loading-screen">
+        <div className="crossword-loading-message">Generating crossword...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Crossword Puzzle</h2>
-          <div className="flex gap-3 items-center flex-wrap">
-            <div className="text-base md:text-lg font-semibold bg-blue-50 px-4 py-2 rounded-lg">
-              ⏱️ {Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}
-            </div>
-            {mistakes > 0 && (
-              <div className="text-base md:text-lg font-semibold bg-red-50 px-4 py-2 rounded-lg">
-                ❌ {mistakes} mistakes
-              </div>
-            )}
-            {revealedCells > 0 && (
-              <div className="text-base md:text-lg font-semibold bg-yellow-50 px-4 py-2 rounded-lg">
-                💡 {revealedCells} revealed
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 sm:p-6 rounded-xl mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <p className="text-base sm:text-lg font-medium text-purple-800">
-                Fill in all the white squares to complete the crossword!
-              </p>
-              <p className="text-purple-600 mt-1 text-sm">
-                Use <kbd className="px-2 py-0.5 bg-white rounded font-mono text-xs">Tab</kbd> or <kbd className="px-2 py-0.5 bg-white rounded font-mono text-xs">Space</kbd> to switch direction
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="text-sm bg-white px-4 py-2 rounded-lg shadow">
-                <span className="font-semibold text-purple-700">
-                  Grid: {gameData.size} × {gameData.size}
-                </span>
-              </div>
-              {gameData.maxCoins && (
-                <div className="text-sm bg-amber-50 px-4 py-2 rounded-lg shadow border border-amber-200">
-                  <span className="font-semibold text-amber-700">
-                    🪙 Up to {gameData.maxCoins} coins
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6 xl:gap-8">
-        {/* Crossword Grid */}
-        <div className="flex-1 lg:max-w-3xl">
-          <div className="bg-white p-3 sm:p-4 rounded-xl shadow-lg mb-6">
-            <div className="grid gap-0 w-fit mx-auto border-2 border-gray-700 rounded" 
-                 style={{ gridTemplateColumns: `repeat(${gameData.size}, minmax(0, 1fr))` }}>
-              {grid.map((row, rowIndex) => (
-                row.map((cell, colIndex) => (
-                  <div
-                    key={`${rowIndex}-${colIndex}`}
-                    className={getCellClass(rowIndex, colIndex)}
-                    onClick={() => handleCellClick(rowIndex, colIndex)}
-                  >
-                    {!cell.isBlack && (
-                      <>
-                        {cell.number && (
-                          <div className="absolute top-0 left-0.5 text-[8px] sm:text-[9px] md:text-[10px] font-normal text-gray-600 leading-none">
-                            {cell.number}
-                          </div>
-                        )}
-                        <input
-                          ref={el => {
-                            if (inputRefs.current[rowIndex]) {
-                              inputRefs.current[rowIndex][colIndex] = el;
-                            }
-                          }}
-                          type="text"
-                          value={cell.letter || ''}
-                          onChange={(e) => handleLetterInput(rowIndex, colIndex, e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
-                          disabled={gameComplete}
-                          className="w-full h-full bg-transparent border-0 text-center text-sm sm:text-base md:text-lg font-bold uppercase focus:outline-none focus:ring-0 p-0"
-                          maxLength={1}
-                          aria-label={`Cell ${rowIndex + 1},${colIndex + 1}`}
-                        />
-                      </>
-                    )}
-                  </div>
-                ))
-              ))}
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            <button
-              onClick={() => setSelectedDirection('across')}
-              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-colors ${
-                selectedDirection === 'across'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Across →
-            </button>
-            <button
-              onClick={() => setSelectedDirection('down')}
-              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition-colors ${
-                selectedDirection === 'down'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Down ↓
-            </button>
-            <button
-              onClick={handleRevealCell}
-              disabled={!selectedCell || gameComplete}
-              className="px-3 sm:px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base transition-colors"
-            >
-              💡 Reveal
-            </button>
-            <button
-              onClick={handleCheckSolution}
-              disabled={gameComplete}
-              className="px-3 sm:px-4 py-2 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base transition-colors"
-            >
-              ✓ Check
-            </button>
-          </div>
-        </div>
-
-        {/* Clues Panel */}
-        <div className="w-full lg:w-96 xl:w-[420px]">
-          <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:sticky lg:top-6">
-            {currentClue && (
-              <div className="mb-6 pb-6 border-b border-gray-200">
-                <div className="flex items-center mb-3">
-                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-semibold mr-3">
-                    {currentClue.number} {currentClue.direction === 'across' ? 'Across' : 'Down'}
-                  </span>
-                  <span className="text-xs sm:text-sm text-gray-600">
-                    Selected clue
-                  </span>
-                </div>
-                <p className="text-sm sm:text-base text-gray-800 italic border-l-4 border-blue-500 pl-3 sm:pl-4 py-2">
-                  "{currentClue.clue}"
+    <div className="crossword-game-container">
+      <div className="crossword-game-wrapper">
+        {/* Header */}
+        <header className="crossword-game-header">
+          <div className="crossword-header-card">
+            <div className="crossword-header-content">
+              <div>
+                <h1 className="crossword-game-title">
+                  <Grid className="crossword-title-icon" />
+                  Game Crossword
+                </h1>
+                <p className="crossword-welcome-message">
+                  Welcome, <span className="crossword-username">{user.name}</span>! Solve the crossword puzzle.
                 </p>
               </div>
-            )}
-
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-3 pb-2 border-b">
-                  Across
-                </h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                  {acrossClues.map((clue) => (
-                    <button
-                      key={`across-${clue.number}`}
-                      className={`w-full text-left p-2 rounded transition-colors ${
-                        currentClue?.number === clue.number && 
-                        currentClue.direction === 'across' 
-                          ? 'bg-blue-50 border-l-4 border-blue-500' 
-                          : 'hover:bg-gray-50'
-                      }`}
-                      onClick={() => {
-                        for (let r = 0; r < gameData.size; r++) {
-                          for (let c = 0; c < gameData.size; c++) {
-                            const cell = grid[r][c];
-                            if (cell.number === clue.number && cell.across) {
-                              setSelectedCell([r, c]);
-                              setSelectedDirection('across');
-                              return;
-                            }
-                          }
-                        }
-                      }}
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs sm:text-sm font-semibold text-blue-600 w-5 sm:w-6 flex-shrink-0">
-                          {clue.number}.
-                        </span>
-                        <span className="text-xs sm:text-sm text-gray-700 flex-1">{clue.clue}</span>
-                      </div>
-                    </button>
-                  ))}
+              <div className="crossword-user-coins">
+                <div className="crossword-coins-display">
+                  <Coins className="crossword-coins-icon" />
+                  <span className="crossword-coins-value">{user.userPoints}</span>
                 </div>
+                <div className="crossword-coins-label">Total Coins</div>
               </div>
+            </div>
+          </div>
+        </header>
 
-              <div>
-                <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-3 pb-2 border-b">
-                  Down
-                </h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                  {downClues.map((clue) => (
-                    <button
-                      key={`down-${clue.number}`}
-                      className={`w-full text-left p-2 rounded transition-colors ${
-                        currentClue?.number === clue.number && 
-                        currentClue.direction === 'down' 
-                          ? 'bg-blue-50 border-l-4 border-blue-500' 
-                          : 'hover:bg-gray-50'
-                      }`}
-                      onClick={() => {
-                        for (let r = 0; r < gameData.size; r++) {
-                          for (let c = 0; c < gameData.size; c++) {
-                            const cell = grid[r][c];
-                            if (cell.number === clue.number && cell.down) {
-                              setSelectedCell([r, c]);
-                              setSelectedDirection('down');
-                              return;
-                            }
-                          }
-                        }
-                      }}
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs sm:text-sm font-semibold text-blue-600 w-5 sm:w-6 flex-shrink-0">
-                          {clue.number}.
-                        </span>
-                        <span className="text-xs sm:text-sm text-gray-700 flex-1">{clue.clue}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+        {/* Game Stats */}
+        <div className="crossword-stats-container">
+          <div className="crossword-stats-grid">
+            <div className="crossword-stat-card crossword-stat-time">
+              <div className="crossword-stat-header">
+                <Timer className="crossword-stat-icon" />
+                <span className="crossword-stat-label">Time</span>
+              </div>
+              <div className="crossword-stat-value">{formatTime(time)}</div>
+            </div>
+
+            <div className="crossword-stat-card crossword-stat-clues">
+              <div className="crossword-stat-header">
+                <BookOpen className="crossword-stat-icon" />
+                <span className="crossword-stat-label">Clues Solved</span>
+              </div>
+              <div className="crossword-stat-value">
+                {clues.filter(c => c.solved).length}/{clues.length}
+              </div>
+            </div>
+
+            <div className="crossword-stat-card crossword-stat-hints">
+              <div className="crossword-stat-header">
+                <HelpCircle className="crossword-stat-icon" />
+                <span className="crossword-stat-label">Hints</span>
+              </div>
+              <div className="crossword-stat-value">{HINT_COUNT - hintsUsed}</div>
+            </div>
+
+            <div className="crossword-stat-card crossword-stat-difficulty">
+              <div className="crossword-stat-header">
+                <Trophy className="crossword-stat-icon" />
+                <span className="crossword-stat-label">Difficulty</span>
+              </div>
+              <div className="crossword-stat-value">Medium</div>
+            </div>
+          </div>
+
+          {/* Feedback Message */}
+          {feedback && (
+            <div className={`crossword-feedback-message ${feedback.includes("✅") ? "success" :
+              feedback.includes("❌") ? "error" :
+                "hint"
+              }`}>
+              {feedback}
+            </div>
+          )}
+
+          {/* Game Message */}
+          {gameMessage && (
+            <div className="crossword-game-message">
+              <div className={`crossword-message-card ${gameMessage.includes("🎉") ? 'success' : gameMessage.includes("🚫") ? 'error' : 'info'}`}>
+                {gameMessage}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Game Controls */}
+        <div className="crossword-controls-container">
+          <div className="crossword-controls-group">
+            <button
+              onClick={initializeGame}
+              className="crossword-button crossword-button-restart"
+            >
+              <RefreshCw className="crossword-button-icon" />
+              New Puzzle
+            </button>
+
+            <button
+              onClick={useHint}
+              disabled={hintsUsed >= HINT_COUNT || gameCompleted || !selectedClue}
+              className="crossword-button crossword-button-hint"
+            >
+              <HelpCircle className="crossword-button-icon" />
+              Use Hint ({HINT_COUNT - hintsUsed} left)
+            </button>
+
+            <button
+              onClick={solvePuzzle}
+              disabled={gameCompleted}
+              className="crossword-button crossword-button-secondary"
+            >
+              <Lightbulb className="crossword-button-icon" />
+              Solve Puzzle
+            </button>
+
+            <div className="crossword-input-container">
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value.toUpperCase())}
+                onKeyDown={handleKeyDown}
+                disabled={gameCompleted || !selectedCell}
+                className="crossword-input"
+                placeholder="Type letter or use arrow keys..."
+                maxLength={1}
+              />
+              <div className="crossword-input-hint">
+                Click a cell and type letters
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {gameComplete && (
-        <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-100 rounded-xl shadow-lg border-2 border-green-200">
-          <div className="flex items-center justify-center">
-            <div className="text-4xl mr-4">🎉</div>
-            <div>
-              <h3 className="text-xl font-bold text-green-800 mb-1">Crossword Completed!</h3>
-              <p className="text-green-700">
-                Time: {Math.floor(time / 60)}:{(time % 60).toString().padStart(2, '0')}, 
-                Mistakes: {mistakes}, Revealed: {revealedCells}.
-                Coins have been added to your wallet!
+        {/* Main Game Area */}
+        <div className="crossword-game-area">
+          {/* Crossword Grid */}
+          <div className="crossword-board-section">
+            <div className="crossword-board-card">
+              <h3 className="crossword-board-title">Crossword Grid</h3>
+              <div className="crossword-board">
+                {grid.map((row, rowIndex) => (
+                  <div key={rowIndex} className="crossword-row">
+                    {row.map((cell, colIndex) => (
+                      <button
+                        key={`${rowIndex}-${colIndex}`}
+                        onClick={() => handleCellClick(rowIndex, colIndex)}
+                        disabled={cell.isBlack}
+                        className={`crossword-cell ${cell.isBlack ? 'crossword-cell-black' : ''
+                          } ${cell.isSelected ? 'crossword-cell-selected' : ''
+                          } ${cell.isCorrect === true ? 'crossword-cell-correct' : ''
+                          } ${cell.isCorrect === false ? 'crossword-cell-wrong' : ''
+                          }`}
+                      >
+                        {cell.number && (
+                          <div className="crossword-cell-number">{cell.number}</div>
+                        )}
+                        {cell.value && (
+                          <div className="crossword-cell-letter">{cell.value}</div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Clues Panel */}
+          <div className="crossword-clues-section">
+            <div className="crossword-clues-card">
+              {/* Selected Clue */}
+              {selectedClue && (
+                <div className="crossword-selected-clue">
+                  <h3 className="crossword-side-title">
+                    <Lightbulb className="crossword-side-icon" />
+                    Current Clue
+                  </h3>
+                  <div className="crossword-clue-details">
+                    <div className="crossword-clue-header">
+                      <span className="crossword-clue-number">{selectedClue.number}</span>
+                      <span className="crossword-clue-direction">
+                        {selectedClue.direction.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="crossword-clue-text">{selectedClue.clue}</p>
+                    <div className="crossword-clue-answer">
+                      <span className="crossword-clue-answer-label">Answer: </span>
+                      <span className="crossword-clue-answer-value">
+                        {selectedClue.solved
+                          ? selectedClue.answer
+                          : "?".repeat(selectedClue.answer.length)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* All Clues */}
+              <div className="crossword-all-clues">
+                <div className="crossword-clues-column">
+                  <h3 className="crossword-side-title">
+                    <BookOpen className="crossword-side-icon" />
+                    Across
+                  </h3>
+                  <div className="crossword-clues-list">
+                    {clues
+                      .filter(clue => clue.direction === 'across')
+                      .sort((a, b) => a.number - b.number)
+                      .map(clue => (
+                        <button
+                          key={`${clue.number}-across`}
+                          onClick={() => handleClueClick(clue)}
+                          className={`crossword-clue-item ${clue.solved ? 'crossword-clue-solved' : ''
+                            } ${selectedClue?.number === clue.number &&
+                              selectedClue?.direction === clue.direction
+                              ? 'crossword-clue-selected' : ''
+                            }`}
+                        >
+                          <span className="crossword-clue-item-number">{clue.number}.</span>
+                          <span className="crossword-clue-item-text">{clue.clue}</span>
+                          {clue.solved && <Check className="crossword-clue-check" size={14} />}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+
+                <div className="crossword-clues-column">
+                  <h3 className="crossword-side-title">
+                    <BookOpen className="crossword-side-icon" />
+                    Down
+                  </h3>
+                  <div className="crossword-clues-list">
+                    {clues
+                      .filter(clue => clue.direction === 'down')
+                      .sort((a, b) => a.number - b.number)
+                      .map(clue => (
+                        <button
+                          key={`${clue.number}-down`}
+                          onClick={() => handleClueClick(clue)}
+                          className={`crossword-clue-item ${clue.solved ? 'crossword-clue-solved' : ''
+                            } ${selectedClue?.number === clue.number &&
+                              selectedClue?.direction === clue.direction
+                              ? 'crossword-clue-selected' : ''
+                            }`}
+                        >
+                          <span className="crossword-clue-item-number">{clue.number}.</span>
+                          <span className="crossword-clue-item-text">{clue.clue}</span>
+                          {clue.solved && <Check className="crossword-clue-check" size={14} />}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div className="crossword-instructions">
+                <h3 className="crossword-side-title">How to Play</h3>
+                <ul className="crossword-instructions-list">
+                  <li>Click a clue or grid cell to select it</li>
+                  <li>Type letters to fill the grid</li>
+                  <li>Use arrow keys to move between cells</li>
+                  <li>Press Backspace to clear a cell</li>
+                  <li>Complete all clues to win!</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Game Completed Overlay */}
+        {gameCompleted && (
+          <div className="crossword-completion-overlay">
+            <div className="crossword-completion-card">
+              <div className="crossword-completion-emoji">
+                {clues.every(c => c.solved) ? "🎉" : "📝"}
+              </div>
+              <h3 className="crossword-completion-title">
+                {clues.every(c => c.solved) ? "Puzzle Complete!" : "Game Finished!"}
+              </h3>
+              <p className="crossword-completion-text">
+                Solved {clues.filter(c => c.solved).length}/{clues.length} clues in {formatTime(time)}
               </p>
+              <div className="crossword-coins-earned">
+                +{earnedCoins} coins earned!
+              </div>
+              <div className="crossword-total-coins">
+                Total coins: <span className="crossword-total-coins-value">{user.userPoints}</span>
+              </div>
+
+              {gameMessage && (
+                <div className="crossword-game-status">
+                  <p>{gameMessage}</p>
+                </div>
+              )}
+
+              <div className="crossword-next-play-info">
+                <p>Come back tomorrow for a new crossword!</p>
+                <p className="crossword-next-play-hint">Next play available: {nextPlayTime || "Calculating..."}</p>
+              </div>
+              <button
+                onClick={() => router.push("/zone")}
+                className="crossword-button crossword-button-primary"
+              >
+                <Gamepad2 className="crossword-button-icon" />
+                Return to Game Zone
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

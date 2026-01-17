@@ -2,59 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 15, 15, 15;
-  --background-end-rgb: 26, 26, 46;
+@layer base {
+  :root {
+    /* Core Theme Colors */
+    --background: #050505;
+    --foreground: #ffffff;
+
+    /* Standardized Orange Palette */
+    --primary-orange: #f97316;
+    /* Main Brand Color */
+    --primary-orange-hover: #ea580c;
+    /* Darker for hovers */
+    --primary-orange-light: #fb923c;
+    /* Lighter accents */
+    --primary-glow: rgba(249, 115, 22, 0.5);
+
+    /* Standardized Black/Dark Palette */
+    --bg-black: #050505;
+    --bg-card: #121212;
+    /* Slightly lighter than black */
+    --bg-surface: #1E1E1E;
+    /* For elevated elements */
+    --border-color: #333333;
+  }
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-  min-height: 100vh;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-}
+@layer utilities {
+  .text-shadow-glow {
+    text-shadow: 0 0 20px rgba(255, 85, 0, 0.5);
+  }
 
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
+  .box-shadow-magma {
+    box-shadow: 0 0 30px -5px rgba(255, 85, 0, 0.3);
+  }
 
-::-webkit-scrollbar-thumb {
-  background: #ff8c00;
-  border-radius: 5px;
-}
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #e67e00;
-}
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 
-/* Line clamp utilities */
-.line-clamp-1 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
-}
+  ::-webkit-scrollbar-thumb:hover {
+    background: #e67e00;
+  }
 
-.line-clamp-2 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
 
-.line-clamp-3 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
 }

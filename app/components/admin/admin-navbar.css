@@ -1,7 +1,7 @@
 /* app/components/admin/admin-navbar.css - UPDATED FOR VISIBLE DROPDOWN */
 .admin-navbar {
-  background: linear-gradient(135deg, #000000 0%, #111111 100%);
-  border-bottom: 1px solid rgba(255, 102, 0, 0.2);
+  background: linear-gradient(135deg, var(--bg-black) 0%, var(--bg-card) 100%);
+  border-bottom: 1px solid rgba(249, 115, 22, 0.2);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -14,7 +14,7 @@
   justify-content: space-between;
   padding: 0 2rem;
   height: 70px;
-  border-bottom: 1px solid rgba(255, 102, 0, 0.1);
+  border-bottom: 1px solid rgba(249, 115, 22, 0.1);
 }
 
 .navbar-left {
@@ -27,7 +27,7 @@
   display: none;
   background: transparent;
   border: none;
-  color: #ff6600;
+  color: var(--primary-orange);
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 6px;
@@ -35,7 +35,7 @@
 }
 
 .mobile-menu-btn:hover {
-  background: rgba(255, 102, 0, 0.1);
+  background: rgba(249, 115, 22, 0.1);
 }
 
 .navbar-brand {
@@ -45,8 +45,8 @@
 }
 
 .brand-icon {
-  color: #ff6600;
-  filter: drop-shadow(0 2px 4px rgba(255, 102, 0, 0.3));
+  color: var(--primary-orange);
+  filter: drop-shadow(0 2px 4px rgba(249, 115, 22, 0.3));
 }
 
 .brand-text {
@@ -60,7 +60,7 @@
   color: #ffffff;
   margin: 0;
   line-height: 1;
-  background: linear-gradient(135deg, #ff6600, #ff9900);
+  background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -90,7 +90,7 @@
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #ff6600;
+  color: var(--primary-orange);
   z-index: 1;
 }
 
@@ -98,7 +98,7 @@
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
   background: rgba(20, 20, 20, 0.8);
-  border: 2px solid rgba(255, 102, 0, 0.3);
+  border: 2px solid rgba(249, 115, 22, 0.3);
   border-radius: 10px;
   color: #ffffff;
   font-size: 0.95rem;
@@ -107,8 +107,8 @@
 
 .search-input:focus {
   outline: none;
-  border-color: rgba(255, 102, 0, 0.6);
-  box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
+  border-color: rgba(249, 115, 22, 0.6);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
 .search-input::placeholder {
@@ -124,8 +124,8 @@
 
 .notification-bell {
   position: relative;
-  background: rgba(255, 102, 0, 0.1);
-  border: 1px solid rgba(255, 102, 0, 0.2);
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.2);
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -134,11 +134,11 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: #ff6600;
+  color: var(--primary-orange);
 }
 
 .notification-bell:hover {
-  background: rgba(255, 102, 0, 0.2);
+  background: rgba(249, 115, 22, 0.2);
   transform: translateY(-1px);
 }
 
@@ -168,8 +168,8 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(255, 102, 0, 0.1);
-  border: 1px solid rgba(255, 102, 0, 0.2);
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.2);
   padding: 0.5rem 1rem;
   border-radius: 10px;
   cursor: pointer;
@@ -178,14 +178,14 @@
 }
 
 .user-profile-btn:hover {
-  background: rgba(255, 102, 0, 0.2);
-  border-color: rgba(255, 102, 0, 0.4);
+  background: rgba(249, 115, 22, 0.2);
+  border-color: rgba(249, 115, 22, 0.4);
 }
 
 .user-avatar {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #ff6600, #ff9900);
+  background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
   color: black;
   border-radius: 50%;
   display: flex;
@@ -193,7 +193,7 @@
   justify-content: center;
   font-weight: 700;
   font-size: 0.9rem;
-  border: 2px solid rgba(255, 102, 0, 0.3);
+  border: 2px solid rgba(249, 115, 22, 0.3);
 }
 
 .user-name {
@@ -230,6 +230,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -246,7 +247,7 @@
 .dropdown-avatar {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #ff6600, #ff9900);
+  background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
   color: black;
   border-radius: 50%;
   display: flex;
@@ -254,7 +255,7 @@
   justify-content: center;
   font-weight: 700;
   font-size: 1.25rem;
-  border: 2px solid rgba(255, 102, 0, 0.3);
+  border: 2px solid rgba(249, 115, 22, 0.3);
 }
 
 .dropdown-user-info {
@@ -597,6 +598,7 @@
     opacity: 0;
     transform: translateX(-5px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -610,7 +612,8 @@
   background: rgba(255, 102, 0, 0.05);
   border: 1px solid rgba(255, 102, 0, 0.1);
   border-radius: 10px;
-  display: none; /* Hidden by default, shown on larger screens */
+  display: none;
+  /* Hidden by default, shown on larger screens */
 }
 
 .stats-header {
@@ -848,6 +851,7 @@
     transform: translateY(-10px);
     max-height: 0;
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -913,6 +917,7 @@
 .dropdown-item:hover .dropdown-item-text {
   color: #ffcc99;
 }
+
 /* ===== FIX: allow dropdown to float above page ===== */
 .nav-menu {
   overflow-x: visible !important;

@@ -1,0 +1,620 @@
+/* ============================================
+   TIC TAC TOE GAME - PREMIUM DARK + ORANGE THEME
+   ============================================ */
+
+/* Loading Screens */
+.ttt-loading-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #050505 0%, #111111 45%, #050505 100%);
+  color: #f5f5f5;
+  position: relative;
+  overflow: hidden;
+}
+
+.ttt-loading-screen::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 40%, rgba(255, 102, 0, 0.14) 0%, transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(255, 170, 0, 0.1) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.ttt-loading-message {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+/* Main Container */
+.ttt-game-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #050505 0%, #111111 45%, #050505 100%);
+  padding: 1rem;
+  color: #f5f5f5;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.ttt-game-container::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 30%, rgba(255, 102, 0, 0.13) 0%, transparent 55%),
+    radial-gradient(circle at 80% 85%, rgba(255, 170, 0, 0.09) 0%, transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Header */
+.ttt-game-header {
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.ttt-header-content {
+  background: radial-gradient(circle at top left, rgba(255, 102, 0, 0.18), #050505);
+  backdrop-filter: blur(14px);
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border: 1px solid #262626;
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.95);
+}
+
+.ttt-game-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #fafafa;
+}
+
+.ttt-title-icon {
+  width: 32px;
+  height: 32px;
+  color: #ff7a1a;
+}
+
+.ttt-welcome-message {
+  font-size: 1rem;
+  opacity: 0.9;
+  color: #d4d4d4;
+}
+
+.ttt-username {
+  font-weight: 700;
+  color: #ffb84d;
+}
+
+/* Difficulty Selector */
+.ttt-difficulty-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ttt-difficulty-select {
+  background: #101010;
+  border: 1px solid #404040;
+  color: #f5f5f5;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.ttt-difficulty-select:hover:not(:disabled) {
+  border-color: #ff7a1a;
+  box-shadow: 0 0 0 1px rgba(255, 122, 26, 0.6);
+}
+
+.ttt-difficulty-select:focus {
+  outline: none;
+  border-color: #ffb84d;
+  box-shadow: 0 0 0 2px rgba(255, 184, 77, 0.45);
+}
+
+.ttt-difficulty-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Stats Container */
+.ttt-stats-container {
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.ttt-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.ttt-stat-card {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), #050505);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid #262626;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.9);
+}
+
+.ttt-stat-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 122, 26, 0.8);
+  box-shadow: 0 16px 40px rgba(255, 122, 26, 0.28);
+}
+
+.ttt-stat-icon {
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 0.5rem;
+  color: #ff7a1a;
+}
+
+.ttt-stat-label {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 0.25rem;
+  color: #b3b3b3;
+}
+
+.ttt-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f5f5f5;
+}
+
+/* Feedback Message */
+.ttt-feedback-message {
+  text-align: center;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  margin: 1rem auto;
+  max-width: 600px;
+  animation: fadeIn 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.ttt-feedback-message.success {
+  background: rgba(22, 163, 74, 0.18);
+  border-color: #22c55e;
+  color: #bbf7d0;
+}
+
+.ttt-feedback-message.error {
+  background: rgba(220, 38, 38, 0.18);
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+.ttt-feedback-message.draw {
+  background: rgba(234, 179, 8, 0.18);
+  border-color: #eab308;
+  color: #fef08a;
+}
+
+/* AI Thinking Indicator */
+.ttt-ai-thinking {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #101010;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  margin: 1rem auto;
+  max-width: 300px;
+  animation: pulse 1.5s infinite;
+  border: 1px solid #262626;
+}
+
+.ttt-ai-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #f5f5f5;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+/* Current Player */
+.ttt-current-player {
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.ttt-player-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+/* Keep X/O in blue/red for clarity, on dark base */
+.ttt-player-indicator.ttt-player-x {
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid #3b82f6;
+  color: #bfdbfe;
+}
+
+.ttt-player-indicator.ttt-player-o {
+  background: rgba(220, 38, 38, 0.18);
+  border: 1px solid #ef4444;
+  color: #fecaca;
+}
+
+.ttt-player-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Game Board */
+.ttt-board-container {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.ttt-board {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.02), #050505);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 1rem;
+  border: 1px solid #262626;
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.95);
+}
+
+.ttt-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ttt-row:last-child {
+  margin-bottom: 0;
+}
+
+.ttt-cell {
+  width: 100px;
+  height: 100px;
+  background: #0f0f0f;
+  border: 1px solid #404040;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.ttt-cell:hover:not(:disabled).ttt-cell-hover {
+  background: #171717;
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.8);
+}
+
+.ttt-cell:disabled {
+  cursor: not-allowed;
+}
+
+/* Keep X/O color semantics but on dark theme */
+.ttt-cell.ttt-cell-x {
+  background: rgba(37, 99, 235, 0.22);
+  border-color: #3b82f6;
+}
+
+.ttt-cell.ttt-cell-o {
+  background: rgba(220, 38, 38, 0.22);
+  border-color: #ef4444;
+}
+
+.ttt-x,
+.ttt-o {
+  width: 60px;
+  height: 60px;
+  stroke-width: 3;
+}
+
+.ttt-x {
+  color: #60a5fa;
+  animation: popIn 0.25s ease;
+}
+
+.ttt-o {
+  color: #fca5a5;
+  animation: popIn 0.25s ease;
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Controls */
+.ttt-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+/* Buttons */
+.ttt-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.6rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.9);
+}
+
+.ttt-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.ttt-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ttt-button-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Orange only for primary; others neutral */
+.ttt-button-restart {
+  background: #181818;
+  border: 1px solid #404040;
+  color: #e5e5e5;
+}
+
+.ttt-button-secondary {
+  background: #101010;
+  border: 1px solid #333333;
+  color: #e5e5e5;
+}
+
+.ttt-button-primary {
+  background: linear-gradient(135deg, #ff7a1a, #ffb84d);
+  color: #050505;
+}
+
+/* Game Overlay */
+.ttt-game-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.ttt-game-over-card {
+  background: radial-gradient(circle at top, rgba(255, 122, 26, 0.16), #050505);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+  border: 1px solid #262626;
+  animation: scaleIn 0.3s ease;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95);
+}
+
+.ttt-result-emoji {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.ttt-result-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #fafafa;
+}
+
+.ttt-result-stats {
+  background: #101010;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  border: 1px solid #262626;
+}
+
+.ttt-result-stats p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  color: #e5e5e5;
+}
+
+.ttt-result-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Instructions */
+.ttt-instructions {
+  background: #101010;
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  border: 1px solid #262626;
+}
+
+.ttt-instructions-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #fafafa;
+}
+
+.ttt-instructions-content {
+  line-height: 1.6;
+}
+
+.ttt-instructions-content p {
+  margin: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #e5e5e5;
+}
+
+/* Difficulty tags still use green/amber/red but toned */
+.ttt-diff-easy {
+  color: #bbf7d0;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  background: rgba(34, 197, 94, 0.18);
+  border-radius: 4px;
+  margin: 0 0.25rem;
+}
+
+.ttt-diff-medium {
+  color: #fed7aa;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  background: rgba(249, 115, 22, 0.2);
+  border-radius: 4px;
+  margin: 0 0.25rem;
+}
+
+.ttt-diff-hard {
+  color: #fecaca;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  background: rgba(220, 38, 38, 0.2);
+  border-radius: 4px;
+  margin: 0 0.25rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ttt-game-title {
+    font-size: 1.6rem;
+  }
+  
+  .ttt-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .ttt-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .ttt-cell {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .ttt-x, .ttt-o {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .ttt-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .ttt-button {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .ttt-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .ttt-cell {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .ttt-x, .ttt-o {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .ttt-game-over-card {
+    padding: 2rem 1rem;
+  }
+  
+  .ttt-result-actions {
+    flex-direction: column;
+  }
+}

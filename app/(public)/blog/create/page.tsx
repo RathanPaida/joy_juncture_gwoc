@@ -1,10 +1,11 @@
 // app/blog/create/page.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Eye } from "lucide-react";
+import { ArrowLeft, Save, Eye, Upload, X, Trash, Plus } from "lucide-react";
+import Image from "next/image";
 import "./blog-create.css";
 
 const CATEGORIES = [
@@ -15,7 +16,7 @@ const CATEGORIES = [
 ];
 
 export default function CreateBlogPage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -24,9 +25,75 @@ export default function CreateBlogPage() {
     content: "",
     category: CATEGORIES[0],
     tags: "",
-    coverImage: "",
   });
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  // New State for Additional Images
+  const [additionalFiles, setAdditionalFiles] = useState<File[]>([]);
+  const [additionalPreviews, setAdditionalPreviews] = useState<string[]>([]);
+
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size should be less than 5MB");
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        alert("Please select an image file");
+        return;
+      }
+
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleMultiImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      const validFiles = newFiles.filter(f => f.size <= 5 * 1024 * 1024);
+
+      if (validFiles.length < newFiles.length) {
+        alert("Some files were skipped because they exceed 5MB.");
+      }
+
+      setAdditionalFiles(prev => [...prev, ...validFiles]);
+
+      // Generate previews
+      validFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAdditionalPreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalFiles(prev => prev.filter((_, i) => i !== index));
+    setAdditionalPreviews(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,31 +112,49 @@ export default function CreateBlogPage() {
     setLoading(true);
 
     try {
-      const token = await user.getIdToken();
+      const token = await getToken();
+
+      if (!token) {
+        alert("Authentication token not available. Please login again.");
+        router.push("/login");
+        return;
+      }
 
       const tags = formData.tags
         .split(",")
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
+      // Create FormData for file upload
+      const submitData = new FormData();
+
+      submitData.append('blogData', JSON.stringify({
+        title: formData.title,
+        excerpt: formData.excerpt,
+        content: formData.content,
+        category: formData.category,
+        tags,
+        status: "draft",
+        featured: false,
+      }));
+
+      // Add image file if selected
+      if (imageFile) {
+        submitData.append('coverImage', imageFile);
+      }
+
+      if (additionalFiles.length > 0) {
+        additionalFiles.forEach((file) => {
+          submitData.append('images', file);
+        });
+      }
+
       const response = await fetch("/api/admin/blog", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title: formData.title,
-          excerpt: formData.excerpt,
-          content: formData.content,
-          category: formData.category,
-          tags,
-          coverImage:
-            formData.coverImage ||
-            "https://images.unsplash.com/photo-1511882150382-421056c89033?w=800",
-          status: "draft",
-          featured: false,
-        }),
+        body: submitData,
       });
 
       const data = await response.json();
@@ -114,6 +199,48 @@ export default function CreateBlogPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="blog-form">
+        {/* Cover Image Upload */}
+        <div className="form-section image-upload-section">
+          <label>Cover Image</label>
+          {imagePreview ? (
+            <div className="image-preview-wrapper">
+              <div className="image-preview-container">
+                <Image
+                  src={imagePreview}
+                  alt="Cover preview"
+                  fill
+                  className="preview-image"
+                  unoptimized
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-remove-image"
+                onClick={removeImage}
+              >
+                <X size={16} />
+                Remove Image
+              </button>
+            </div>
+          ) : (
+            <div
+              className="image-upload-area"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload size={40} className="upload-icon" />
+              <p className="upload-text">Click to upload cover image</p>
+              <p className="upload-hint">PNG, JPG, WebP (Max 5MB)</p>
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            style={{ display: "none" }}
+          />
+        </div>
+
         <div className="form-section">
           <label htmlFor="title">Title *</label>
           <input
@@ -191,25 +318,12 @@ export default function CreateBlogPage() {
           </div>
         </div>
 
-        <div className="form-section">
-          <label htmlFor="coverImage">Cover Image URL (optional)</label>
-          <input
-            id="coverImage"
-            type="url"
-            value={formData.coverImage}
-            onChange={(e) =>
-              setFormData({ ...formData, coverImage: e.target.value })
-            }
-            placeholder="https://example.com/image.jpg"
-          />
-          <small>Leave empty for default image</small>
-        </div>
-
         <div className="form-actions">
           <button
             type="button"
             className="btn-secondary"
             onClick={() => router.back()}
+            disabled={loading}
           >
             Cancel
           </button>

@@ -25,6 +25,7 @@ import {
   Pin,
 } from "lucide-react";
 import "./community.css";
+import CommunityScroll from "@/app/components/CommunityScroll";
 
 interface Reply {
   _id: string;
@@ -56,14 +57,7 @@ interface Discussion {
   updatedAt: string;
 }
 
-interface Event {
-  id: number;
-  title: string;
-  date: string;
-  time: string;
-  participants: number;
-  type: string;
-}
+
 
 export default function CommunityPage() {
   const { user: authUser, loading: authLoading } = useAuth();
@@ -87,33 +81,7 @@ export default function CommunityPage() {
     tags: "",
   });
 
-  // Sample events data
-  const events: Event[] = [
-    {
-      id: 1,
-      title: "Friday Night Virtual Game Tournament",
-      date: "Dec 15",
-      time: "8:00 PM EST",
-      participants: 42,
-      type: "Tournament",
-    },
-    {
-      id: 2,
-      title: "Live Q&A with Game Designer",
-      date: "Dec 18",
-      time: "7:30 PM EST",
-      participants: 87,
-      type: "Workshop",
-    },
-    {
-      id: 3,
-      title: "Community Awards Ceremony",
-      date: "Dec 22",
-      time: "6:00 PM EST",
-      participants: 120,
-      type: "Social",
-    },
-  ];
+
 
   // Categories for filtering
   const categories = [
@@ -320,23 +288,10 @@ export default function CommunityPage() {
   }, [activeFilter, sortBy, authUser]);
 
   return (
-    <main className="community-page">
-      {/* Hero Section */}
-      <section className="community-hero">
-        <div className="container">
-          <div className="hero-label">
-            <span>Community Hub</span>
-          </div>
-          <h1 className="hero-title">
-            PLAY, GATHER &<br />
-            <span className="gradient-text">BELONG</span>
-          </h1>
-          <p className="hero-subtitle">
-            The heart of Joy Juncture. Join our digital tribe, share your
-            stories, and earn rewards for simply having fun.
-          </p>
-        </div>
-      </section>
+    <main className="community-page bg-[#050505]">
+      {/* Scrollytelling Hero */}
+      <CommunityScroll />
+
 
       {/* Stats Section */}
       <section className="community-stats">
@@ -383,7 +338,7 @@ export default function CommunityPage() {
       </section>
 
       {/* Content Grid Section */}
-      <section className="content-grid-section">
+      <section id="discussions" className="content-grid-section relative z-10 bg-[#050505] -mt-20 pt-32">
         <div className="container">
           <div className="content-grid">
             {/* Discussions Column */}
@@ -584,42 +539,7 @@ export default function CommunityPage() {
 
             {/* Events Column */}
             <div className="events-column">
-              <div className="column-header">
-                <h2 className="column-title">Upcoming Events</h2>
-                <p className="column-subtitle">
-                  Don't miss out on community activities
-                </p>
-              </div>
 
-              <div className="events-list">
-                {events.map((event) => (
-                  <div key={event.id} className="event-card">
-                    <div className="event-date">
-                      <span className="date-day">
-                        {event.date.split(" ")[1]}
-                      </span>
-                      <span className="date-month">
-                        {event.date.split(" ")[0]}
-                      </span>
-                    </div>
-                    <div className="event-content">
-                      <h3 className="event-title">{event.title}</h3>
-                      <div className="event-details">
-                        <span className="detail-item">
-                          <Clock size={14} />
-                          {event.time}
-                        </span>
-                        <span className="detail-item">
-                          <Users size={14} />
-                          {event.participants} joining
-                        </span>
-                        <span className="event-type">{event.type}</span>
-                      </div>
-                    </div>
-                    <button className="join-btn">Join</button>
-                  </div>
-                ))}
-              </div>
 
               {/* Admin Panel (Visible only to admins) */}
               {isAdmin && (
@@ -841,35 +761,6 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* CTA Section */}
-      <section className="community-cta">
-        <div className="container">
-          <div className="cta-content">
-            <h2 className="cta-title">Ready to Join?</h2>
-            <p className="cta-description">
-              Create your account and start earning points, engaging with the
-              community, and discovering endless joy.
-            </p>
-            <div className="cta-buttons">
-              <button
-                className="primary-cta-btn"
-                onClick={() => {
-                  if (!authUser) {
-                    router.push("/signup");
-                  } else {
-                    setShowCreateModal(true);
-                  }
-                }}
-              >
-                {authUser ? "Start Discussion" : "Sign Up Free"}
-              </button>
-              <button className="secondary-cta-btn">
-                Learn More About Rewards
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
   );
 }

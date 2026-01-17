@@ -1,0 +1,693 @@
+/* ============================================
+   SUDOKU GAME - PREMIUM DARK + ORANGE THEME
+   ============================================ */
+
+/* Loading Screens */
+.sudoku-loading-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #050505 0%, #111111 45%, #050505 100%);
+  color: #f5f5f5;
+  position: relative;
+  overflow: hidden;
+}
+
+.sudoku-loading-screen::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 40%, rgba(255, 102, 0, 0.14) 0%, transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(255, 170, 0, 0.1) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.sudoku-loading-message {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+/* Main Container */
+.sudoku-game-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #050505 0%, #111111 45%, #050505 100%);
+  padding: 1rem;
+  color: #f5f5f5;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.sudoku-game-container::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 35%, rgba(255, 102, 0, 0.13) 0%, transparent 55%),
+    radial-gradient(circle at 80% 85%, rgba(255, 170, 0, 0.09) 0%, transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sudoku-game-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+.sudoku-game-header {
+  margin-bottom: 2rem;
+}
+
+.sudoku-header-card {
+  background: radial-gradient(circle at top left, rgba(255, 102, 0, 0.18), #050505);
+  backdrop-filter: blur(14px);
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  border: 1px solid #262626;
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.95);
+}
+
+.sudoku-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.sudoku-game-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #fafafa;
+}
+
+.sudoku-title-icon {
+  width: 32px;
+  height: 32px;
+  color: #ff7a1a;
+}
+
+.sudoku-welcome-message {
+  font-size: 1rem;
+  opacity: 0.9;
+  color: #d4d4d4;
+}
+
+.sudoku-username {
+  font-weight: 700;
+  color: #ffb84d;
+}
+
+/* Difficulty Selector */
+.sudoku-difficulty-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sudoku-difficulty-select {
+  background: rgba(10, 10, 10, 0.95);
+  border: 1px solid #404040;
+  color: #f5f5f5;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.sudoku-difficulty-select:hover {
+  border-color: #ff7a1a;
+  box-shadow: 0 0 0 1px rgba(255, 122, 26, 0.5);
+}
+
+.sudoku-difficulty-select:focus {
+  outline: none;
+  border-color: #ffb84d;
+  box-shadow: 0 0 0 2px rgba(255, 184, 77, 0.45);
+}
+
+/* Stats Container */
+.sudoku-stats-container {
+  margin-bottom: 2rem;
+}
+
+.sudoku-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sudoku-stat-card {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), #050505);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid #262626;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9);
+}
+
+.sudoku-stat-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 122, 26, 0.75);
+  box-shadow: 0 16px 40px rgba(255, 122, 26, 0.28);
+}
+
+.sudoku-stat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.sudoku-stat-icon {
+  width: 20px;
+  height: 20px;
+  color: #ff7a1a;
+}
+
+.sudoku-stat-label {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  color: #b3b3b3;
+}
+
+.sudoku-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f5f5f5;
+}
+
+/* Feedback Message */
+.sudoku-feedback-message {
+  text-align: center;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-top: 1rem;
+  animation: fadeIn 0.3s ease;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid transparent;
+}
+
+.sudoku-feedback-message.success {
+  background: rgba(22, 163, 74, 0.18);
+  border-color: #22c55e;
+  color: #bbf7d0;
+}
+
+.sudoku-feedback-message.error {
+  background: rgba(220, 38, 38, 0.18);
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+.sudoku-feedback-message.complete {
+  background: rgba(234, 179, 8, 0.18);
+  border-color: #eab308;
+  color: #fef08a;
+}
+
+.sudoku-feedback-message.hint {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: #3b82f6;
+  color: #bfdbfe;
+}
+
+/* Controls Container */
+.sudoku-controls-container {
+  margin-bottom: 2rem;
+}
+
+.sudoku-controls-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+/* Buttons */
+.sudoku-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.6rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.9);
+}
+
+.sudoku-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.sudoku-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sudoku-button-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Main CTAs lean orange; utilities stay neutral */
+.sudoku-button-restart {
+  background: linear-gradient(135deg, #ff7a1a, #ffb84d);
+  color: #050505;
+}
+
+.sudoku-button-hint {
+  background: linear-gradient(135deg, #3b82f6, #0ea5e9);
+  color: #f9fafb;
+}
+
+.sudoku-button-secondary {
+  background: #181818;
+  border: 1px solid #404040;
+  color: #e5e5e5;
+}
+
+.sudoku-button-active {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  color: #022c22;
+}
+
+.sudoku-button-primary {
+  background: linear-gradient(135deg, #ff7a1a, #ffb84d);
+  color: #050505;
+}
+
+/* Game Area */
+.sudoku-game-area {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 2rem;
+}
+
+@media (max-width: 900px) {
+  .sudoku-game-area {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Board Section */
+.sudoku-board-section {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.sudoku-board-card {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), #050505);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 1.4rem;
+  border: 1px solid #262626;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.95);
+}
+
+/* Sudoku Board */
+.sudoku-board {
+  display: grid;
+  grid-template-rows: repeat(9, 1fr);
+  gap: 1px;
+  background: #1f2933;
+  padding: 2px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.sudoku-row {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 1px;
+}
+
+.sudoku-cell {
+  aspect-ratio: 1;
+  background: #0f172a;
+  border: none;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.sudoku-cell:hover:not(:disabled) {
+  background: #111827;
+  transform: scale(1.03);
+  z-index: 2;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.sudoku-cell:disabled {
+  cursor: not-allowed;
+}
+
+.sudoku-cell-selected {
+  background: #ff7a1a !important;
+  color: #050505 !important;
+}
+
+.sudoku-cell-highlighted {
+  background: rgba(255, 122, 26, 0.16);
+}
+
+.sudoku-cell-original {
+  background: #020617;
+  color: #e5e7eb;
+  font-weight: 700;
+}
+
+.sudoku-cell-wrong {
+  background: rgba(220, 38, 38, 0.9);
+  color: #fef2f2;
+}
+
+.sudoku-cell-correct {
+  background: rgba(22, 163, 74, 0.9);
+  color: #ecfdf3;
+}
+
+.sudoku-cell-status {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+}
+
+/* Grid Lines */
+.sudoku-grid-line {
+  position: absolute;
+  background: #f97316;
+}
+
+.sudoku-grid-line.horizontal-1 {
+  top: 33.33%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.sudoku-grid-line.horizontal-2 {
+  top: 66.66%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.sudoku-grid-line.vertical-1 {
+  left: 33.33%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+}
+
+.sudoku-grid-line.vertical-2 {
+  left: 66.66%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+}
+
+/* Side Panel */
+.sudoku-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Number Pad */
+.sudoku-number-pad {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), #050505);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid #262626;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9);
+}
+
+.sudoku-side-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #f5f5f5;
+}
+
+.sudoku-side-icon {
+  width: 20px;
+  height: 20px;
+  color: #ff7a1a;
+}
+
+.sudoku-numbers-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.sudoku-number-button {
+  aspect-ratio: 1;
+  background: #111111;
+  border: 1px solid #404040;
+  color: #f5f5f5;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sudoku-number-button:hover:not(:disabled) {
+  background: #171717;
+  transform: scale(1.05);
+  border-color: #ff7a1a;
+  box-shadow: 0 6px 18px rgba(255, 122, 26, 0.35);
+}
+
+.sudoku-number-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sudoku-side-hint {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  text-align: center;
+  margin-top: 0.5rem;
+  color: #d4d4d4;
+}
+
+/* Instructions */
+.sudoku-instructions {
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid #262626;
+}
+
+.sudoku-instructions-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sudoku-instructions-list li {
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  position: relative;
+  padding-left: 1rem;
+  color: #e5e5e5;
+}
+
+.sudoku-instructions-list li:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #ff7a1a;
+}
+
+/* Game Info */
+.sudoku-game-info {
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid #262626;
+}
+
+.sudoku-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.sudoku-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sudoku-info-label {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  color: #b3b3b3;
+}
+
+.sudoku-info-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f5f5f5;
+}
+
+/* Completion Overlay */
+.sudoku-completion-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.sudoku-completion-card {
+  background: radial-gradient(circle at top, rgba(255, 122, 26, 0.16), #050505);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+  border: 1px solid #262626;
+  animation: scaleIn 0.3s ease;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95);
+}
+
+.sudoku-completion-emoji {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.sudoku-completion-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: #fafafa;
+}
+
+.sudoku-completion-text {
+  font-size: 1.05rem;
+  opacity: 0.9;
+  margin-bottom: 1rem;
+  color: #e5e5e5;
+}
+
+.sudoku-completion-message {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  margin-bottom: 1.75rem;
+  line-height: 1.6;
+  color: #d4d4d4;
+}
+
+.sudoku-completion-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sudoku-game-title {
+    font-size: 1.6rem;
+  }
+  
+  .sudoku-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .sudoku-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .sudoku-controls-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .sudoku-button {
+    justify-content: center;
+  }
+  
+  .sudoku-board {
+    transform: scale(0.9);
+    transform-origin: center top;
+  }
+  
+  .sudoku-completion-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .sudoku-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .sudoku-board {
+    transform: scale(0.8);
+  }
+}

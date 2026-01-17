@@ -1,0 +1,251 @@
+/* ============================================
+   GAME PAGE - PREMIUM DARK + ORANGE THEME
+   ============================================ */
+
+/* Game Page Styles */
+.game-page-container {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #050505 0%, #151515 45%, #050505 100%);
+  overflow-x: hidden;
+}
+
+/* Subtle radial glows behind content */
+.game-page-container::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 30%, rgba(255, 122, 26, 0.16) 0%, transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(255, 184, 77, 0.12) 0%, transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Floating Back Button */
+.floating-back-button {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.6rem;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #ff7a1a;
+  border: 1px solid rgba(255, 122, 26, 0.4);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.25s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9);
+}
+
+.floating-back-button:hover {
+  background: rgba(15, 15, 15, 0.95);
+  border-color: #ffb84d;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(255, 122, 26, 0.35);
+}
+
+.floating-back-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.9);
+}
+
+/* Loading State */
+.game-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1.5rem;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.game-loading-text {
+  color: #d4d4d4;
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Game Not Found */
+.game-not-found {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.game-not-found-content {
+  text-align: center;
+  max-width: 600px;
+  padding: 2.75rem 2.25rem;
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.03), #050505);
+  border-radius: 1.5rem;
+  border: 1px solid #262626;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95);
+}
+
+.game-not-found-icon {
+  font-size: 4.5rem;
+  margin-bottom: 1.5rem;
+  animation: bounce 2s infinite;
+  color: #ffb84d;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+.game-not-found-title {
+  font-size: 2.4rem;
+  color: #ff7a1a;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.game-not-found-message {
+  color: #9ca3af;
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-bottom: 1.75rem;
+}
+
+.game-not-found-message .highlight {
+  color: #ffb84d;
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* Buttons area */
+.game-not-found-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 1.75rem;
+}
+
+/* Buttons */
+.back-button,
+.home-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.95rem 2rem;
+  border: none;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.9);
+}
+
+/* Primary CTA */
+.back-button {
+  background: linear-gradient(135deg, #ff7a1a, #ffb84d);
+  color: #050505;
+}
+
+.back-button:hover {
+  background: linear-gradient(135deg, #ffb84d, #ffd68a);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 42px rgba(255, 122, 26, 0.4);
+}
+
+.back-button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.95);
+}
+
+/* Secondary CTA */
+.home-button {
+  background: #101010;
+  color: #f5f5f5;
+  border: 1px solid #333333;
+}
+
+.home-button:hover {
+  background: #171717;
+  border-color: #4b5563;
+  transform: translateY(-3px);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.9);
+}
+
+.home-button:active {
+  transform: translateY(-1px);
+}
+
+/* Small pill label style if needed on top of card */
+.game-not-found-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 122, 26, 0.16);
+  border: 1px solid rgba(255, 122, 26, 0.5);
+  color: #ffecd5;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 1rem;
+}
+
+/* Responsive Design for Game Page */
+@media (max-width: 768px) {
+  .floating-back-button {
+    top: 1rem;
+    left: 1rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.85rem;
+  }
+
+  .game-not-found-content {
+    padding: 2rem 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .game-not-found-title {
+    font-size: 2rem;
+  }
+
+  .game-not-found-message {
+    font-size: 0.95rem;
+  }
+
+  .back-button,
+  .home-button {
+    padding: 0.85rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-not-found-content {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .game-not-found-title {
+    font-size: 1.8rem;
+  }
+}
