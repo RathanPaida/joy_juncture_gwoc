@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/payment/verify/route.ts - COMPLETE WITH CART CLEARING
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';

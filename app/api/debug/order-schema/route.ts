@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/debug/order-schema/route.ts
 // USE THIS TO SEE YOUR ORDER MODEL'S REQUIRED FIELDS
 import { NextRequest, NextResponse } from "next/server";

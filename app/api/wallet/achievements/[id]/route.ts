@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/admin/wallet/achievements/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAccess } from "@/lib/admin-middleware";

@@ -1,10 +1,10 @@
 
+export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { Gallery } from "@/models/Gallery";
 import mongoose from "mongoose";
 
-export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/cart/clear/route.ts - MATCHES YOUR CART API STRUCTURE
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
@@ -33,7 +34,7 @@ export async function DELETE(request: NextRequest) {
   console.log("\n========================================");
   console.log("🧹 CART CLEAR API - DELETE METHOD");
   console.log("========================================");
-  
+
   try {
     const userId = await verifyAuth(request);
     console.log("👤 User ID:", userId);
@@ -52,13 +53,13 @@ export async function DELETE(request: NextRequest) {
     try {
       const db = client.db("joyjuncture");
       const cartCollection = db.collection("cart");
-      
+
       console.log("🔍 Checking for cart items...");
-      
+
       // Check if cart items exist
       const existingItems = await cartCollection.find({ userId }).toArray();
       console.log("📦 Cart items found:", existingItems.length);
-      
+
       if (existingItems.length === 0) {
         console.log("⚠️ No cart items to delete");
         return NextResponse.json({
@@ -68,7 +69,7 @@ export async function DELETE(request: NextRequest) {
           cartFound: false,
         });
       }
-      
+
       // Log items to be deleted
       console.log("📦 Items to delete:");
       existingItems.forEach((item: any, index: number) => {
@@ -78,16 +79,16 @@ export async function DELETE(request: NextRequest) {
       // Delete all cart items for this user
       console.log("🗑️ Deleting cart items...");
       const deleteResult = await cartCollection.deleteMany({ userId });
-      
+
       console.log("🗑️ Delete result:");
       console.log("   - Acknowledged:", deleteResult.acknowledged);
       console.log("   - Deleted count:", deleteResult.deletedCount);
-      
+
       // Verify deletion
       console.log("🔍 Verifying deletion...");
       const verifyItems = await cartCollection.find({ userId }).toArray();
       console.log("✅ Remaining items:", verifyItems.length);
-      
+
       if (verifyItems.length > 0) {
         console.error("❌ CART ITEMS STILL EXIST!");
         return NextResponse.json(
@@ -99,7 +100,7 @@ export async function DELETE(request: NextRequest) {
           { status: 500 }
         );
       }
-      
+
       console.log("🎉 CART CLEARED SUCCESSFULLY!");
       console.log("========================================\n");
 
@@ -111,7 +112,7 @@ export async function DELETE(request: NextRequest) {
         itemsCleared: existingItems.length,
         deletedCount: deleteResult.deletedCount,
       });
-      
+
     } finally {
       await client.close();
       console.log("✅ Database connection closed");
@@ -124,7 +125,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error message:", error.message);
     console.error("Error stack:", error.stack);
     console.error("========================================\n");
-    
+
     return NextResponse.json(
       {
         success: false,

@@ -1,4 +1,5 @@
 // app/api/wallet/rewards/route.ts - PUBLIC ROUTE FOR USERS
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import mongoose from "mongoose";

@@ -1,4 +1,4 @@
-
+export const dynamic = 'force-dynamic';
 // app/api/registrations/check/route.ts
 // This route checks if a user is already registered for an event
 
@@ -19,10 +19,10 @@ export async function GET(request: NextRequest) {
 
     if (!eventId || !userId) {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Missing eventId or userId',
-          isRegistered: false 
+          isRegistered: false
         },
         { status: 400 }
       );
@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error checking registration:', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to check registration status',
         isRegistered: false,
         details: error instanceof Error ? error.message : 'Unknown error'

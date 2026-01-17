@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // import { NextRequest, NextResponse } from 'next/server';
 // import { verifyIdToken } from '@/lib/firebase-admin';
 // import { connectDb } from '@/lib/mongodb';
@@ -26,10 +27,10 @@
 // export async function POST(req: NextRequest) {
 //   try {
 //     await connectDb();
-    
+
 //     const body = await req.json();
 //     const { gameType, difficulty = 'medium' } = body;
-    
+
 //     // Validate game type
 //     if (!['sudoku', 'word-guesser', 'crossword'].includes(gameType)) {
 //       return NextResponse.json(
@@ -37,7 +38,7 @@
 //         { status: 400 }
 //       );
 //     }
-    
+
 //     // Authenticate user
 //     const authHeader = req.headers.get('authorization');
 //     if (!authHeader?.startsWith('Bearer ')) {
@@ -46,22 +47,22 @@
 //         { status: 401 }
 //       );
 //     }
-    
+
 //     const token = authHeader.split('Bearer ')[1];
 //     const decodedToken = await verifyIdToken(token);
 //     const user = await User.findOne({ firebaseUid: decodedToken.uid });
-    
+
 //     if (!user) {
 //       return NextResponse.json(
 //         { error: 'User not found' },
 //         { status: 404 }
 //       );
 //     }
-    
+
 //     // Generate game based on type
 //     let gameData;
 //     const gameId = `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
 //     switch (gameType) {
 //       case 'sudoku':
 //         gameData = generateSudoku(difficulty);
@@ -78,7 +79,7 @@
 //           { status: 400 }
 //         );
 //     }
-    
+
 //     // Create game session
 //     const gameSession = new GameSession({
 //       userId: user._id,
@@ -92,9 +93,9 @@
 //         hints: gameData.hints || []
 //       }
 //     });
-    
+
 //     await gameSession.save();
-    
+
 //     return NextResponse.json({
 //       success: true,
 //       gameId,
@@ -105,7 +106,7 @@
 //       maxCoins: GAME_CONFIG[gameType][difficulty].coins,
 //       hasTimeBonus: GAME_CONFIG[gameType][difficulty].timeBonus
 //     }, { status: 200 });
-    
+
 //   } catch (error) {
 //     console.error('Error starting game:', error);
 //     return NextResponse.json(
@@ -145,7 +146,7 @@ function getGameRewards(gameType: string, difficulty: string): { coins: number; 
   // Type-safe access
   const validGameTypes = ['sudoku', 'word-guesser', 'crossword'] as const;
   const validDifficulties = ['easy', 'medium', 'hard'] as const;
-  
+
   if (validGameTypes.includes(gameType as any) && validDifficulties.includes(difficulty as any)) {
     return configs[gameType as keyof typeof configs][difficulty as keyof (typeof configs)[keyof typeof configs]];
   }
@@ -157,10 +158,10 @@ function getGameRewards(gameType: string, difficulty: string): { coins: number; 
 export async function POST(req: NextRequest) {
   try {
     await connectDb();
-    
+
     const body = await req.json();
     const { gameType, difficulty = 'medium' } = body;
-    
+
     // Validate game type
     const validGameTypes = ['sudoku', 'word-guesser', 'crossword'];
     if (!validGameTypes.includes(gameType)) {
@@ -169,7 +170,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Authenticate user
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -178,22 +179,22 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     const token = authHeader.split('Bearer ')[1];
     const decodedToken = await verifyIdToken(token);
     const user = await User.findOne({ firebaseUid: decodedToken.uid });
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
-    
+
     // Generate game based on type
     let gameData;
     const gameId = `game_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     switch (gameType) {
       case 'sudoku':
         gameData = generateSudoku(difficulty);
@@ -210,7 +211,7 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
     }
-    
+
     // Create game session
     const gameSession = new GameSession({
       userId: user._id,
@@ -224,12 +225,12 @@ export async function POST(req: NextRequest) {
         hints: gameData.hints || []
       }
     });
-    
+
     await gameSession.save();
-    
+
     // Get rewards using type-safe function
     const rewards = getGameRewards(gameType, difficulty);
-    
+
     return NextResponse.json({
       success: true,
       gameId,
@@ -240,7 +241,7 @@ export async function POST(req: NextRequest) {
       maxCoins: rewards.coins,
       hasTimeBonus: rewards.timeBonus
     }, { status: 200 });
-    
+
   } catch (error) {
     console.error('Error starting game:', error);
     return NextResponse.json(

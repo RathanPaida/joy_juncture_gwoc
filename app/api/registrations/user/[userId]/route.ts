@@ -1,4 +1,4 @@
-
+export const dynamic = 'force-dynamic';
 // app/api/registrations/user/[userId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase, connectToDatabase } from '@/lib/mongodb';
@@ -37,7 +37,7 @@ export async function GET(
     const registrationsCollection = db.collection('registrations');
     const eventsCollection = db.collection('events');
 
-    const registrations = await registrationsCollection.find({ 
+    const registrations = await registrationsCollection.find({
       userId,
       paymentStatus: 'completed'
     }).sort({ createdAt: -1 }).toArray();
@@ -105,8 +105,8 @@ export async function GET(
   } catch (error) {
     console.error('❌ Error fetching user registrations:', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to fetch registrations',
         details: error instanceof Error ? error.message : 'Unknown error'
       },

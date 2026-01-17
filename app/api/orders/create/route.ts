@@ -1,4 +1,5 @@
 // app/api/orders/create/route.ts - UPDATED WITH NEW COUPON SYSTEM
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/mongodb";
 import { Order } from "@/models/Order";

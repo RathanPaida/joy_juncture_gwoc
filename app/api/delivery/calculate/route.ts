@@ -1,4 +1,4 @@
-
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 
 const SURAT_COORDS = { lat: 21.1702, lon: 72.8311 };

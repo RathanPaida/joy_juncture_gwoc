@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/wallet/redeem/route.ts - CONFLICTS RESOLVED
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";

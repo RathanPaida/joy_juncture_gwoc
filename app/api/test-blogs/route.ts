@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/test-blogs/route.ts
 import { NextResponse } from "next/server";
 

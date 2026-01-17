@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/user/snake-high-score/route.ts - SIMPLIFIED (NO POINTS)
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase as connectDB } from '@/lib/mongodb';
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get Firebase token from Authorization header
     const authHeader = request.headers.get('Authorization');
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - No token provided' },
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     };
 
     const previousScore = currentHighScores[difficulty] || 0;
-    
+
     console.log(`📊 Score update request: ${difficulty} | Previous: ${previousScore} | New: ${score}`);
 
     // Only update if the new score is higher
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       console.log(`ℹ️ Score ${score} not higher than current high score ${previousScore} for ${difficulty}`);
-      
+
       return NextResponse.json({
         success: true,
         message: 'Score not higher than current high score',
@@ -127,8 +128,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ Error saving snake high score:', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: error.message || 'Internal server error',
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('Authorization');
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - No token provided' },
@@ -162,7 +163,7 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDB();
-    
+
     const user = await User.findOne({ firebaseUid: decodedToken.uid })
       .select('snakeHighScores name');
 

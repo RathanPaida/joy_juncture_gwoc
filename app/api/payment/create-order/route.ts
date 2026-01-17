@@ -1,4 +1,5 @@
 // app/api/payment/create-order/route.ts - CONFLICTS RESOLVED
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 import connectDb from "@/lib/mongodb";

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/cart/count/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient } from "mongodb";

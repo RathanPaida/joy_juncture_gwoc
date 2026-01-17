@@ -1,4 +1,5 @@
 // app/api/debug/fix-discussions/route.ts - RUN THIS ONCE TO FIX DATABASE
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/mongodb";
 import mongoose from "mongoose";
