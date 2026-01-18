@@ -1,4 +1,5 @@
 // app/api/admin/check-access/route.ts
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
@@ -7,7 +8,7 @@ import { User } from "@/models/User";
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
-    
+
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Unauthorized - No token provided" },
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split("Bearer ")[1];
-    
+
     // Verify Firebase token
     let decodedToken;
     try {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       // User not in MongoDB yet - check if they're the admin email
       const isAdminEmail = userEmail === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-      
+
       if (isAdminEmail) {
         return NextResponse.json({
           success: true,
@@ -54,9 +55,9 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { 
+        {
           error: "User not found in database. Please sync your account by logging in again.",
-          needsSync: true 
+          needsSync: true
         },
         { status: 404 }
       );
@@ -71,10 +72,10 @@ export async function GET(request: NextRequest) {
 
     if (!hasAdminAccess && !isAdminEmail) {
       return NextResponse.json(
-        { 
+        {
           error: "Access denied. Admin privileges required.",
           role: user.role,
-          requiredRoles: allowedRoles 
+          requiredRoles: allowedRoles
         },
         { status: 403 }
       );
@@ -93,9 +94,9 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error checking admin access:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to check admin access",
-        details: error.message 
+        details: error.message
       },
       { status: 500 }
     );

@@ -1,4 +1,5 @@
 // app/api/community/discussions/[id]/replies/[replyId]/route.ts - TYPESCRIPT FIXED
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/mongodb";
 import mongoose from "mongoose";

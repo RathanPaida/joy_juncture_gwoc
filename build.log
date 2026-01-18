@@ -1,0 +1,24 @@
+
+> joy_juncture_gwoc@0.1.0 build
+> next build
+
+   ▲ Next.js 16.0.10 (Turbopack)
+   - Environments: .env.local
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 7.9s
+   Running TypeScript ...
+Failed to compile.
+
+./migrate-gametypes.ts:27:28
+Type error: 'db' is possibly 'undefined'.
+
+[0m [90m 25 |[39m
+ [90m 26 |[39m         [36mconst[39m db [33m=[39m mongoose[33m.[39mconnection[33m.[39mdb[33m;[39m
+[31m[1m>[22m[39m[90m 27 |[39m         [36mconst[39m collection [33m=[39m db[33m.[39mcollection([32m"products"[39m)[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m
+ [90m 28 |[39m
+ [90m 29 |[39m         [90m// Update all docs where gametype matches {$exists: false} or is null[39m
+ [90m 30 |[39m         [36mconst[39m result [33m=[39m [36mawait[39m collection[33m.[39mupdateMany([0m
+Next.js build worker exited with code: 1 and signal: null

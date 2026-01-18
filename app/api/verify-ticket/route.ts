@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
@@ -66,11 +67,11 @@ export async function POST(request: Request) {
     // Mark ticket as verified (optional)
     await registrationsCollection.updateOne(
       { _id: registration._id },
-      { 
-        $set: { 
+      {
+        $set: {
           verified: true,
           verifiedAt: new Date()
-        } 
+        }
       }
     );
 

@@ -1,23 +1,68 @@
 // app/api/admin/blog/[id]/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
 import { Blog } from "@/models/Blog";
 import { User } from "@/models/User";
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { uploadToCloudinary } from '@/lib/cloudinary';
+
+// Force dynamic rendering - must be at the top level
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 function generateUniqueId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
+// GET - Get single blog
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+
+    console.log("GET /api/admin/blog/[id] - Blog ID:", id);
+
+    await connectDb();
+
+    // Find the blog
+    const blog = await Blog.findById(id);
+    if (!blog) {
+      console.log("Blog not found:", id);
+      return NextResponse.json(
+        { success: false, error: "Blog not found" },
+        { status: 404 },
+      );
+    }
+
+    console.log("Blog found successfully:", blog._id);
+
+    return NextResponse.json({
+      success: true,
+      blog: JSON.parse(JSON.stringify(blog)),
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
+  } catch (error: any) {
+    console.error("Error fetching blog:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
 // PUT - Update blog with image upload
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const params = await context.params;
+    const { id } = await context.params;
 
     // Verify authentication
     const authHeader = request.headers.get("Authorization");
@@ -29,22 +74,33 @@ export async function PUT(
     }
 
     const token = authHeader.split("Bearer ")[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
+
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(token);
+    } catch (authError) {
+      console.error("Token verification failed:", authError);
+      return NextResponse.json(
+        { success: false, error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
     const firebaseUid = decodedToken.uid;
 
     console.log(
       "PUT /api/admin/blog/[id] - User:",
       firebaseUid,
       "Blog ID:",
-      params.id,
+      id,
     );
 
     await connectDb();
 
     // Find the blog
-    const blog = await Blog.findById(params.id);
+    const blog = await Blog.findById(id);
     if (!blog) {
-      console.log("Blog not found:", params.id);
+      console.log("Blog not found:", id);
       return NextResponse.json(
         { success: false, error: "Blog not found" },
         { status: 404 },
@@ -96,38 +152,34 @@ export async function PUT(
     const currentImages = updateData.images || blog.images || [];
     const newImageUrls: string[] = [];
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blogs');
-
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (error) {
-      // Directory already exists
-    }
+    // Upload images to Cloudinary
+    const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
     // Handle Cover Image Update
-    if (coverImageFile) {
-      const bytes = await coverImageFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const ext = coverImageFile.name.split('.').pop();
-      const filename = `${generateUniqueId()}_cover.${ext}`;
-      const filepath = path.join(uploadsDir, filename);
-
-      await writeFile(filepath, buffer);
-      coverImageUrl = `/uploads/blogs/${filename}`;
+    if (coverImageFile && coverImageFile.size > 0) {
+      try {
+        const bytes = await coverImageFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uniqueId = generateId();
+        coverImageUrl = await uploadToCloudinary(buffer, 'blogs/covers', `cover-${uniqueId}`);
+      } catch (fileError) {
+        console.error("Error uploading cover image:", fileError);
+      }
     }
 
     // Handle Additional Images Upload
     if (additionalImages && additionalImages.length > 0) {
       for (const imgFile of additionalImages) {
-        if (imgFile instanceof File) {
-          const bytes = await imgFile.arrayBuffer();
-          const buffer = Buffer.from(bytes);
-          const ext = imgFile.name.split('.').pop();
-          const filename = `${generateUniqueId()}_${Math.random().toString(36).substr(2, 5)}.${ext}`;
-          const filepath = path.join(uploadsDir, filename);
-
-          await writeFile(filepath, buffer);
-          newImageUrls.push(`/uploads/blogs/${filename}`);
+        if (imgFile instanceof File && imgFile.size > 0) {
+          try {
+            const bytes = await imgFile.arrayBuffer();
+            const buffer = Buffer.from(bytes);
+            const uniqueId = generateId();
+            const cloudinaryUrl = await uploadToCloudinary(buffer, 'blogs', `img-${uniqueId}`);
+            newImageUrls.push(cloudinaryUrl);
+          } catch (fileError) {
+            console.error("Error uploading additional image:", fileError);
+          }
         }
       }
     }
@@ -173,6 +225,10 @@ export async function PUT(
       success: true,
       message: "Blog updated successfully",
       blog: JSON.parse(JSON.stringify(blog)),
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
     });
   } catch (error: any) {
     console.error("Error updating blog:", error);
@@ -186,10 +242,10 @@ export async function PUT(
 // DELETE - Delete blog
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const params = await context.params;
+    const { id } = await context.params;
 
     // Verify authentication
     const authHeader = request.headers.get("Authorization");
@@ -201,22 +257,33 @@ export async function DELETE(
     }
 
     const token = authHeader.split("Bearer ")[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
+
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(token);
+    } catch (authError) {
+      console.error("Token verification failed:", authError);
+      return NextResponse.json(
+        { success: false, error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
     const firebaseUid = decodedToken.uid;
 
     console.log(
       "DELETE /api/admin/blog/[id] - User:",
       firebaseUid,
       "Blog ID:",
-      params.id,
+      id,
     );
 
     await connectDb();
 
     // Find the blog
-    const blog = await Blog.findById(params.id);
+    const blog = await Blog.findById(id);
     if (!blog) {
-      console.log("Blog not found:", params.id);
+      console.log("Blog not found:", id);
       return NextResponse.json(
         { success: false, error: "Blog not found" },
         { status: 404 },
@@ -249,12 +316,16 @@ export async function DELETE(
     }
 
     // Delete the blog
-    await Blog.findByIdAndDelete(params.id);
-    console.log("Blog deleted successfully:", params.id);
+    await Blog.findByIdAndDelete(id);
+    console.log("Blog deleted successfully:", id);
 
     return NextResponse.json({
       success: true,
       message: "Blog deleted successfully",
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
     });
   } catch (error: any) {
     console.error("Error deleting blog:", error);

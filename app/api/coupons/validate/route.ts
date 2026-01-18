@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/coupons/validate/route.ts
 import { NextResponse } from 'next/server';
 import { Coupon } from '@/models/Coupon';

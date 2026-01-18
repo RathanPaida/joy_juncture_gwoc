@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // import { NextRequest, NextResponse } from 'next/server';
 // import  {verifyIdToken}  from '@/lib/firebase-admin';
 // import { connectDb } from '@/lib/mongodb';
@@ -25,17 +26,17 @@
 // export async function POST(req: NextRequest) {
 //   try {
 //     await connectDb();
-    
+
 //     const body = await req.json();
 //     const { gameId, solution, timeSpent } = body;
-    
+
 //     if (!gameId || !solution) {
 //       return NextResponse.json(
 //         { error: 'Missing required fields' },
 //         { status: 400 }
 //       );
 //     }
-    
+
 //     // Authenticate user
 //     const authHeader = req.headers.get('authorization');
 //     if (!authHeader?.startsWith('Bearer ')) {
@@ -44,46 +45,46 @@
 //         { status: 401 }
 //       );
 //     }
-    
+
 //     const token = authHeader.split('Bearer ')[1];
 //     const decodedToken = await verifyIdToken(token);
 //     const user = await User.findOne({ firebaseUid: decodedToken.uid });
-    
+
 //     if (!user) {
 //       return NextResponse.json(
 //         { error: 'User not found' },
 //         { status: 404 }
 //       );
 //     }
-    
+
 //     // Get game session
 //     const gameSession = await GameSession.findOne({
 //       gameId,
 //       userId: user._id,
 //       completed: false
 //     });
-    
+
 //     if (!gameSession) {
 //       return NextResponse.json(
 //         { error: 'Game session not found or already completed' },
 //         { status: 404 }
 //       );
 //     }
-    
+
 //     const { gameType, difficulty, gameState } = gameSession;
-    
+
 //     // Validate solution
 //     const isCorrect = validateSolution(gameType, solution, gameState.solution);
-    
+
 //     let coinsEarned = 0;
 //     let score = 0;
-    
+
 //     if (isCorrect) {
 //       const config = GAME_CONFIG[gameType as keyof typeof GAME_CONFIG][difficulty as keyof typeof GAME_CONFIG as keyof typeof GAME_CONFIG[keyof typeof GAME_CONFIG]];
-      
+
 //       // Calculate base coins
 //       coinsEarned = config.baseCoins;
-      
+
 //       // Add time bonus if applicable
 //       if (config.timeMultiplier > 0 && timeSpent) {
 //         const maxTime = getMaxTimeForGame(gameType, difficulty);
@@ -92,14 +93,14 @@
 //           coinsEarned += timeBonus;
 //         }
 //       }
-      
+
 //       // Calculate score
 //       score = calculateScore(gameType, difficulty, timeSpent);
-      
+
 //       // Add coins to user wallet
 //       user.totalPoints += coinsEarned;
 //       await user.save();
-      
+
 //       // Record transaction
 //       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wallet/add-points`, {
 //         method: 'POST',
@@ -119,7 +120,7 @@
 //           }
 //         })
 //       });
-      
+
 //       // Add to leaderboard
 //       const leaderboardEntry = new GameLeaderboard({
 //         gameType,
@@ -131,7 +132,7 @@
 //       });
 //       await leaderboardEntry.save();
 //     }
-    
+
 //     // Update game session
 //     gameSession.completed = true;
 //     gameSession.win = isCorrect;
@@ -140,7 +141,7 @@
 //     gameSession.timeSpent = timeSpent || 0;
 //     gameSession.completedAt = new Date();
 //     await gameSession.save();
-    
+
 //     return NextResponse.json({
 //       success: true,
 //       win: isCorrect,
@@ -148,7 +149,7 @@
 //       score,
 //       newBalance: user.totalPoints
 //     }, { status: 200 });
-    
+
 //   } catch (error) {
 //     console.error('Error completing game:', error);
 //     return NextResponse.json(
@@ -185,9 +186,9 @@
 //     'word-guesser': { easy: 50, medium: 150, hard: 300 },
 //     crossword: { easy: 150, medium: 350, hard: 700 }
 //   };
-  
+
 //   let score = baseScores[gameType as keyof typeof baseScores][difficulty as keyof typeof baseScores as keyof typeof baseScores[keyof typeof baseScores]];
-  
+
 //   // Bonus for fast completion
 //   if (timeSpent) {
 //     const maxTime = getMaxTimeForGame(gameType, difficulty);
@@ -196,7 +197,7 @@
 //       score += timeBonus;
 //     }
 //   }
-  
+
 //   return score;
 // }
 
@@ -263,12 +264,12 @@ function getGameConfig(gameType: string, difficulty: string): { baseCoins: numbe
   // Type guard to check if gameType is valid
   const validGameTypes: GameType[] = ['sudoku', 'word-guesser', 'crossword'];
   const validDifficulties: Difficulty[] = ['easy', 'medium', 'hard'];
-  
-  if (validGameTypes.includes(gameType as GameType) && 
-      validDifficulties.includes(difficulty as Difficulty)) {
+
+  if (validGameTypes.includes(gameType as GameType) &&
+    validDifficulties.includes(difficulty as Difficulty)) {
     return GAME_CONFIG[gameType][difficulty];
   }
-  
+
   // Return default if invalid
   return { baseCoins: 10, timeMultiplier: 0 };
 }
@@ -280,15 +281,15 @@ function getBaseScore(gameType: string, difficulty: string): number {
     'word-guesser': { easy: 50, medium: 150, hard: 300 },
     crossword: { easy: 150, medium: 350, hard: 700 }
   };
-  
+
   const validGameTypes: GameType[] = ['sudoku', 'word-guesser', 'crossword'];
   const validDifficulties: Difficulty[] = ['easy', 'medium', 'hard'];
-  
-  if (validGameTypes.includes(gameType as GameType) && 
-      validDifficulties.includes(difficulty as Difficulty)) {
+
+  if (validGameTypes.includes(gameType as GameType) &&
+    validDifficulties.includes(difficulty as Difficulty)) {
     return baseScores[gameType][difficulty];
   }
-  
+
   return 100; // Default score
 }
 
@@ -299,32 +300,32 @@ function getMaxTimeForGame(gameType: string, difficulty: string): number {
     'word-guesser': { easy: 300, medium: 600, hard: 900 },
     crossword: { easy: 1800, medium: 3600, hard: 5400 }
   };
-  
+
   const validGameTypes: GameType[] = ['sudoku', 'word-guesser', 'crossword'];
   const validDifficulties: Difficulty[] = ['easy', 'medium', 'hard'];
-  
-  if (validGameTypes.includes(gameType as GameType) && 
-      validDifficulties.includes(difficulty as Difficulty)) {
+
+  if (validGameTypes.includes(gameType as GameType) &&
+    validDifficulties.includes(difficulty as Difficulty)) {
     return times[gameType][difficulty];
   }
-  
+
   return 1800; // Default 30 minutes
 }
 
 export async function POST(req: NextRequest) {
   try {
     await connectDb();
-    
+
     const body = await req.json();
     const { gameId, solution, timeSpent } = body;
-    
+
     if (!gameId || !solution) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
-    
+
     // Authenticate user
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -333,47 +334,47 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     const token = authHeader.split('Bearer ')[1];
     const decodedToken = await verifyIdToken(token);
     const user = await User.findOne({ firebaseUid: decodedToken.uid });
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
-    
+
     // Get game session
     const gameSession = await GameSession.findOne({
       gameId,
       userId: user._id,
       completed: false
     });
-    
+
     if (!gameSession) {
       return NextResponse.json(
         { error: 'Game session not found or already completed' },
         { status: 404 }
       );
     }
-    
+
     const { gameType, difficulty, gameState } = gameSession;
-    
+
     // Validate solution
     const isCorrect = validateSolution(gameType, solution, gameState.solution);
-    
+
     let coinsEarned = 0;
     let score = 0;
-    
+
     if (isCorrect) {
       // Use the safe helper function
       const config = getGameConfig(gameType, difficulty);
-      
+
       // Calculate base coins
       coinsEarned = config.baseCoins;
-      
+
       // Add time bonus if applicable
       if (config.timeMultiplier > 0 && timeSpent) {
         const maxTime = getMaxTimeForGame(gameType, difficulty);
@@ -382,14 +383,14 @@ export async function POST(req: NextRequest) {
           coinsEarned += timeBonus;
         }
       }
-      
+
       // Calculate score using safe helper
       score = calculateScore(gameType, difficulty, timeSpent);
-      
+
       // Add coins to user wallet
       user.totalPoints += coinsEarned;
       await user.save();
-      
+
       // Record transaction
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/wallet/add-points`, {
         method: 'POST',
@@ -409,7 +410,7 @@ export async function POST(req: NextRequest) {
           }
         })
       });
-      
+
       // Add to leaderboard
       const leaderboardEntry = new GameLeaderboard({
         gameType,
@@ -421,7 +422,7 @@ export async function POST(req: NextRequest) {
       });
       await leaderboardEntry.save();
     }
-    
+
     // Update game session
     gameSession.completed = true;
     gameSession.win = isCorrect;
@@ -430,7 +431,7 @@ export async function POST(req: NextRequest) {
     gameSession.timeSpent = timeSpent || 0;
     gameSession.completedAt = new Date();
     await gameSession.save();
-    
+
     return NextResponse.json({
       success: true,
       win: isCorrect,
@@ -438,7 +439,7 @@ export async function POST(req: NextRequest) {
       score,
       newBalance: user.totalPoints
     }, { status: 200 });
-    
+
   } catch (error) {
     console.error('Error completing game:', error);
     return NextResponse.json(
@@ -456,7 +457,7 @@ function validateSolution(gameType: string, userSolution: any, correctSolution: 
       return userSolution.toLowerCase() === correctSolution.toLowerCase();
     case 'crossword':
       // Validate crossword solution
-      return userSolution.every((cell: any, rowIndex: number) => 
+      return userSolution.every((cell: any, rowIndex: number) =>
         cell.every((userCell: any, colIndex: number) => {
           const solutionCell = correctSolution[rowIndex][colIndex];
           if (solutionCell.isBlack) return true;
@@ -471,7 +472,7 @@ function validateSolution(gameType: string, userSolution: any, correctSolution: 
 function calculateScore(gameType: string, difficulty: string, timeSpent: number) {
   // Get base score using safe helper
   let score = getBaseScore(gameType, difficulty);
-  
+
   // Bonus for fast completion
   if (timeSpent) {
     const maxTime = getMaxTimeForGame(gameType, difficulty);
@@ -480,6 +481,6 @@ function calculateScore(gameType: string, difficulty: string, timeSpent: number)
       score += timeBonus;
     }
   }
-  
+
   return score;
 }

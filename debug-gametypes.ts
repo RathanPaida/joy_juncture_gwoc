@@ -10,6 +10,9 @@ async function checkGametypes() {
             console.log("Connected to DB");
         }
 
+        if (!mongoose.connection.db) {
+            throw new Error("Database connection not established");
+        }
         const collection = mongoose.connection.db.collection("products");
         const distinctGametypes = await collection.distinct("gametype");
         console.log("Distinct Gametypes in DB:", distinctGametypes);

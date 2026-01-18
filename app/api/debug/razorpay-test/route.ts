@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/debug/razorpay-test/route.ts
 // USE THIS TO TEST RAZORPAY CREDENTIALS
 import { NextRequest, NextResponse } from "next/server";

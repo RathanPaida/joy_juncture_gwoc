@@ -16,7 +16,7 @@ const Footer: React.FC = () => {
     console.log("Newsletter submitted");
     // Add your newsletter signup logic here
   };
-
+const policySection = 'cookies';
   return (
     <footer className="site-footer">
       <div className="footer-content">
@@ -32,13 +32,6 @@ const Footer: React.FC = () => {
           <p className="brand-tagline">
             We don&apos;t just sell games. We create legends.
           </p>
-          <button
-            className="btn-join"
-            onClick={handleJoinClick}
-            aria-label="Join the JoyJuncture community"
-          >
-            JOIN THE COLLECTIVE
-          </button>
         </div>
 
         {/* Middle Column: Quick Links */}
@@ -47,19 +40,19 @@ const Footer: React.FC = () => {
             <h3>PLAY</h3>
             <ul>
               <li>
-                <Link href="/games">All Games</Link>
+                <Link href="/zone">All Games</Link>
               </li>
               <li>
-                <Link href="/games/board">Board Games</Link>
+                <Link href="/zone">Board Games</Link>
               </li>
               <li>
-                <Link href="/games/card">Card Games</Link>
+                <Link href="/zone">Card Games</Link>
               </li>
               <li>
                 <Link href="/store">Store</Link>
               </li>
               <li>
-                <Link href="/games">Game Archives</Link>
+                <Link href="/zone">Game Archives</Link>
               </li>
             </ul>
           </div>
@@ -92,7 +85,7 @@ const Footer: React.FC = () => {
                 <Link href="/about">About Us</Link>
               </li>
               <li>
-                <Link href="/shipping">Shipping & Returns</Link>
+                <Link href="/cart">Shipping & Returns</Link>
               </li>
               <li>
                 <Link href="/contact">Contact Us</Link>
@@ -107,39 +100,19 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Community & Legal */}
-        <div className="footer-legal">
-          <div className="community-updates">
-            <h3>🔥 LIVE NOW</h3>
-            <p className="live-stats">
-              1,240 PLAYERS ONLINE • LEADERBOARD RESET IN 2 DAYS
-            </p>
-          </div>
-
-          <div className="newsletter">
-            <h3>Get Game Night Tips</h3>
-            <p>Strategies, new releases, and event invites.</p>
-            <form className="newsletter-form" onSubmit={handleNewsletterSubmit}>
-              <input
-                type="email"
-                placeholder="Your email"
-                required
-                aria-label="Email address for newsletter"
-              />
-              <button type="submit">SUBSCRIBE</button>
-            </form>
-          </div>
-
+    
           <div className="legal-links">
             <Link href="/privacy">Privacy Policy</Link>
             <Link href="/terms">Terms of Service</Link>
-            <Link href="/cookies">Cookie Policy</Link>
+            <Link href="/privacy">Cookie Policy</Link>
+            <Link href="/refund-policy">Refund Policy</Link>
+            <Link href="/shipping-policy">Shipping Policy</Link>
+            <Link href="/cancellation-policy">Cancellation Policy</Link>
             <span className="copyright">
               © {new Date().getFullYear()} JoyJuncture. Forge your legacy.
             </span>
           </div>
         </div>
-      </div>
     </footer>
   );
 };

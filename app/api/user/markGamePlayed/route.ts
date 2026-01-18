@@ -1,5 +1,6 @@
 // app/api/user/markGamePlayed/route.ts
 
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb as dbConnect } from "@/lib/mongodb";
 import { User } from "@/models/User";

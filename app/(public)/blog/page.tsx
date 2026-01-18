@@ -402,7 +402,7 @@ export default function BlogPage() {
           </div>
         </div>
 
-        {/* Popular Tags */}
+        {/* Popular Tags
         <div className="tags-wrapper">
           {POPULAR_TAGS.slice(0, 6).map((tag) => (
             <button
@@ -413,7 +413,7 @@ export default function BlogPage() {
               {tag}
             </button>
           ))}
-        </div>
+        </div> */}
       </section>
 
       {/* Featured Blogs */}

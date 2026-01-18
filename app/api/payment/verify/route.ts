@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/payment/verify/route.ts - COMPLETE WITH CART CLEARING
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
@@ -244,7 +245,7 @@ async function handleEventPayment(
           order.userName,
           event.name,
           event.date || new Date(),
-          event.location || 'Online'
+          event.location || event.Venue || 'Online'
         );
       } else {
         // Fallback or log if function missing

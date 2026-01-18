@@ -1,4 +1,5 @@
 // app/api/admin/verify-ticket/route.ts - WITH FIREBASE (FIXED)
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Simple mock for development - remove auth checks for now
@@ -47,8 +48,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ Verification error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Verification failed',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       },
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
-    
+
     if (!code) {
       return NextResponse.json({
         success: false,

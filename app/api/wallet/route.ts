@@ -1,4 +1,5 @@
 // app/api/wallet/route.ts - FIXED VERSION (No auto-points on refresh)
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { verifyIdToken } from "@/lib/firebase-admin";
 import { connectDb } from "@/lib/mongodb";

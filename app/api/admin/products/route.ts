@@ -1,6 +1,6 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import { getCollection } from '@/lib/mongodb';
 
 // Simple function to generate unique ID
@@ -96,31 +96,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'products');
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (error) {
-      // Directory might already exist
-    }
-
-    // Process and save images
+    // Upload images to Cloudinary
     const savedImages = await Promise.all(
       imageFiles.map(async (file, index) => {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
         // Generate unique filename
-        const ext = file.name.split('.').pop();
         const uniqueId = generateUniqueId();
-        const filename = `${uniqueId}.${ext}`;
-        const filepath = path.join(uploadsDir, filename);
 
-        // Save file
-        await writeFile(filepath, buffer);
+        // Upload to Cloudinary
+        const cloudinaryUrl = await uploadToCloudinary(buffer, 'products', uniqueId);
 
         return {
-          url: `/uploads/products/${filename}`,
+          url: cloudinaryUrl,
           isPrimary: index === primaryImageIndex,
           filename: file.name,
         };

@@ -1,4 +1,5 @@
 // app/api/admin/wallet/rewards/route.ts - COMPLETE WORKING VERSION
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAccess } from "@/lib/admin-middleware";
 import { connectDb } from "@/lib/mongodb";

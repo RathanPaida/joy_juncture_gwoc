@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebase";
@@ -44,7 +44,7 @@ declare global {
   }
 }
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -92,10 +92,11 @@ export default function CheckoutPage() {
   // Handle URL Params for Promos/Coupons
   useEffect(() => {
     const code = searchParams.get('promo') || searchParams.get('coupon');
-    if (code && !isPromoApplied) {
+    // Ensure we have items before validating to calculate correct subtotal
+    if (code && cartItems.length > 0) {
       validatePromo(code);
     }
-  }, [searchParams]);
+  }, [searchParams, cartItems]);
 
   // Pincode Auto-fill & Delivery Fee Effect
   useEffect(() => {
@@ -155,13 +156,15 @@ export default function CheckoutPage() {
       const token = await auth.currentUser?.getIdToken();
       // Try promo endpoint first, then coupon endpoint if needed, or unified endpoint.
       // Assuming /api/promo/validate is the new standard.
+      const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
       const res = await fetch("/api/promo/validate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, amount: subtotal }),
       });
 
       if (res.ok) {
@@ -172,9 +175,11 @@ export default function CheckoutPage() {
         const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
         if (data.type === 'percentage') {
-          discount = (subtotal * data.discount) / 100;
+          // data.discountValue is the rate (e.g. 25)
+          discount = (subtotal * (data.discountValue || 0)) / 100;
         } else {
-          discount = data.discount;
+          // data.discountValue is the fixed amount (e.g. 100)
+          discount = data.discountValue || 0;
         }
 
         if (discount > subtotal) discount = subtotal;
@@ -801,5 +806,22 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="checkout-page">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading checkout...</p>
+          </div>
+        </div>
+      }
+    >
+      <CheckoutPageContent />
+    </Suspense>
   );
 }

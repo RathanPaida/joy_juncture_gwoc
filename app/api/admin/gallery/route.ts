@@ -1,27 +1,19 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAccess } from "@/lib/admin-middleware";
 import { connectDb } from "@/lib/mongodb";
 import { Gallery } from "@/models/Gallery";
-import { writeFile, unlink, mkdir } from 'fs/promises';
-import path from 'path';
+import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
 
-// Helper to save file
-async function saveFile(file: File): Promise<string> {
+// Helper to upload file to Cloudinary
+async function uploadFile(file: File): Promise<string> {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const ext = file.name.split('.').pop() || 'jpg';
-    const filename = `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'gallery');
+    const filename = `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    try {
-        await mkdir(uploadsDir, { recursive: true });
-    } catch (error) {
-        // Ignore if exists
-    }
-
-    const filepath = path.join(uploadsDir, filename);
-    await writeFile(filepath, buffer);
-    return `/uploads/gallery/${filename}`;
+    // Upload to Cloudinary
+    const cloudinaryUrl = await uploadToCloudinary(buffer, 'gallery', filename);
+    return cloudinaryUrl;
 }
 
 export async function POST(req: NextRequest) {
@@ -54,7 +46,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const imageUrl = await saveFile(imageFile);
+        const imageUrl = await uploadFile(imageFile);
 
         const newImage = await Gallery.create({
             title,
@@ -114,14 +106,8 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ success: false, error: "Image not found" }, { status: 404 });
         }
 
-        // Try to delete file from disk
-        try {
-            const filePath = path.join(process.cwd(), 'public', image.url);
-            await unlink(filePath);
-        } catch (fileErr) {
-            console.warn("Failed to delete file from disk:", fileErr);
-            // Continue to delete from DB even if file doesn't exist
-        }
+        // Delete from Cloudinary
+        await deleteFromCloudinary(image.url);
 
         await Gallery.findByIdAndDelete(id);
 

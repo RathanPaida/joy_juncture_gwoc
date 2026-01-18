@@ -8,6 +8,9 @@ async function cleanupGallery() {
         console.log("Connected to DB.");
 
         // Direct collection access to bypass Mongoose Schema limitations
+        if (!mongoose.connection.db) {
+            throw new Error("Database connection not established");
+        }
         const collection = mongoose.connection.db.collection("galleries");
 
         // Find documents without category

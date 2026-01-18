@@ -1,4 +1,5 @@
 // app/api/blogs/route.ts
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/mongodb";
 import { Blog } from "@/models/Blog";

@@ -86,18 +86,18 @@ const getNextPlayTime = (user: User | null, gameId: string): string => {
     playedDate.getUTCMonth(),
     playedDate.getUTCDate()
   ));
-  
+
   // Tomorrow in UTC
   const tomorrowUTC = new Date(playedUTC);
   tomorrowUTC.setUTCDate(tomorrowUTC.getUTCDate() + 1);
-  
+
   // Current time in UTC
   const nowUTC = new Date();
-  
+
   const diff = tomorrowUTC.getTime() - nowUTC.getTime();
-  
+
   if (diff <= 0) return "Play Now";
-  
+
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -136,12 +136,12 @@ export default function MemoryGame() {
     try {
       const auth = getAuth();
       const currentUser = auth.currentUser;
-      
+
       if (!currentUser) {
         console.error("No Firebase user found");
         return null;
       }
-      
+
       return await currentUser.getIdToken();
     } catch (error) {
       console.error("Error getting ID token:", error);
@@ -153,12 +153,12 @@ export default function MemoryGame() {
   const fetchUserData = useCallback(async () => {
     try {
       const token = await getIdToken();
-      
+
       if (!token) {
         console.error("Failed to get authentication token");
         return null;
       }
-      
+
       const res = await fetch("/api/user/me", {
         headers: {
           Authorization: `Bearer ${token}`
@@ -210,24 +210,24 @@ export default function MemoryGame() {
       const userData = await fetchUserData();
       if (userData) {
         setUser(userData);
-        
+
         // Check if user can play today
         const playedToday = hasPlayedToday(userData, MEMORY_GAME_ID);
         console.log("🔍 Can user play today?", {
           playedToday,
           gameId: MEMORY_GAME_ID,
-          gamesPlayed: userData.gamesPlayed?.filter(g => g.gameId === MEMORY_GAME_ID)
+          gamesPlayed: userData.gamesPlayed?.filter((g: any) => g.gameId === MEMORY_GAME_ID)
         });
-        
+
         setCanPlay(!playedToday);
-        
+
         if (playedToday) {
           const nextTime = getNextPlayTime(userData, MEMORY_GAME_ID);
           console.log("⏰ Next play time:", nextTime);
           setNextPlayTime(nextTime);
           setGameMessage("🚫 You have already played Memory Game today!");
         }
-        
+
         setLoading(false);
       } else {
         router.push("/login");
@@ -269,11 +269,11 @@ export default function MemoryGame() {
     if (games.length === 0 || !canPlay) return;
 
     let selected = [...games];
-    
+
     while (selected.length < 8) {
       selected = [...selected, ...games];
     }
-    
+
     const shuffled = selected.sort(() => Math.random() - 0.5);
     const chosen = shuffled.slice(0, 8);
 
@@ -344,10 +344,10 @@ export default function MemoryGame() {
       return;
     }
 
-    console.log("🎮 Game finished! Marking as played and adding coins:", { 
+    console.log("🎮 Game finished! Marking as played and adding coins:", {
       gameId: MEMORY_GAME_ID,
       gameName: MEMORY_GAME_NAME,
-      userId: user._id, 
+      userId: user._id,
       coinsToAdd: coins,
       score: score,
       currentPoints: user.totalPoints
@@ -355,7 +355,7 @@ export default function MemoryGame() {
 
     try {
       const token = await getIdToken();
-      
+
       if (!token) {
         console.error("❌ Failed to get authentication token");
         setGameMessage("❌ Failed to save your progress. Please check your connection.");
@@ -381,21 +381,21 @@ export default function MemoryGame() {
       });
 
       const responseData = await markPlayedResponse.json();
-      
+
       if (!markPlayedResponse.ok) {
         console.error("❌ Failed to mark game as played:", responseData);
-        
+
         // Check for different error messages
-        if (responseData.error?.includes("Game already played") || 
-            responseData.error?.includes("once per day") ||
-            responseData.error?.includes("once.")) {
+        if (responseData.error?.includes("Game already played") ||
+          responseData.error?.includes("once per day") ||
+          responseData.error?.includes("once.")) {
           console.log("⚠️ Game already played today");
-          
+
           // Set message for user
           setGameMessage("🚫 You have already played this game today! Come back tomorrow.");
-          
+
           setCanPlay(false);
-          
+
           // Update next play time
           const tempUser = {
             ...user,
@@ -412,7 +412,7 @@ export default function MemoryGame() {
             ]
           };
           setNextPlayTime(getNextPlayTime(tempUser, MEMORY_GAME_ID));
-          
+
           // Refresh user data
           const refreshedUser = await fetchUserData();
           if (refreshedUser) {
@@ -420,7 +420,7 @@ export default function MemoryGame() {
           }
           return;
         }
-        
+
         setGameMessage("❌ Failed to save your game progress. Please try again.");
         throw new Error(responseData.error || "Failed to save your game progress");
       }
@@ -434,9 +434,9 @@ export default function MemoryGame() {
           ...prev,
           totalPoints: responseData.totalPoints || prev.totalPoints
         } : prev);
-        
+
         setCanPlay(false);
-        
+
         // Get next play time
         if (user.gamesPlayed) {
           const updatedGames = [...user.gamesPlayed, {
@@ -452,10 +452,10 @@ export default function MemoryGame() {
           console.log("⏰ Setting next play time to:", nextTime);
           setNextPlayTime(nextTime);
         }
-        
+
         // Set success message
         setGameMessage(`🎉 Congratulations! You earned ${coins} coins! Come back tomorrow to play again.`);
-        
+
         // Also refresh full user data
         const refreshedUser = await fetchUserData();
         if (refreshedUser) {
@@ -622,14 +622,14 @@ export default function MemoryGame() {
             <div className="memory-total-coins">
               Total coins: <span className="memory-total-coins-value">{user.totalPoints}</span>
             </div>
-            
+
             {/* Show game message if exists */}
             {gameMessage && (
               <div className="memory-game-status">
                 <p>{gameMessage}</p>
               </div>
             )}
-            
+
             <div className="memory-next-play-info">
               <p>Come back tomorrow to play again!</p>
               <p className="memory-next-play-hint">Next play available: {nextPlayTime || "Calculating..."}</p>

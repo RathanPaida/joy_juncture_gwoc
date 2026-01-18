@@ -1,15 +1,16 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import mongoose from "mongoose";
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 // DELETE - Delete a product
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const params = await context.params;
-    const productId = params.id;
+    const { id: productId } = await params;
 
     console.log("🗑️ DELETE API called with ID:", productId);
 
@@ -63,11 +64,10 @@ export async function DELETE(
 // GET - Get single product
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const params = await context.params;
-    const productId = params.id;
+    const { id: productId } = await params;
 
     console.log("📖 GET API called with ID:", productId);
 
@@ -113,11 +113,10 @@ export async function GET(
 // PUT - Update product with image upload support
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const params = await context.params;
-    const productId = params.id;
+    const { id: productId } = await params;
 
     console.log("✏️ PUT API called with ID:", productId);
 
@@ -207,16 +206,8 @@ export async function PUT(
       const newImageFiles = formData.getAll("newImages") as File[];
 
       if (newImageFiles.length > 0) {
-        const path = require('path');
-        const { writeFile, mkdir } = require('fs/promises');
-
-        // Create uploads directory
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'products');
-        try {
-          await mkdir(uploadsDir, { recursive: true });
-        } catch (error) {
-          // Ignore if exists
-        }
+        // Generate unique ID function
+        const generateUniqueId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
         savedImages = await Promise.all(
           newImageFiles.map(async (file) => {
@@ -224,16 +215,14 @@ export async function PUT(
             const buffer = Buffer.from(bytes);
 
             // Generate unique filename
-            const ext = file.name.split('.').pop();
-            const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
-            const filename = `${uniqueId}.${ext}`;
-            const filepath = path.join(uploadsDir, filename);
+            const uniqueId = generateUniqueId();
 
-            await writeFile(filepath, buffer);
+            // Upload to Cloudinary
+            const cloudinaryUrl = await uploadToCloudinary(buffer, 'products', uniqueId);
 
             return {
-              url: `/uploads/products/${filename}`,
-              isPrimary: false, // Default to false, handled by primaryImageIndex if logic allows, or frontend sends it
+              url: cloudinaryUrl,
+              isPrimary: false,
               filename: file.name
             };
           })

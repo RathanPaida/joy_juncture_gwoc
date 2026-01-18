@@ -1,4 +1,5 @@
 // app/api/wallet/achievements/route.ts - UPDATED WITH TRACKING
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { verifyIdToken } from "@/lib/firebase-admin";
 import { checkUserAchievements } from "@/lib/achievement-tracker";

@@ -17,23 +17,45 @@ function initializeFirebaseAdmin(): admin.app.App {
     console.log("🔄 Initializing Firebase Admin...");
 
     // Method 1: Using Service Account JSON (Recommended for production)
+    // TEMPORARILY DISABLED to debug build error
+
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
     if (serviceAccount) {
       try {
         const serviceAccountObj = JSON.parse(serviceAccount);
 
-        const app = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccountObj),
-        });
+        // Validate that required fields exist AND are non-empty strings BEFORE passing to Firebase
+        const hasValidProjectId = typeof serviceAccountObj.project_id === 'string' && serviceAccountObj.project_id.trim().length > 0;
+        const hasValidPrivateKey = typeof serviceAccountObj.private_key === 'string' && serviceAccountObj.private_key.trim().length > 0;
+        const hasValidClientEmail = typeof serviceAccountObj.client_email === 'string' && serviceAccountObj.client_email.trim().length > 0;
 
-        console.log("✅ Firebase Admin initialized with service account JSON");
-        return app;
-      } catch (parseError) {
-        console.error("❌ Failed to parse service account JSON:", parseError);
-        throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_KEY format");
+        if (!hasValidProjectId || !hasValidPrivateKey || !hasValidClientEmail) {
+          console.warn("⚠️ Service account JSON has invalid or empty required fields");
+          console.warn(`   Valid project_id: ${hasValidProjectId} (value: ${JSON.stringify(serviceAccountObj.project_id)})`);
+          console.warn(`   Valid private_key: ${hasValidPrivateKey}`);
+          console.warn(`   Valid client_email: ${hasValidClientEmail}`);
+          console.warn("   Skipping service account JSON method, trying other credential methods...");
+          // Don't throw, just skip to next method
+        } else {
+          try {
+            const app = admin.initializeApp({
+              credential: admin.credential.cert(serviceAccountObj),
+            });
+
+            console.log("✅ Firebase Admin initialized with service account JSON");
+            return app;
+          } catch (certError: any) {
+            console.error("❌ Failed to create Firebase credential:", certError.message);
+            // Don't throw, try other methods
+          }
+        }
+      } catch (parseError: any) {
+        console.error("❌ Failed to parse service account JSON:", parseError.message);
+        // Don't throw here, try other methods
       }
     }
+
 
     // Method 2: Using individual credentials
     const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -57,7 +79,7 @@ function initializeFirebaseAdmin(): admin.app.App {
 
     // Method 3: Application Default Credentials (Google Cloud)
     const publicProjectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    
+
     if (publicProjectId || process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       try {
         const app = admin.initializeApp({
@@ -74,32 +96,92 @@ function initializeFirebaseAdmin(): admin.app.App {
     }
 
     // If we get here, no credentials were found
+    console.warn(
+      "⚠️ Firebase Admin initialization skipped: No valid credentials found. " +
+      "This is normal during build time."
+    );
+
+    // Return a placeholder that will throw errors if actually used
     throw new Error(
-      "Firebase Admin initialization failed: No valid credentials found. " +
-      "Please set FIREBASE_SERVICE_ACCOUNT_KEY or individual credentials " +
-      "(FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)"
+      "Firebase Admin not configured - credentials missing"
     );
 
   } catch (error: any) {
-    console.error("❌ Critical error initializing Firebase Admin:", error);
-    
-    // Provide helpful troubleshooting info
-    console.error("\n🔍 Troubleshooting:");
-    console.error("1. Check that Firebase Admin credentials are set in environment variables");
-    console.error("2. For Vercel/production: Set FIREBASE_SERVICE_ACCOUNT_KEY in dashboard");
-    console.error("3. For local: Set individual credentials in .env.local");
-    console.error("4. Restart the server after changing environment variables\n");
-    
+    console.error("❌ Error initializing Firebase Admin:", error.message);
+
+    // Re-throw the error so lazy initialization will fail properly
     throw error;
   }
 }
 
-// Initialize on module load
-const app = initializeFirebaseAdmin();
+// Lazy initialization - only initialize when needed
+let appInstance: admin.app.App | null = null;
+let initializationError: Error | null = null;
 
-// Export Firebase Admin services
-export const adminAuth = admin.auth(app);
-export const adminDb = admin.firestore(app);
+function getFirebaseAdminApp(): admin.app.App {
+  // If we previously failed to initialize, throw the cached error
+  if (initializationError) {
+    throw initializationError;
+  }
+
+  if (!appInstance) {
+    try {
+      appInstance = initializeFirebaseAdmin();
+    } catch (error) {
+      // Cache the error so we don't keep trying to initialize
+      initializationError = error as Error;
+      throw error;
+    }
+  }
+  return appInstance;
+}
+
+// Export Firebase Admin services with lazy initialization and error handling
+export const adminAuth = {
+  verifyIdToken: async (token: string) => {
+    try {
+      const app = getFirebaseAdminApp();
+      return admin.auth(app).verifyIdToken(token);
+    } catch (error: any) {
+      // If Firebase Admin isn't initialized, throw a clear error
+      if (error.message?.includes('credentials missing')) {
+        throw new Error('Firebase Admin not configured - authentication unavailable');
+      }
+      throw error;
+    }
+  },
+  createCustomToken: async (uid: string, claims?: object) => {
+    const app = getFirebaseAdminApp();
+    return admin.auth(app).createCustomToken(uid, claims);
+  },
+  getUser: async (uid: string) => {
+    const app = getFirebaseAdminApp();
+    return admin.auth(app).getUser(uid);
+  },
+  getUserByEmail: async (email: string) => {
+    const app = getFirebaseAdminApp();
+    return admin.auth(app).getUserByEmail(email);
+  },
+  listUsers: async (maxResults?: number) => {
+    const app = getFirebaseAdminApp();
+    return admin.auth(app).listUsers(maxResults);
+  },
+  updateUser: async (uid: string, properties: admin.auth.UpdateRequest) => {
+    const app = getFirebaseAdminApp();
+    return admin.auth(app).updateUser(uid, properties);
+  },
+};
+
+export const adminDb = {
+  collection: (collectionPath: string) => {
+    const app = getFirebaseAdminApp();
+    return admin.firestore(app).collection(collectionPath);
+  },
+  doc: (documentPath: string) => {
+    const app = getFirebaseAdminApp();
+    return admin.firestore(app).doc(documentPath);
+  },
+};
 
 // Verify ID Token function with better error handling
 export async function verifyIdToken(token: string) {
@@ -111,7 +193,7 @@ export async function verifyIdToken(token: string) {
     // Remove "Bearer " prefix if present
     const cleanToken = token.replace(/^Bearer\s+/i, "");
 
-    // Verify the token
+    // Verify the token using lazy-initialized adminAuth
     const decodedToken = await adminAuth.verifyIdToken(cleanToken);
 
     return decodedToken;
@@ -181,9 +263,9 @@ export async function checkFirebaseAdminHealth() {
     await adminAuth.listUsers(1);
     return { status: "healthy", message: "Firebase Admin is working" };
   } catch (error: any) {
-    return { 
-      status: "unhealthy", 
-      message: `Firebase Admin error: ${error.message}` 
+    return {
+      status: "unhealthy",
+      message: `Firebase Admin error: ${error.message}`
     };
   }
 }

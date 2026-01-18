@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/products/[slug]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/mongodb";

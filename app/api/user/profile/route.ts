@@ -1,4 +1,5 @@
 // app/api/user/profile/route.ts
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
@@ -26,9 +27,9 @@ export async function GET(request: NextRequest) {
 
     if (!mongoUser) {
       console.warn("⚠️ User not found in MongoDB:", userId);
-      return NextResponse.json({ 
-        error: "User not found", 
-        message: "Please log out and log in again to sync your profile" 
+      return NextResponse.json({
+        error: "User not found",
+        message: "Please log out and log in again to sync your profile"
       }, { status: 404 });
     }
 
@@ -81,9 +82,9 @@ export async function PUT(request: NextRequest) {
     const userId = decodedToken.uid;
 
     const body = await request.json();
-    const { 
-      displayName, 
-      photoURL, 
+    const {
+      displayName,
+      photoURL,
       phoneNumber,
       username,
       occupation,
@@ -97,11 +98,11 @@ export async function PUT(request: NextRequest) {
 
     // Update MongoDB
     await connectDb();
-    
+
     const updateData: any = {
       updatedAt: new Date(),
     };
-    
+
     if (displayName !== undefined) updateData.name = displayName;
     if (photoURL !== undefined) updateData.avatar = photoURL;
     if (phoneNumber !== undefined) updateData.phone = phoneNumber;
@@ -114,7 +115,7 @@ export async function PUT(request: NextRequest) {
 
     // Check if profile is complete
     const user = await User.findOne({ firebaseUid: userId });
-    
+
     if (!user) {
       return NextResponse.json(
         { error: "User not found in database" },

@@ -531,13 +531,15 @@
 
   .admin-button,
   .wallet-balance {
-    padding: 8px 12px;
+    display: none;
   }
 }
 
 @media (max-width: 768px) {
   .mobile-menu-toggle {
     display: block;
+    margin-right: 10px;
+    /* Space between toggle and logo */
   }
 
   .nav-items {
@@ -546,15 +548,31 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--bg-card);
+    bottom: 0;
+    background: rgba(10, 10, 10, 0.98);
+    backdrop-filter: blur(20px);
     flex-direction: column;
     align-items: stretch;
     padding: 20px;
-    gap: 4px;
+    padding: 20px;
+    gap: 8px;
+    /* Increased gap slightly */
     transform: translateX(-100%);
     transition: transform 0.3s ease;
     overflow-y: auto;
     z-index: 999;
+    justify-content: flex-start;
+    /* Ensure items start from top */
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+  }
+
+  .nav-items::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
   }
 
   .nav-items.active {
@@ -566,20 +584,36 @@
   }
 
   .nav-link {
-    padding: 16px;
-    border-radius: 8px;
-    margin-bottom: 4px;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
     justify-content: space-between;
+    background: transparent;
+    border: 1px solid rgba(255, 102, 0, 0.1);
+    /* Admin orange tint border */
+    color: #888888;
+    font-weight: 600;
+  }
+
+  .nav-link.active {
+    background: rgba(255, 102, 0, 0.1);
+    border-color: rgba(255, 102, 0, 0.3);
+    color: #ffffff;
   }
 
   .dropdown-menu {
     position: static;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(255, 102, 0, 0.05);
+    /* Slight tint for contrast */
     border: none;
     box-shadow: none;
-    margin-top: 0;
+    margin-top: 4px;
     padding: 0;
     min-width: auto;
+    width: 100%;
+    margin-left: 10px;
+    /* Indent sub-items */
+    border-left: 2px solid rgba(255, 102, 0, 0.2);
   }
 
   .dropdown-item {
@@ -596,25 +630,44 @@
     gap: 12px;
   }
 
-  .admin-button,
-  .wallet-balance,
   .login-button,
   .signup-button {
     padding: 8px 12px;
     font-size: 13px;
   }
 
+  /* Force hide admin/wallet buttons on mobile to reduce clutter */
+  .admin-button,
+  .wallet-balance {
+    display: none !important;
+  }
+
   .admin-text,
   .wallet-amount {
-    display: inline;
+    display: none;
   }
 
   .profile-dropdown {
     position: fixed;
     top: 70px;
-    left: 20px;
-    right: 20px;
+    right: 10px;
+    /* Keep it right aligned */
+    left: auto;
     width: auto;
+    min-width: 250px;
+    margin: 0;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    max-height: none;
+    /* User requested no scrollbar, let it expand */
+    overflow-y: visible;
+  }
+
+  /* Make dropdown items larger for mobile */
+  .profile-link {
+    padding: 14px 20px;
+    font-size: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .mobile-overlay {

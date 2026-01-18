@@ -32,7 +32,6 @@ const cartSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     items: [cartItemSchema],
   },
@@ -41,9 +40,7 @@ const cartSchema = new mongoose.Schema(
   }
 );
 
-// Add this index explicitly
-cartSchema.index({ firebaseUid: 1 });
-
+// Schema end
 // Delete existing model if it exists (for hot reloading)
 if (mongoose.models.Cart) {
   delete mongoose.models.Cart;

@@ -1,4 +1,5 @@
 // app/api/cart/route.ts
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
 import { verifyIdToken } from "@/lib/firebase-admin";

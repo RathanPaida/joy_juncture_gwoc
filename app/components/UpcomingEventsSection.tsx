@@ -69,15 +69,30 @@ function transformEvent(apiEvent: EventFromAPI): Event {
   };
 }
 
-export default function UpcomingEventsSection() {
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
+
+interface UpcomingEventsSectionProps {
+  initialEvents?: EventFromAPI[];
+}
+
+export default function UpcomingEventsSection({ initialEvents }: UpcomingEventsSectionProps) {
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>(() => {
+    if (initialEvents) {
+      return initialEvents
+        .filter(event => event.isActive !== false)
+        .map(transformEvent)
+        .slice(0, 3);
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(!initialEvents);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchUpcomingEvents();
-  }, []);
+    if (!initialEvents) {
+      fetchUpcomingEvents();
+    }
+  }, [initialEvents]);
 
   const fetchUpcomingEvents = async () => {
     setLoading(true);
@@ -91,13 +106,13 @@ export default function UpcomingEventsSection() {
         },
         cache: 'no-store',
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch events: ${response.status}`);
       }
-      
+
       const data: EventFromAPI[] | EventAPIResponse = await response.json();
-      
+
       // Handle different API response formats
       let apiEvents: EventFromAPI[] = [];
       if (Array.isArray(data)) {
@@ -105,13 +120,13 @@ export default function UpcomingEventsSection() {
       } else if (data.events && Array.isArray(data.events)) {
         apiEvents = data.events;
       }
-      
+
       // Transform and filter events
       const transformedEvents = apiEvents
         .filter(event => event.isActive !== false)
         .map(transformEvent)
         .slice(0, 3);
-      
+
       setUpcomingEvents(transformedEvents);
     } catch (error) {
       console.error('Error fetching upcoming events:', error);
@@ -140,8 +155,8 @@ export default function UpcomingEventsSection() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className="h-96 bg-white/5 rounded-[2rem] animate-pulse border border-white/10 relative overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
@@ -192,12 +207,12 @@ export default function UpcomingEventsSection() {
     <section className="py-20 bg-gradient-to-b from-[#0B0B0B] to-black relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
-        <div 
-          className="absolute inset-0" 
+        <div
+          className="absolute inset-0"
           style={{
             backgroundImage: 'radial-gradient(circle, #FF5E00 1px, transparent 1px)',
             backgroundSize: '50px 50px',
-          }} 
+          }}
         />
       </div>
 
@@ -229,7 +244,7 @@ export default function UpcomingEventsSection() {
             className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-4 uppercase tracking-tighter italic leading-tight"
           >
             UPCOMING{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-500 to-orange-500 drop-shadow-[0_0_30px_rgba(236,72,153,0.3)]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 drop-shadow-[0_0_30px_rgba(249,115,22,0.3)] pr-4">
               EVENTS
             </span>
           </motion.h2>
@@ -253,7 +268,7 @@ export default function UpcomingEventsSection() {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ 
+              transition={{
                 delay: index * 0.15,
                 duration: 0.5,
                 ease: "easeOut"
@@ -263,7 +278,7 @@ export default function UpcomingEventsSection() {
                 event={event}
                 isUpcoming={true}
                 user={user}
-                onRegisterSuccess={fetchUpcomingEvents} detailedDescription={''}              />
+                onRegisterSuccess={fetchUpcomingEvents} detailedDescription={''} />
             </motion.div>
           ))}
         </div>
@@ -277,8 +292,8 @@ export default function UpcomingEventsSection() {
           className="text-center"
         >
           <motion.button
-            whileHover={{ 
-              scale: 1.05, 
+            whileHover={{
+              scale: 1.05,
               y: -4,
               boxShadow: '12px 12px 0px 0px rgba(0,0,0,0.6)'
             }}
@@ -288,9 +303,9 @@ export default function UpcomingEventsSection() {
           >
             <Calendar size={24} />
             <span>View All Events</span>
-            <ArrowRight 
-              size={24} 
-              className="group-hover:translate-x-1 transition-transform" 
+            <ArrowRight
+              size={24}
+              className="group-hover:translate-x-1 transition-transform"
             />
           </motion.button>
         </motion.div>

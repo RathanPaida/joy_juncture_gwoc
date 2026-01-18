@@ -26,11 +26,9 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(
-    circle at center,
-    rgba(249, 115, 22, 0.08) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle at center,
+      rgba(249, 115, 22, 0.08) 0%,
+      transparent 70%);
   z-index: 0;
 }
 
@@ -766,6 +764,7 @@
     grid-template-columns: 1fr;
   }
 }
+
 /* ===== NEW STYLES FOR DYNAMIC FEATURES ===== */
 
 /* Header Actions */
@@ -1256,6 +1255,7 @@
     width: 100%;
   }
 }
+
 /* Discussion Cards */
 .discussion-card {
   cursor: pointer;
@@ -1276,6 +1276,7 @@
 .discussion-actions .action-btn {
   pointer-events: auto;
 }
+
 /* ===========================================
    Discussion Cards Clickable Styles
    =========================================== */
@@ -1367,7 +1368,13 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Full width for non-admin users */
+.content-grid.full-width {
+  grid-template-columns: 1fr !important;
 }

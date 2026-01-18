@@ -37,7 +37,6 @@ const couponSchema = new Schema<ICoupon>(
             unique: true,
             uppercase: true,
             trim: true,
-            index: true,
         },
         name: {
             type: String,
@@ -134,7 +133,6 @@ const couponSchema = new Schema<ICoupon>(
 );
 
 // Indexes
-couponSchema.index({ code: 1 });
 couponSchema.index({ isActive: 1, expiryDate: 1 });
 couponSchema.index({ category: 1 });
 couponSchema.index({ "usedBy.userId": 1 });

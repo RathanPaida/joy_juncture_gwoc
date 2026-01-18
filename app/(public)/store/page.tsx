@@ -44,9 +44,13 @@ async function getProducts(searchParams: { [key: string]: string | string[] | un
       query.category = { $in: categories.map(c => new RegExp(c, "i")) };
     }
 
-    // Gametype
+    // Gametype - Check both gametype field and category array
     if (searchParams.gametype) {
-      query.gametype = new RegExp(searchParams.gametype as string, "i");
+      const typeRegex = new RegExp(searchParams.gametype as string, "i");
+      query.$or = [
+        { gametype: typeRegex },
+        { category: { $in: [typeRegex] } }
+      ];
     }
 
     // Mood
@@ -55,10 +59,18 @@ async function getProducts(searchParams: { [key: string]: string | string[] | un
       query["meta.moods"] = { $in: moods.map(m => new RegExp(m, "i")) };
     }
 
-    // Players
+    // Players - Improved matching for ranges
     if (searchParams.players) {
       const playerList = (searchParams.players as string).split(",");
-      query["meta.players"] = { $in: playerList.map(p => new RegExp(p, "i")) };
+      // logic: if searching for "3-5", we match if data contains 3, 4, 5 OR if data starts with 1- or 2- (covering the range)
+      // This is a heuristic to handle "2-8" matching "3-5"
+      const regexConditions = playerList.map(p => {
+        if (p === "3-5") return /(3|4|5|^1-|^2-)/i;
+        if (p === "5-7") return /(5|6|7|^1-|^2-|^3-|^4-)/i;
+        if (p === "7+") return /(7|8|9|^1-|^2-|^3-|^4-|^5-|^6-)/i;
+        return new RegExp(p, "i");
+      });
+      query["meta.players"] = { $in: regexConditions };
     }
 
     // Pagination
@@ -127,7 +139,7 @@ export default async function StorePage(props: {
         <div className="max-w-7xl mx-auto relative overflow-hidden">
           {/* Subtle Background Glow */}
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#ff8c00]/10 rounded-full blur-[120px] translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-          
+
           <div className="relative z-10 max-w-3xl">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
               <span className="text-white">The Digital </span>
@@ -137,8 +149,8 @@ export default async function StorePage(props: {
               Discover games that spark connection and belonging. From icebreakers for weddings to intense strategy for game nights.
             </p>
 
-            <a 
-              href="#game-collection" 
+            <a
+              href="#game-collection"
               className="bg-[#ff8c00] text-black font-bold px-8 py-4 rounded-full hover:bg-[#e67e00] hover:shadow-[0_10px_30px_rgba(255,140,0,0.4)] transition-all inline-flex items-center gap-2 transform hover:-translate-y-1 duration-300"
             >
               Explore Collections
@@ -162,7 +174,7 @@ export default async function StorePage(props: {
             <div id="game-collection" className="mb-6 flex items-center justify-between scroll-mt-20">
               <div>
                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                  Game Collection 
+                  Game Collection
                   <span className="text-sm font-semibold text-[#ff8c00] bg-[#ff8c00]/10 px-3 py-1 rounded-full border border-[#ff8c00]/20">
                     {items.length}
                   </span>

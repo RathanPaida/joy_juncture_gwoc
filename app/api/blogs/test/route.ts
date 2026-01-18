@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/blog/test/route.ts
 // Simple test route to verify API structure is working
 

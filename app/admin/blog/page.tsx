@@ -390,6 +390,7 @@ const AdminBlogPage: React.FC = () => {
                       content: "",
                       category: BLOG_CATEGORIES[0],
                       tags: [],
+                      images: [],
                       author: {
                         name: currentUserName,
                         role: isAdmin ? "admin" : "user",

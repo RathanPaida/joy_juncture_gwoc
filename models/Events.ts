@@ -34,97 +34,9 @@ const EventSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-const UserSchema = new mongoose.Schema({
-  uid: {
+  imageUrl: {
     type: String,
-    required: true,
-    unique: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  name: {
-    type: String,
-    required: true,
-  },
-  role: {
-    type: String,
-    enum: ["user", "admin"],
-    default: "user",
-  },
-  coins: {
-    type: Number,
-    default: 0,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-const RegistrationSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
-  eventId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Event",
-    required: true,
-  },
-  razorpayPaymentId: {
-    type: String,
-    required: true,
-  },
-  amountPaid: {
-    type: Number,
-    required: true,
-  },
-  coinsEarned: {
-    type: Number,
-    required: true,
-  },
-  status: {
-    type: String,
-    enum: ["pending", "completed", "failed"],
-    default: "pending",
-  },
-  registeredAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-const TransactionSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
-  type: {
-    type: String,
-    enum: ["credit", "debit"],
-    required: true,
-  },
-  amount: {
-    type: Number,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  referenceId: {
-    type: String,
+    default: "",
   },
   createdAt: {
     type: Date,
@@ -134,10 +46,3 @@ const TransactionSchema = new mongoose.Schema({
 
 export const Event =
   mongoose.models.Event || mongoose.model("Event", EventSchema);
-export const User = mongoose.models.User || mongoose.model("User", UserSchema);
-export const Registration =
-  mongoose.models.Registration ||
-  mongoose.model("Registration", RegistrationSchema);
-export const Transaction =
-  mongoose.models.Transaction ||
-  mongoose.model("Transaction", TransactionSchema);

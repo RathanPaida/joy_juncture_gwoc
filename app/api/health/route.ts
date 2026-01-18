@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/health/route.ts
 // This endpoint checks if all your services are working
 import { NextResponse } from "next/server";
@@ -36,7 +37,7 @@ export async function GET() {
       2: "connecting",
       3: "disconnecting",
     };
-    
+
     checks.checks.mongodb = {
       status: mongoStatus === 1 ? "healthy" : "unhealthy",
       state: statusMap[mongoStatus] || "unknown",
@@ -120,8 +121,8 @@ export async function GET() {
     message: hasErrors
       ? "Some services are not working"
       : allHealthy
-      ? "All services operational"
-      : "Some services degraded",
+        ? "All services operational"
+        : "Some services degraded",
   };
 
   // Return appropriate status code
@@ -134,7 +135,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get("authorization");
-    
+
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         {

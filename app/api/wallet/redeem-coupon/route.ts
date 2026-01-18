@@ -1,4 +1,5 @@
 
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/mongodb";
 import { User, Transaction } from "@/models/User";
@@ -81,6 +82,8 @@ export async function POST(request: NextRequest) {
             code: coupon.code,
             name: coupon.name,
             description: coupon.description,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
             discountAmount: coupon.discountValue,
             status: 'available',
             redeemedAt: new Date()

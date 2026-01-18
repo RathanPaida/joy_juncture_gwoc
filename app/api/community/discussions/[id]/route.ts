@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/community/discussions/[id]/route.ts - TYPESCRIPT FIXED
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/mongodb";

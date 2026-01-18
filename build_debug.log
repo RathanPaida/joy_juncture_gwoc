@@ -1,0 +1,202 @@
+
+> joy_juncture_gwoc@0.1.0 build
+> next build
+
+   ▲ Next.js 16.0.10 (Turbopack)
+   - Environments: .env.local
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 8.5s
+   Running TypeScript ...
+   Collecting page data using 19 workers ...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+(node:49800) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:49800) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:49800) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:9924) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9924) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:43636) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:43636) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52396) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52396) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:37596) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:37596) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:51344) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:51344) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+🔄 Initializing Firebase Admin...
+(node:43636) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:43636) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:43636) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+(node:8268) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8268) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:8268) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:8268) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:47924) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47924) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:47924) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:8268) [MONGOOSE] Warning: Duplicate schema index on {"code":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:27112) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27112) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:27112) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:24064) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21560) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24064) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:24064) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:21560) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:21560) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:21560) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:21560) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:31512) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:31512) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:31512) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:31512) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:31512) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:23456) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23456) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:23456) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:6536) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6536) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:6536) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:23456) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:23456) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:33572) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33572) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:33572) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:49800) [MONGOOSE] Warning: Duplicate schema index on {"code":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:25036) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25036) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:25036) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:25036) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:25036) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:21712) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21712) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:21712) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:23456) [MONGOOSE] Warning: Duplicate schema index on {"code":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:6536) [MONGOOSE] Warning: Duplicate schema index on {"code":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:5260) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5260) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:5260) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:25036) [MONGOOSE] Warning: Duplicate schema index on {"code":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:21712) [MONGOOSE] Warning: Duplicate schema index on {"code":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:37596) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:37596) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:37596) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+   Generating static pages using 19 workers (0/151) ...
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+🔄 Initializing Firebase Admin...
+✅ Firebase Admin initialized with service account JSON
+✅ Firebase Admin initialized with service account JSON
+(node:52340) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52340) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52340) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52712) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52712) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52712) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:53356) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:53356) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:53356) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+   Generating static pages using 19 workers (37/151) 
+(node:52340) [MONGOOSE] Warning: Duplicate schema index on {"code":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:14460) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:14460) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:14460) [MONGOOSE] Warning: Duplicate schema index on {"code":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:14460) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:14460) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:14460) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:14460) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:53356) [MONGOOSE] Warning: Duplicate schema index on {"code":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+   Generating static pages using 19 workers (75/151) 
+(node:52712) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52712) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52340) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52340) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+   Generating static pages using 19 workers (113/151) 
+(node:52608) [MONGOOSE] Warning: Duplicate schema index on {"slug":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52608) [MONGOOSE] Warning: Duplicate schema index on {"createdBy.userId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52608) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52608) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:52608) [MONGOOSE] Warning: Duplicate schema index on {"referralCode":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(node:47880) [MONGOOSE] Warning: Duplicate schema index on {"firebaseUid":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ⨯ useSearchParams() should be wrapped in a suspense boundary at page "/checkout". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at S (D:\joy_juncture_gwoc\.next\server\chunks\ssr\node_modules_next_cf02c53c._.js:2:2111)
+    at p (D:\joy_juncture_gwoc\.next\server\chunks\ssr\node_modules_next_cf02c53c._.js:4:4878)
+    at q (D:\joy_juncture_gwoc\.next\server\chunks\ssr\app_(public)_checkout_page_tsx_1e41aa57._.js:1:1115)
+    at ar (D:\joy_juncture_gwoc\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84366)
+    at aa (D:\joy_juncture_gwoc\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86185)
+    at as (D:\joy_juncture_gwoc\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:107952)
+    at ao (D:\joy_juncture_gwoc\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:105374)
+    at an (D:\joy_juncture_gwoc\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84718)
+    at aa (D:\joy_juncture_gwoc\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86234)
+    at aa (D:\joy_juncture_gwoc\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:104714)
+Error occurred prerendering page "/checkout". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /(public)/checkout/page: /checkout, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null

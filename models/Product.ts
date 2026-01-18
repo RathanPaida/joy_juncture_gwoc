@@ -86,7 +86,7 @@ const faqSchema = new Schema(
 const productSchema = new Schema(
   {
     name: { type: String, required: true },
-    slug: { type: String, required: true, unique: true, index: true },
+    slug: { type: String, required: true, unique: true },
     shortDescription: { type: String, required: true },
     story: { type: String, required: true },
 

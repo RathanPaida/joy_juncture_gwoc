@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // app/api/payment/create/route.ts
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
 
     // Get event details
     const eventsCollection = db.collection('events');
-    
+
     // Convert eventId to ObjectId if it's a string
     let eventObjectId;
     try {
@@ -125,7 +126,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('❌ Payment creation error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to create payment order',
         details: error instanceof Error ? error.message : 'Unknown error'
       },

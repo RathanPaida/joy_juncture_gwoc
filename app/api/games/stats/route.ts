@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyIdToken } from '@/lib/firebase-admin';
 import { connectDb } from '@/lib/mongodb';
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
   console.log('Headers:', Object.fromEntries(req.headers.entries()));
   try {
     await connectDb();
-    
+
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -19,18 +20,18 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     const token = authHeader.split('Bearer ')[1];
     const decodedToken = await verifyIdToken(token);
     const user = await User.findOne({ firebaseUid: decodedToken.uid });
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
-    
+
     // Get user's game stats
     const gameStats = await GameSession.aggregate([
       { $match: { userId: user._id } },
@@ -44,13 +45,13 @@ export async function GET(req: NextRequest) {
         }
       }
     ]) || [];
-    
+
     // Get recent games
     const recentGames = await GameSession.find({ userId: user._id })
       .sort({ completedAt: -1 })
       .limit(5)
       .lean() || [];
-    
+
     // Get leaderboard position
     const leaderboard = await GameLeaderboard.aggregate([
       {
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
         }
       }
     ]) || [];
-    
+
     let rank = 0;
     if (leaderboard[0]?.users) {
       const userIndex = leaderboard[0].users.findIndex(
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
       );
       rank = userIndex + 1;
     }
-    
+
     return NextResponse.json({
       gameStats,
       recentGames,
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
       // totalGames: !!gameStats.reduce((sum, stat) => sum + stat.totalGames, 0) ? gameStats.reduce((sum, stat) => sum + stat.totalGames, 0) : 0
       totalGames: gameStats.reduce((sum, stat) => sum + stat.totalGames, 0)
     }, { status: 200 });
-    
+
   } catch (error) {
     console.error('Error fetching game stats:', error);
     return NextResponse.json(

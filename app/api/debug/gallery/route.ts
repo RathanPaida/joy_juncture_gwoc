@@ -1,9 +1,10 @@
 
+export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { Gallery } from "@/models/Gallery";
+import mongoose from "mongoose";
 
-export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
@@ -22,6 +23,9 @@ export async function GET() {
 export async function DELETE() {
     try {
         await connectDb();
+        if (!mongoose.connection.db) {
+            throw new Error("Database connection not established");
+        }
         const collection = mongoose.connection.db.collection("galleries");
         const res = await collection.deleteMany({ category: { $exists: false } });
         return NextResponse.json({ success: true, deletedCount: res.deletedCount });

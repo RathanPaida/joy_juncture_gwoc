@@ -12,8 +12,6 @@ import {
   TrendingUp,
   Star,
   Calendar,
-  Award,
-  ChevronRight,
   Plus,
   Flame,
   Clock,
@@ -340,7 +338,7 @@ export default function CommunityPage() {
       {/* Content Grid Section */}
       <section id="discussions" className="content-grid-section relative z-10 bg-[#050505] -mt-20 pt-32">
         <div className="container">
-          <div className="content-grid">
+          <div className={`content-grid ${!isAdmin ? "full-width" : ""}`}>
             {/* Discussions Column */}
             <div className="discussions-column">
               <div className="column-header">
@@ -538,11 +536,9 @@ export default function CommunityPage() {
             </div>
 
             {/* Events Column */}
-            <div className="events-column">
-
-
-              {/* Admin Panel (Visible only to admins) */}
-              {isAdmin && (
+            {/* Events Column - Only for Admins now */}
+            {isAdmin && (
+              <div className="events-column">
                 <div className="admin-panel">
                   <h3 className="admin-title">
                     <Shield size={20} />
@@ -569,26 +565,8 @@ export default function CommunityPage() {
                     </button>
                   </div>
                 </div>
-              )}
-
-              <div className="leaderboard-card">
-                <h3 className="leaderboard-title">
-                  <Award size={20} />
-                  Top Contributors
-                </h3>
-                <div className="leaderboard-list">
-                  {[{ rank: 1, name: "", points: "" }].map((player) => (
-                    <div key={player.rank} className="leaderboard-item">
-                      <div className="player-info">
-                        <span className="player-rank">#{player.rank}</span>
-                        <span className="player-name">{player.name}</span>
-                      </div>
-                      <span className="player-points">{player.points} pts</span>
-                    </div>
-                  ))}
-                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
