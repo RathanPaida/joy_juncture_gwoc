@@ -3,26 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAccess } from "@/lib/admin-middleware";
 import { connectDb } from "@/lib/mongodb";
 import { Game } from "@/models/Game";
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
-// Helper to save file
-async function saveFile(file: File, folder: string): Promise<string> {
+// Helper to upload file to Cloudinary
+async function uploadFile(file: File, folder: string): Promise<string> {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-  const ext = file.name.split('.').pop() || 'jpg';
-  const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
-  const uploadsDir = path.join(process.cwd(), 'public', 'uploads', folder);
+  const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-  try {
-    await mkdir(uploadsDir, { recursive: true });
-  } catch (error) {
-    // Ignore if exists
-  }
-
-  const filepath = path.join(uploadsDir, filename);
-  await writeFile(filepath, buffer);
-  return `/uploads/${folder}/${filename}`;
+  // Upload to Cloudinary
+  const cloudinaryUrl = await uploadToCloudinary(buffer, folder, uniqueId);
+  return cloudinaryUrl;
 }
 
 /* ================= GET ALL GAMES ================= */
@@ -103,7 +94,7 @@ export async function POST(req: NextRequest) {
     let imageUrl = '';
 
     if (imageFile && imageFile.size > 0) {
-      imageUrl = await saveFile(imageFile, 'games');
+      imageUrl = await uploadFile(imageFile, 'games');
     } else {
       // Fallback for text URL if user managed to send it, or error
       imageUrl = (formData.get('imageUrl') as string) || "";
@@ -220,7 +211,7 @@ export async function PUT(req: NextRequest) {
     // Handle Image
     const imageFile = formData.get('image') as File | null;
     if (imageFile && imageFile.size > 0) {
-      updateData.imageUrl = await saveFile(imageFile, 'games');
+      updateData.imageUrl = await uploadFile(imageFile, 'games');
     }
 
     const updatedGame = await Game.findByIdAndUpdate(

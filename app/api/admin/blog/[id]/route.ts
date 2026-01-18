@@ -5,8 +5,7 @@ import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
 import { Blog } from "@/models/Blog";
 import { User } from "@/models/User";
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 // Force dynamic rendering - must be at the top level
 export const dynamic = 'force-dynamic';
@@ -153,27 +152,18 @@ export async function PUT(
     const currentImages = updateData.images || blog.images || [];
     const newImageUrls: string[] = [];
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blogs');
-
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (error) {
-      // Directory already exists
-    }
+    // Upload images to Cloudinary
+    const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
     // Handle Cover Image Update
     if (coverImageFile && coverImageFile.size > 0) {
       try {
         const bytes = await coverImageFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const ext = coverImageFile.name.split('.').pop();
-        const filename = `${generateUniqueId()}_cover.${ext}`;
-        const filepath = path.join(uploadsDir, filename);
-
-        await writeFile(filepath, buffer);
-        coverImageUrl = `/uploads/blogs/${filename}`;
+        const uniqueId = generateId();
+        coverImageUrl = await uploadToCloudinary(buffer, 'blogs/covers', `cover-${uniqueId}`);
       } catch (fileError) {
-        console.error("Error saving cover image:", fileError);
+        console.error("Error uploading cover image:", fileError);
       }
     }
 
@@ -184,14 +174,11 @@ export async function PUT(
           try {
             const bytes = await imgFile.arrayBuffer();
             const buffer = Buffer.from(bytes);
-            const ext = imgFile.name.split('.').pop();
-            const filename = `${generateUniqueId()}_${Math.random().toString(36).substr(2, 5)}.${ext}`;
-            const filepath = path.join(uploadsDir, filename);
-
-            await writeFile(filepath, buffer);
-            newImageUrls.push(`/uploads/blogs/${filename}`);
+            const uniqueId = generateId();
+            const cloudinaryUrl = await uploadToCloudinary(buffer, 'blogs', `img-${uniqueId}`);
+            newImageUrls.push(cloudinaryUrl);
           } catch (fileError) {
-            console.error("Error saving additional image:", fileError);
+            console.error("Error uploading additional image:", fileError);
           }
         }
       }
