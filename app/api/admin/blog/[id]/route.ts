@@ -1,5 +1,5 @@
 // app/api/admin/blog/[id]/route.ts
-export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
 import connectDb from "@/lib/mongodb";
@@ -8,6 +8,10 @@ import { User } from "@/models/User";
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
+// Force dynamic rendering - must be at the top level
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 function generateUniqueId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
@@ -15,10 +19,10 @@ function generateUniqueId(): string {
 // PUT - Update blog with image upload
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
 
     // Verify authentication
     const authHeader = request.headers.get("Authorization");
@@ -30,7 +34,18 @@ export async function PUT(
     }
 
     const token = authHeader.split("Bearer ")[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(token);
+    } catch (authError) {
+      console.error("Token verification failed:", authError);
+      return NextResponse.json(
+        { success: false, error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
     const firebaseUid = decodedToken.uid;
 
     console.log(
@@ -106,29 +121,37 @@ export async function PUT(
     }
 
     // Handle Cover Image Update
-    if (coverImageFile) {
-      const bytes = await coverImageFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const ext = coverImageFile.name.split('.').pop();
-      const filename = `${generateUniqueId()}_cover.${ext}`;
-      const filepath = path.join(uploadsDir, filename);
+    if (coverImageFile && coverImageFile.size > 0) {
+      try {
+        const bytes = await coverImageFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const ext = coverImageFile.name.split('.').pop();
+        const filename = `${generateUniqueId()}_cover.${ext}`;
+        const filepath = path.join(uploadsDir, filename);
 
-      await writeFile(filepath, buffer);
-      coverImageUrl = `/uploads/blogs/${filename}`;
+        await writeFile(filepath, buffer);
+        coverImageUrl = `/uploads/blogs/${filename}`;
+      } catch (fileError) {
+        console.error("Error saving cover image:", fileError);
+      }
     }
 
     // Handle Additional Images Upload
     if (additionalImages && additionalImages.length > 0) {
       for (const imgFile of additionalImages) {
-        if (imgFile instanceof File) {
-          const bytes = await imgFile.arrayBuffer();
-          const buffer = Buffer.from(bytes);
-          const ext = imgFile.name.split('.').pop();
-          const filename = `${generateUniqueId()}_${Math.random().toString(36).substr(2, 5)}.${ext}`;
-          const filepath = path.join(uploadsDir, filename);
+        if (imgFile instanceof File && imgFile.size > 0) {
+          try {
+            const bytes = await imgFile.arrayBuffer();
+            const buffer = Buffer.from(bytes);
+            const ext = imgFile.name.split('.').pop();
+            const filename = `${generateUniqueId()}_${Math.random().toString(36).substr(2, 5)}.${ext}`;
+            const filepath = path.join(uploadsDir, filename);
 
-          await writeFile(filepath, buffer);
-          newImageUrls.push(`/uploads/blogs/${filename}`);
+            await writeFile(filepath, buffer);
+            newImageUrls.push(`/uploads/blogs/${filename}`);
+          } catch (fileError) {
+            console.error("Error saving additional image:", fileError);
+          }
         }
       }
     }
@@ -174,6 +197,10 @@ export async function PUT(
       success: true,
       message: "Blog updated successfully",
       blog: JSON.parse(JSON.stringify(blog)),
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
     });
   } catch (error: any) {
     console.error("Error updating blog:", error);
@@ -187,10 +214,10 @@ export async function PUT(
 // DELETE - Delete blog
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
 
     // Verify authentication
     const authHeader = request.headers.get("Authorization");
@@ -202,7 +229,18 @@ export async function DELETE(
     }
 
     const token = authHeader.split("Bearer ")[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(token);
+    } catch (authError) {
+      console.error("Token verification failed:", authError);
+      return NextResponse.json(
+        { success: false, error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
     const firebaseUid = decodedToken.uid;
 
     console.log(
@@ -256,6 +294,10 @@ export async function DELETE(
     return NextResponse.json({
       success: true,
       message: "Blog deleted successfully",
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
     });
   } catch (error: any) {
     console.error("Error deleting blog:", error);
