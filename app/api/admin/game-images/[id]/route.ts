@@ -11,7 +11,6 @@ export async function GET(
   try {
     const { id } = await params;
     await connectDB();
-    const { id } = await params;
 
     const gameImage = await GameImage.findById(id);
 
@@ -42,7 +41,6 @@ export async function PUT(
   try {
     const { id } = await params;
     await connectDB();
-    const { id } = await params;
 
     const body = await request.json();
     const { name, imageUrl, category, isActive } = body;
@@ -85,7 +83,6 @@ export async function DELETE(
   try {
     const { id } = await params;
     await connectDB();
-    const { id } = await params;
 
     const gameImage = await GameImage.findByIdAndDelete(id);
 
