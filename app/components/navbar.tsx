@@ -182,6 +182,15 @@ const Navbar: React.FC = () => {
   return (
     <nav className="navbar">
       <div className="nav-content">
+        {/* Mobile Menu Toggle - Moved to start for better layout */}
+        <button
+          className="mobile-menu-toggle"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <span className={`hamburger ${isMenuOpen ? "active" : ""}`}></span>
+        </button>
+
         {/* Logo with Image */}
         <Link href="/" className="nav-logo" onClick={closeAllDropdowns}>
           <div className="logo-container">
@@ -211,13 +220,6 @@ const Navbar: React.FC = () => {
         </Link>
 
         {/* Mobile Menu Toggle */}
-        <button
-          className="mobile-menu-toggle"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          <span className={`hamburger ${isMenuOpen ? "active" : ""}`}></span>
-        </button>
 
         {/* Navigation Items */}
         <div className={`nav-items ${isMenuOpen ? "active" : ""}`}>
@@ -239,8 +241,11 @@ const Navbar: React.FC = () => {
               <Link
                 href={item.href}
                 className={`nav-link ${pathname === item.href ? "active" : ""}`}
-                onClick={() => {
-                  if (!item.dropdown) {
+                onClick={(e) => {
+                  if (item.dropdown && window.innerWidth <= 768) {
+                    e.preventDefault();
+                    toggleDropdown(item.id);
+                  } else if (!item.dropdown) {
                     closeAllDropdowns();
                     setIsMenuOpen(false);
                   }
@@ -429,6 +434,7 @@ const Navbar: React.FC = () => {
             </div>
           )}
         </div>
+
       </div>
 
       {/* Mobile Menu Overlay */}

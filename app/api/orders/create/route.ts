@@ -101,11 +101,29 @@ export async function POST(request: NextRequest) {
     const finalCodeToCheck = couponCode || promoCode;
 
     if (finalCodeToCheck) {
-      const coupon = await Coupon.findOne({ code: finalCodeToCheck.toUpperCase() });
+      const codeToCheck = finalCodeToCheck.toUpperCase();
 
-      // Only strictly valid if it exists as a Coupon Model.
-      // If it's a "Reward" coupon (from User model), logic might be different, 
-      // but here we support System Coupons.
+      // 1. Check User Redeemed Coupons first
+      const userCouponEntry = user.redeemedCoupons?.find((c: any) => c.code === codeToCheck && !c.isUsed);
+
+      let coupon = null;
+
+      if (userCouponEntry) {
+        if (userCouponEntry.rewardId) {
+          coupon = await Coupon.findById(userCouponEntry.rewardId);
+        }
+        if (!coupon) {
+          coupon = await Coupon.findOne({ code: codeToCheck });
+        }
+      } else {
+        // 2. Check Public Coupons
+        coupon = await Coupon.findOne({ code: codeToCheck });
+        // If public and requires coins, deny if not in user list? 
+        if (coupon && coupon.coinsRequired > 0) {
+          coupon = null; // Deny direct use if it requires coins and wasn't in redeemed list
+        }
+      }
+
       if (coupon) {
         if (coupon.isValid() && coupon.canUserUse(firebaseUid)) {
           // Calculate subtotal
@@ -117,7 +135,7 @@ export async function POST(request: NextRequest) {
           if (subtotal >= (coupon.minPurchaseAmount || 0)) {
             discountAmount = coupon.calculateDiscount(subtotal);
             appliedCoupon = coupon;
-            console.log(`🎟️ Coupon ${finalCodeToCheck} applied. Discount: ₹${discountAmount}`);
+            console.log(`🎟️ Coupon ${finalCodeToCheck} applied (COD). Discount: ₹${discountAmount}`);
           }
         }
       }

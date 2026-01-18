@@ -34,7 +34,7 @@ const PLAY_STYLES = [
     title: 'Play & Earn Points',
     description: 'Play free puzzles daily and earn rewards you can redeem',
     buttonText: 'Play Now Free',
-    href: '/play',
+    href: '/zone',
   },
 ];
 

@@ -76,6 +76,7 @@ export default function CartPage() {
       });
       if (walletRes.ok) {
         const data = await walletRes.json();
+        console.log("💰 Wallet Data:", data);
         setUserCoupons(data.wallet.coupons || []);
         setUserPoints(data.wallet.points || 0);
       }
@@ -190,6 +191,7 @@ export default function CartPage() {
     try {
       const currentUser = auth.currentUser;
       const token = currentUser ? await currentUser.getIdToken() : '';
+      const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
       // Validate Promo
       const res = await fetch("/api/promo/validate", {
@@ -198,7 +200,7 @@ export default function CartPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ code: codeToApply }),
+        body: JSON.stringify({ code: codeToApply, amount: subtotal }),
       });
 
       if (res.ok) {
@@ -207,13 +209,26 @@ export default function CartPage() {
         if (codeOverride) setPromoCode(codeOverride);
 
         // Handle Discount Logic
+        // API returns:
+        // discount: The calculated amount to deduct (based on subtotal sent)
+        // discountValue: The raw value (e.g. 25 for 25%, or 100 for ₹100)
+        // type: 'percentage' | 'fixed'
+
+        // We should store the RATE/VALUE for recalculation if cart changes?
+        // Or simply use the calculated amount? 
+        // Current logic recalculates in calculateSummary(). 
+        // So we need the RATE/VALUE.
+
         if (data.type === 'percentage') {
           setPromoType('percentage');
-          setPromoDiscount(data.discount || 0);
+          setPromoDiscount(data.discountValue || 0); // Store RATE (25)
         } else {
           setPromoType('fixed');
-          setPromoDiscount(data.discount || 0);
+          setPromoDiscount(data.discountValue || 0); // Store Fixed Amount (100)
         }
+
+        // Also we might want to store maxDiscount if available?
+        // For now, let's assume the basic calculation works.
 
       } else {
         const err = await res.json();
@@ -456,26 +471,32 @@ export default function CartPage() {
               )}
 
               {/* Existing Coupons List */}
-              {userCoupons.length > 0 && !promoApplied && (
+              {userCoupons.length > 0 && (
                 <div className="mt-4 border-t border-white/10 pt-4">
-                  <p className="text-sm font-bold text-zinc-300 mb-2">Your Coupons:</p>
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-sm font-bold text-orange-500">✨ Your Exclusive Coupons:</p>
+                  </div>
                   <div className="grid gap-2">
                     {userCoupons.map((coupon, idx) => (
-                      <div key={idx} className="bg-zinc-900 border border-white/5 p-3 rounded flex justify-between items-center">
+                      <div key={idx} className="bg-zinc-900 border border-white/5 p-3 rounded flex justify-between items-center hover:border-orange-500/30 transition-colors">
                         <div>
-                          <p className="font-bold text-orange-500">{coupon.code}</p>
+                          <p className="font-bold text-white text-sm">{coupon.code}</p>
                           <p className="text-xs text-zinc-400">
-                            {coupon.name} ({coupon.discountType === "percentage" ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`} Off)
+                            {coupon.name}
                           </p>
+                          <span className="text-[10px] text-green-400">
+                            {coupon.discountType === "percentage" ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue} OFF`}
+                          </span>
                         </div>
                         <button
                           onClick={() => {
                             setPromoCode(coupon.code);
                             applyPromoCode(coupon.code);
                           }}
-                          className="text-xs bg-white text-black px-3 py-1 rounded font-bold hover:bg-zinc-200"
+                          disabled={promoApplied && promoCode === coupon.code}
+                          className={`text-xs px-3 py-1.5 rounded font-bold transition-colors ${promoApplied && promoCode === coupon.code ? 'bg-green-500 text-black cursor-default' : 'bg-white text-black hover:bg-zinc-200'}`}
                         >
-                          Apply
+                          {promoApplied && promoCode === coupon.code ? "Applied" : "Apply"}
                         </button>
                       </div>
                     ))}
@@ -483,82 +504,9 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* Available Coupons from Profile (Compatibility) */}
-              {availableCoupons.length > 0 && !promoApplied && (
-                <div className="available-coupons mt-4 pt-4 border-t border-white/10">
-                  <p className="text-sm text-zinc-400 mb-2">Redeemed Coupons:</p>
-                  {availableCoupons.map((coupon, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-zinc-900/50 p-2 rounded mb-2 border border-white/5">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-orange-400 text-sm">{coupon.code}</span>
-                        <span className="text-[10px] text-zinc-500">{coupon.name}</span>
-                      </div>
-                      <button
-                        onClick={() => applyPromoCode(coupon.code)}
-                        className="bg-orange-500 text-black text-xs font-bold px-2 py-1 rounded"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Rewards Redemption Section */}
-            <div className="promo-section mt-4 border-t-0">
-              <div className="promo-header text-orange-500">
-                <Gift size={20} />
-                <span>Redeem Points</span>
-              </div>
-              <p className="text-xs text-zinc-400 mb-3">Use your points to get instant discounts</p>
-
-              <div className="grid gap-3">
-                {availableRewards.length === 0 ? (
-                  <p className="text-xs text-zinc-500 italic">No rewards available.</p>
-                ) : (availableRewards.map(reward => {
-                  const canAfford = userPoints >= reward.points;
-                  const redeemedCoupon = userCoupons.find((c: any) => String(c.rewardId) === String(reward._id));
-
-                  return (
-                    <div key={reward._id} className={`bg-zinc-900 border ${canAfford ? 'border-orange-500/30' : 'border-white/5'} p-3 rounded flex justify-between items-center opacity-${canAfford || redeemedCoupon ? '100' : '50'}`}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
-                          <Gift size={14} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm text-white">{reward.name}</p>
-                          <p className="text-xs text-zinc-400">{reward.points} Points</p>
-                        </div>
-                      </div>
-
-                      {redeemedCoupon ? (
-                        <div className="flex flex-col items-end">
-                          <span className="text-[10px] text-green-500 font-bold uppercase mb-0.5">Redeemed</span>
-                          <button
-                            onClick={() => {
-                              setPromoCode(redeemedCoupon.code);
-                            }}
-                            className="text-xs px-2 py-1 rounded font-mono font-bold bg-zinc-800 text-orange-500 border border-zinc-700 hover:bg-zinc-700 flex items-center gap-1"
-                            title="Click to use code"
-                          >
-                            {redeemedCoupon.code}
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => canAfford && handleRedeemReward(reward._id)}
-                          disabled={!canAfford}
-                          className={`text-xs px-3 py-1.5 rounded font-bold transition-colors ${canAfford ? 'bg-orange-500 text-black hover:bg-orange-400' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
-                        >
-                          Redeem
-                        </button>
-                      )}
-                    </div>
-                  );
-                }))}
-              </div>
-            </div>
+            {/* Rewards Redemption Section Removed as per user request to focus on Exclusive Coupons */}
 
           </div>
 

@@ -50,15 +50,15 @@ export async function sendOTPEmail(email: string, otp: string): Promise<boolean>
     const mailOptions = {
       from: process.env.SMTP_FROM || `"Joy Juncture" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: 'Email Verification OTP - Basho',
+      subject: 'Email Verification OTP - Joy Juncture',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h2 style="color: white; margin: 0; text-align: center;">Basho</h2>
+            <h2 style="color: white; margin: 0; text-align: center;">Joy Juncture</h2>
           </div>
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
             <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Hello,</p>
-            <p style="color: #666; font-size: 14px; margin-bottom: 30px;">Thank you for signing up with Basho. To complete your registration, please verify your email address using the OTP below:</p>
+            <p style="color: #666; font-size: 14px; margin-bottom: 30px;">Thank you for signing up with Joy Juncture. To complete your registration, please verify your email address using the OTP below:</p>
             
             <div style="background: white; border: 2px solid #8B7355; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
               <p style="margin: 0; font-size: 12px; color: #999;">Verification Code</p>
@@ -66,10 +66,10 @@ export async function sendOTPEmail(email: string, otp: string): Promise<boolean>
             </div>
             
             <p style="color: #999; font-size: 12px; margin-bottom: 20px;">This OTP will expire in 10 minutes.</p>
-            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">If you didn't sign up for Basho, please ignore this email.</p>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">If you didn't sign up for Joy Juncture, please ignore this email.</p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Basho. All rights reserved.</p>
+            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Joy Juncture. All rights reserved.</p>
           </div>
         </div>
       `,
@@ -94,11 +94,11 @@ export async function sendForgotPasswordEmail(email: string, otp: string): Promi
     const mailOptions = {
       from: process.env.SMTP_FROM || `"Joy Juncture" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: 'Reset Your Password - Basho',
+      subject: 'Reset Your Password - Joy Juncture',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #8B7355 0%, #A0826D 100%); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h2 style="color: white; margin: 0; text-align: center;">Basho</h2>
+            <h2 style="color: white; margin: 0; text-align: center;">Joy Juncture</h2>
           </div>
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
             <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Hello,</p>
@@ -113,7 +113,7 @@ export async function sendForgotPasswordEmail(email: string, otp: string): Promi
             <p style="color: #666; font-size: 14px; margin-bottom: 20px;">If you didn't request a password reset, please ignore this email.</p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Basho. All rights reserved.</p>
+            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Joy Juncture. All rights reserved.</p>
           </div>
         </div>
       `,
@@ -138,7 +138,7 @@ export async function sendRefundEmail(email: string, amount: number, orderNumber
     const mailOptions = {
       from: process.env.SMTP_FROM || `"Joy Juncture" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: `Refund Initiated for Order ${orderNumber} - Basho`,
+      subject: `Refund Initiated for Order ${orderNumber} - Joy Juncture`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 20px; border-radius: 8px 8px 0 0;">
@@ -157,7 +157,7 @@ export async function sendRefundEmail(email: string, amount: number, orderNumber
             <p style="color: #666; font-size: 14px; margin-bottom: 10px;">The amount will reflect in your account within <strong>5-7 business days</strong>.</p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Basho. All rights reserved.</p>
+            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Joy Juncture. All rights reserved.</p>
           </div>
         </div>
       `,
@@ -182,7 +182,7 @@ export async function sendCancellationEmail(email: string, orderNumber: string):
     const mailOptions = {
       from: process.env.SMTP_FROM || `"Joy Juncture" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: `Order Cancelled - ${orderNumber} - Basho`,
+      subject: `Order Cancelled - ${orderNumber} - Joy Juncture`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); padding: 20px; border-radius: 8px 8px 0 0;">
@@ -195,7 +195,7 @@ export async function sendCancellationEmail(email: string, orderNumber: string):
             <p style="color: #666; font-size: 14px; margin-bottom: 20px;">If you have paid for this order, a refund has been initiated and will be credited to your account shortly.</p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Basho. All rights reserved.</p>
+            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Joy Juncture. All rights reserved.</p>
           </div>
         </div>
       `,
@@ -232,7 +232,7 @@ export async function sendOrderStatusEmail(email: string, orderNumber: string, s
     const messages: any = {
       confirmed: 'Your order has been confirmed and is being processed.',
       shipped: 'Your order has been packed and shipped.',
-      delivered: 'Your order has been delivered successfully. Thank you for shopping with Basho!',
+      delivered: 'Your order has been delivered successfully. Thank you for shopping with Joy Juncture!',
     };
 
     const title = titles[status] || 'Order Update';
@@ -242,7 +242,7 @@ export async function sendOrderStatusEmail(email: string, orderNumber: string, s
     const mailOptions = {
       from: process.env.SMTP_FROM || `"Joy Juncture" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: `${title} - ${orderNumber} - Basho`,
+      subject: `${title} - ${orderNumber} - Joy Juncture`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, ${color[0]} 0%, ${color[1]} 100%); padding: 20px; border-radius: 8px 8px 0 0;">
@@ -264,7 +264,7 @@ export async function sendOrderStatusEmail(email: string, orderNumber: string, s
             <p style="color: #666; font-size: 14px; margin-bottom: 20px;">You can track your order status in your account.</p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Basho. All rights reserved.</p>
+            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Joy Juncture. All rights reserved.</p>
           </div>
         </div>
       `,
@@ -387,15 +387,15 @@ export async function sendAccountDeletionOTPEmail(email: string, otp: string): P
     const mailOptions = {
       from: process.env.SMTP_FROM || `"Joy Juncture" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: 'Security Alert: Account Deletion OTP - Basho',
+      subject: 'Security Alert: Account Deletion OTP - Joy Juncture',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); padding: 20px; border-radius: 8px 8px 0 0;">
-            <h2 style="color: white; margin: 0; text-align: center;">Basho Security</h2>
+            <h2 style="color: white; margin: 0; text-align: center;">Joy Juncture Security</h2>
           </div>
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
             <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Hello,</p>
-            <p style="color: #666; font-size: 14px; margin-bottom: 30px;">You have requested to permanently delete your Basho account. This action cannot be undone. To proceed, please use the security verification code below:</p>
+            <p style="color: #666; font-size: 14px; margin-bottom: 30px;">You have requested to permanently delete your Joy Juncture account. This action cannot be undone. To proceed, please use the security verification code below:</p>
             
             <div style="background: white; border: 2px solid #EF4444; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
               <p style="margin: 0; font-size: 12px; color: #999;">Deletion Verification Code</p>
@@ -406,7 +406,7 @@ export async function sendAccountDeletionOTPEmail(email: string, otp: string): P
             <p style="color: #666; font-size: 14px; margin-bottom: 20px;"><strong>If you did not request this, please change your password immediately and secure your account.</strong></p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Basho. All rights reserved.</p>
+            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Joy Juncture. All rights reserved.</p>
           </div>
         </div>
       `,
@@ -431,7 +431,7 @@ export async function sendWalletCreditEmail(email: string, amount: number, newBa
     const mailOptions = {
       from: process.env.SMTP_FROM || `"Joy Juncture" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: 'Wallet Credited - Basho',
+      subject: 'Wallet Credited - Joy Juncture',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 20px; border-radius: 8px 8px 0 0;">
@@ -439,7 +439,7 @@ export async function sendWalletCreditEmail(email: string, amount: number, newBa
           </div>
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
             <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Hello,</p>
-            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Your Basho wallet has been credited!</p>
+            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Your Joy Juncture wallet has been credited!</p>
             
             <div style="background: white; border: 2px solid #10B981; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
               
@@ -456,10 +456,10 @@ export async function sendWalletCreditEmail(email: string, amount: number, newBa
               ${message ? `<p style="margin-top: 15px; font-style: italic; color: #666;">"${message}"</p>` : ''}
             </div>
             
-            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">You can use this balance for your next purchase on Basho.</p>
+            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">You can use this balance for your next purchase on Joy Juncture.</p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Basho. All rights reserved.</p>
+            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">© 2024 Joy Juncture. All rights reserved.</p>
           </div>
         </div>
       `,

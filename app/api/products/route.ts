@@ -26,8 +26,11 @@ export async function GET(req: Request) {
   // Gametype
   const gametype = url.searchParams.get("gametype");
   if (gametype) {
-    // Assuming gametype is a single value for exact match
-    query.gametype = new RegExp(gametype, "i");
+    const typeRegex = new RegExp(gametype, "i");
+    query.$or = [
+      { gametype: typeRegex },
+      { category: { $in: [typeRegex] } }
+    ];
   }
 
   // Mood
@@ -40,10 +43,14 @@ export async function GET(req: Request) {
   // Players
   const players = url.searchParams.get("players");
   if (players) {
-    // Exact match or contains for now, simplest approach
-    // If standardized like "3-5", we can search for it
     const playerList = players.split(",");
-    query["meta.players"] = { $in: playerList.map(p => new RegExp(p, "i")) };
+    const regexConditions = playerList.map(p => {
+      if (p === "3-5") return /(3|4|5|^1-|^2-)/i;
+      if (p === "5-7") return /(5|6|7|^1-|^2-|^3-|^4-)/i;
+      if (p === "7+") return /(7|8|9|^1-|^2-|^3-|^4-|^5-|^6-)/i;
+      return new RegExp(p, "i");
+    });
+    query["meta.players"] = { $in: regexConditions };
   }
 
   const [items, total] = await Promise.all([

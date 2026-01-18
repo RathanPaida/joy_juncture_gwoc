@@ -112,15 +112,51 @@ export async function POST(request: NextRequest) {
       finalDiscount = clientDiscount;
     }
     // Otherwise check for server-side coupon validation
-    else if (couponCode) {
-      // Legacy: Check coupon model if code exists
+    else if (couponCode || promoCode) {
+      const codeToCheck = (couponCode || promoCode).toUpperCase();
       try {
-        const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
-        if (coupon && coupon.isValid() && coupon.canUserUse(firebaseUid)) {
-          if (subtotal >= (coupon.minPurchaseAmount || 0)) {
-            finalDiscount = coupon.calculateDiscount(subtotal);
+        // 1. First check if it's a Redeemed Coupon (User-specific) using the fetched user object
+        const userCouponEntry = user.redeemedCoupons?.find((c: any) => c.code === codeToCheck && !c.isUsed);
+
+        let coupon;
+
+        if (userCouponEntry) {
+          // It is a redeemed coupon!
+          // We trust the redemption entry, or re-verify against the Coupon Model if needed.
+          // Re-verifying is safer.
+          if (userCouponEntry.rewardId) {
+            coupon = await Coupon.findById(userCouponEntry.rewardId);
+          }
+          if (!coupon) {
+            coupon = await Coupon.findOne({ code: codeToCheck });
+          }
+
+          // If valid, calculate logic
+          if (coupon && coupon.isValid() && coupon.canUserUse(firebaseUid)) {
+            if (subtotal >= (coupon.minPurchaseAmount || 0)) {
+              finalDiscount = coupon.calculateDiscount(subtotal);
+              console.log(`🎟️ Exclusive Coupon ${codeToCheck} applied. Discount: ${finalDiscount}`);
+            }
+          } else {
+            console.log(`⚠️ Coupon ${codeToCheck} found in user list but is invalid/expired.`);
+          }
+
+        } else {
+          // 2. Fallback to System/Public Coupon
+          coupon = await Coupon.findOne({ code: codeToCheck });
+          // Only allow if it's NOT an exclusive one that requires points (unless we just treat it as generic if found?)
+          // Generally if it requires coins, it SHOULD be in redeemed list.
+          if (coupon) {
+            const requiresCoins = coupon.coinsRequired > 0;
+            if (!requiresCoins && coupon.isValid() && coupon.canUserUse(firebaseUid)) {
+              if (subtotal >= (coupon.minPurchaseAmount || 0)) {
+                finalDiscount = coupon.calculateDiscount(subtotal);
+                console.log(`🎟️ Public Coupon ${codeToCheck} applied. Discount: ${finalDiscount}`);
+              }
+            }
           }
         }
+
       } catch (err) {
         console.log("Coupon check failed, ignoring:", err);
       }

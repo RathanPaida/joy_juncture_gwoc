@@ -69,13 +69,9 @@ function transformEvent(apiEvent: EventFromAPI): Event {
   };
 }
 
-interface UpcomingEventsSectionProps {
-  initialEvents?: Event[];
-}
-
-export default function UpcomingEventsSection({ initialEvents }: UpcomingEventsSectionProps) {
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>(initialEvents || []);
-  const [loading, setLoading] = useState(!initialEvents);
+export default function UpcomingEventsSection() {
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
@@ -93,7 +89,7 @@ export default function UpcomingEventsSection({ initialEvents }: UpcomingEventsS
         headers: {
           'Content-Type': 'application/json',
         },
-        next: { revalidate: 300 }, // Cache for 5 minutes
+        cache: 'no-store',
       });
 
       if (!response.ok) {
@@ -233,7 +229,7 @@ export default function UpcomingEventsSection({ initialEvents }: UpcomingEventsS
             className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-4 uppercase tracking-tighter italic leading-tight"
           >
             UPCOMING{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-500 to-orange-500 drop-shadow-[0_0_30px_rgba(236,72,153,0.3)]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 drop-shadow-[0_0_30px_rgba(249,115,22,0.3)] pr-4">
               EVENTS
             </span>
           </motion.h2>
@@ -258,8 +254,8 @@ export default function UpcomingEventsSection({ initialEvents }: UpcomingEventsS
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{
-                delay: index * 0.1, // Reduced from 0.15
-                duration: 0.4, // Reduced from 0.5
+                delay: index * 0.15,
+                duration: 0.5,
                 ease: "easeOut"
               }}
             >

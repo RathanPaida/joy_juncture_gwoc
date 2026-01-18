@@ -17,7 +17,6 @@ import {
   MoreVertical,
   Send,
   ThumbsUp,
-  Flag,
   Trash2,
   Pin,
   Flame,
@@ -150,12 +149,12 @@ export default function DiscussionDetailPage() {
         setDiscussion((prev) =>
           prev
             ? {
-                ...prev,
-                likes: isLiked ? prev.likes - 1 : prev.likes + 1,
-                likedBy: isLiked
-                  ? prev.likedBy.filter((uid) => uid !== authUser.uid)
-                  : [...prev.likedBy, authUser.uid],
-              }
+              ...prev,
+              likes: isLiked ? prev.likes - 1 : prev.likes + 1,
+              likedBy: isLiked
+                ? prev.likedBy.filter((uid) => uid !== authUser.uid)
+                : [...prev.likedBy, authUser.uid],
+            }
             : null,
         );
       }
@@ -232,14 +231,14 @@ export default function DiscussionDetailPage() {
           prev.map((reply) =>
             reply._id === replyId
               ? {
-                  ...reply,
-                  likes:
-                    data.action === "like" ? reply.likes + 1 : reply.likes - 1,
-                  likedBy:
-                    data.action === "like"
-                      ? [...reply.likedBy, authUser.uid]
-                      : reply.likedBy.filter((uid) => uid !== authUser.uid),
-                }
+                ...reply,
+                likes:
+                  data.action === "like" ? reply.likes + 1 : reply.likes - 1,
+                likedBy:
+                  data.action === "like"
+                    ? [...reply.likedBy, authUser.uid]
+                    : reply.likedBy.filter((uid) => uid !== authUser.uid),
+              }
               : reply,
           ),
         );
@@ -557,9 +556,6 @@ export default function DiscussionDetailPage() {
                             </button>
                           )}
 
-                          <button className="action-btn" title="Report">
-                            <Flag size={14} />
-                          </button>
                         </div>
                       </div>
 

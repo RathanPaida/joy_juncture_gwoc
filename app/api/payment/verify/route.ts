@@ -245,7 +245,7 @@ async function handleEventPayment(
           order.userName,
           event.name,
           event.date || new Date(),
-          event.location || 'Online'
+          event.location || event.Venue || 'Online'
         );
       } else {
         // Fallback or log if function missing

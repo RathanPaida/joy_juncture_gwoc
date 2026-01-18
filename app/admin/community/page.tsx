@@ -33,7 +33,7 @@ interface Discussion {
   category: string;
   authorName: string;
   authorId: string;
-  replies: number;
+  replies: number | any[];
   likes: number;
   isHot: boolean;
   isPinned: boolean;
@@ -465,7 +465,12 @@ export default function AdminCommunityPage() {
                       <div className="discussion-meta">
                         <span className="meta-item">
                           <MessageSquare size={12} />
-                          {discussion.replies} replies
+                          {Array.isArray(discussion.replies)
+                            ? discussion.replies.length
+                            : typeof discussion.replies === "number"
+                              ? discussion.replies
+                              : 0}{" "}
+                          replies
                         </span>
                         <span className="meta-item">
                           <TrendingUp size={12} />

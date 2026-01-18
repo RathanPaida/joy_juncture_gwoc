@@ -82,6 +82,8 @@ export async function POST(request: NextRequest) {
             code: coupon.code,
             name: coupon.name,
             description: coupon.description,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
             discountAmount: coupon.discountValue,
             status: 'available',
             redeemedAt: new Date()

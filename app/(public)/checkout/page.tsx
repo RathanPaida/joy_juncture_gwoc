@@ -92,10 +92,11 @@ function CheckoutPageContent() {
   // Handle URL Params for Promos/Coupons
   useEffect(() => {
     const code = searchParams.get('promo') || searchParams.get('coupon');
-    if (code && !isPromoApplied) {
+    // Ensure we have items before validating to calculate correct subtotal
+    if (code && cartItems.length > 0) {
       validatePromo(code);
     }
-  }, [searchParams]);
+  }, [searchParams, cartItems]);
 
   // Pincode Auto-fill & Delivery Fee Effect
   useEffect(() => {
@@ -155,13 +156,15 @@ function CheckoutPageContent() {
       const token = await auth.currentUser?.getIdToken();
       // Try promo endpoint first, then coupon endpoint if needed, or unified endpoint.
       // Assuming /api/promo/validate is the new standard.
+      const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
       const res = await fetch("/api/promo/validate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, amount: subtotal }),
       });
 
       if (res.ok) {
@@ -172,9 +175,11 @@ function CheckoutPageContent() {
         const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
         if (data.type === 'percentage') {
-          discount = (subtotal * data.discount) / 100;
+          // data.discountValue is the rate (e.g. 25)
+          discount = (subtotal * (data.discountValue || 0)) / 100;
         } else {
-          discount = data.discount;
+          // data.discountValue is the fixed amount (e.g. 100)
+          discount = data.discountValue || 0;
         }
 
         if (discount > subtotal) discount = subtotal;
