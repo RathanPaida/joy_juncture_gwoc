@@ -1,0 +1,1 @@
+﻿.next/dev/types/validator.ts(1187,39): error TS2307: Cannot find module '../../../app/api/debug-events/route.js' or its corresponding type declarations.

@@ -69,15 +69,30 @@ function transformEvent(apiEvent: EventFromAPI): Event {
   };
 }
 
-export default function UpcomingEventsSection() {
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
+
+interface UpcomingEventsSectionProps {
+  initialEvents?: EventFromAPI[];
+}
+
+export default function UpcomingEventsSection({ initialEvents }: UpcomingEventsSectionProps) {
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>(() => {
+    if (initialEvents) {
+      return initialEvents
+        .filter(event => event.isActive !== false)
+        .map(transformEvent)
+        .slice(0, 3);
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(!initialEvents);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchUpcomingEvents();
-  }, []);
+    if (!initialEvents) {
+      fetchUpcomingEvents();
+    }
+  }, [initialEvents]);
 
   const fetchUpcomingEvents = async () => {
     setLoading(true);
