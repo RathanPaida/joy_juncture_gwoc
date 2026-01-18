@@ -16,6 +16,47 @@ function generateUniqueId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
+// GET - Get single blog
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+
+    console.log("GET /api/admin/blog/[id] - Blog ID:", id);
+
+    await connectDb();
+
+    // Find the blog
+    const blog = await Blog.findById(id);
+    if (!blog) {
+      console.log("Blog not found:", id);
+      return NextResponse.json(
+        { success: false, error: "Blog not found" },
+        { status: 404 },
+      );
+    }
+
+    console.log("Blog found successfully:", blog._id);
+
+    return NextResponse.json({
+      success: true,
+      blog: JSON.parse(JSON.stringify(blog)),
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
+  } catch (error: any) {
+    console.error("Error fetching blog:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
 // PUT - Update blog with image upload
 export async function PUT(
   request: NextRequest,
@@ -34,7 +75,7 @@ export async function PUT(
     }
 
     const token = authHeader.split("Bearer ")[1];
-    
+
     let decodedToken;
     try {
       decodedToken = await adminAuth.verifyIdToken(token);
@@ -229,7 +270,7 @@ export async function DELETE(
     }
 
     const token = authHeader.split("Bearer ")[1];
-    
+
     let decodedToken;
     try {
       decodedToken = await adminAuth.verifyIdToken(token);
