@@ -17,23 +17,45 @@ function initializeFirebaseAdmin(): admin.app.App {
     console.log("🔄 Initializing Firebase Admin...");
 
     // Method 1: Using Service Account JSON (Recommended for production)
+    // TEMPORARILY DISABLED to debug build error
+
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
     if (serviceAccount) {
       try {
         const serviceAccountObj = JSON.parse(serviceAccount);
 
-        const app = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccountObj),
-        });
+        // Validate that required fields exist AND are non-empty strings BEFORE passing to Firebase
+        const hasValidProjectId = typeof serviceAccountObj.project_id === 'string' && serviceAccountObj.project_id.trim().length > 0;
+        const hasValidPrivateKey = typeof serviceAccountObj.private_key === 'string' && serviceAccountObj.private_key.trim().length > 0;
+        const hasValidClientEmail = typeof serviceAccountObj.client_email === 'string' && serviceAccountObj.client_email.trim().length > 0;
 
-        console.log("✅ Firebase Admin initialized with service account JSON");
-        return app;
-      } catch (parseError) {
-        console.error("❌ Failed to parse service account JSON:", parseError);
-        throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_KEY format");
+        if (!hasValidProjectId || !hasValidPrivateKey || !hasValidClientEmail) {
+          console.warn("⚠️ Service account JSON has invalid or empty required fields");
+          console.warn(`   Valid project_id: ${hasValidProjectId} (value: ${JSON.stringify(serviceAccountObj.project_id)})`);
+          console.warn(`   Valid private_key: ${hasValidPrivateKey}`);
+          console.warn(`   Valid client_email: ${hasValidClientEmail}`);
+          console.warn("   Skipping service account JSON method, trying other credential methods...");
+          // Don't throw, just skip to next method
+        } else {
+          try {
+            const app = admin.initializeApp({
+              credential: admin.credential.cert(serviceAccountObj),
+            });
+
+            console.log("✅ Firebase Admin initialized with service account JSON");
+            return app;
+          } catch (certError: any) {
+            console.error("❌ Failed to create Firebase credential:", certError.message);
+            // Don't throw, try other methods
+          }
+        }
+      } catch (parseError: any) {
+        console.error("❌ Failed to parse service account JSON:", parseError.message);
+        // Don't throw here, try other methods
       }
     }
+
 
     // Method 2: Using individual credentials
     const projectId = process.env.FIREBASE_PROJECT_ID;
