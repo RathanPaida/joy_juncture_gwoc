@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProductDetail from "../../../components/ProductDetail";
+import connectDb from "@/lib/mongodb";
+import Product from "@/models/Product";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -8,20 +10,38 @@ interface PageProps {
 
 async function getProduct(slug: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/products/${slug}`, {
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    await connectDb();
 
-    if (!res.ok) {
-      console.error(`Failed to fetch product: ${slug}`, res.status);
+    const product = await Product.findOne({ slug }).lean();
+
+    if (!product) {
       return null;
     }
 
-    return res.json();
+    // Serialize MongoDB document to plain object
+    return {
+      ...product,
+      _id: product._id.toString(),
+      createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : undefined,
+      updatedAt: product.updatedAt ? new Date(product.updatedAt).toISOString() : undefined,
+      price: {
+        amount: product.price?.amount || 0,
+        currency: product.price?.currency || 'INR',
+      },
+      points: {
+        purchase: product.points?.purchase || 0,
+      },
+      meta: {
+        players: product.meta?.players || "N/A",
+        duration: product.meta?.duration || "N/A",
+        age: product.meta?.age || "N/A",
+        difficulty: product.meta?.difficulty || "Medium",
+        badges: product.meta?.badges || [],
+        moods: product.meta?.moods || [],
+        ...product.meta,
+      },
+      stock: product.stock?.quantity || 0,
+    };
   } catch (error) {
     console.error(`Error fetching product ${slug}:`, error);
     return null;
@@ -32,7 +52,7 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProduct(slug);
+  const product: any = await getProduct(slug);
 
   if (!product) {
     return {
@@ -61,7 +81,7 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = await getProduct(slug);
+  const product: any = await getProduct(slug);
 
   if (!product) {
     notFound();
