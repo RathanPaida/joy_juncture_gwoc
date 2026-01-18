@@ -407,7 +407,7 @@ export default function ProductDetail({ product }: { product: Product }) {
               Continue Browsing
             </button>
             <Link
-              href="/signup"
+              href="/register"
               className="flex-1 border border-[#FF6B00] h-12 text-xs font-bold uppercase tracking-wider hover:bg-[#FF6B00] hover:text-black transition-all rounded-xl flex items-center justify-center text-[#FFB062]"
             >
               Create Account
