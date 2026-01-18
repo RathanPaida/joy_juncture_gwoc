@@ -171,7 +171,7 @@ export default function ExperiencesGalleryPage() {
 
                 {/* Upload Modal with Scrollable Content */}
                 {isUploadModalOpen && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[10001] p-4 overflow-y-auto">
                         <div className="bg-gray-800 rounded-2xl w-full max-w-lg my-8 flex flex-col border border-gray-700 max-h-[calc(100vh-4rem)]">
                             {/* Fixed Header */}
                             <div className="p-6 border-b border-gray-700 flex justify-between items-center flex-shrink-0 bg-gray-800 sticky top-0 z-10">

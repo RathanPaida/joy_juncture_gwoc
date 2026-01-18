@@ -775,7 +775,7 @@ export default function AdminGamesPage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 1000,
+            zIndex: 10001,
             padding: "2rem",
           }}
         >

@@ -44,14 +44,14 @@ export default function AdminGameImages() {
 
   const handleSubmit = async (e: React.MouseEvent) => {
     e.preventDefault();
-    
+
     try {
-      const url = editingImage 
+      const url = editingImage
         ? `/api/admin/game-images/${editingImage._id}`
         : "/api/admin/game-images";
-      
+
       const method = editingImage ? "PUT" : "POST";
-      
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -59,7 +59,7 @@ export default function AdminGameImages() {
       });
 
       const data = await res.json();
-      
+
       if (data.success) {
         fetchImages();
         resetForm();
@@ -81,7 +81,7 @@ export default function AdminGameImages() {
       });
 
       const data = await res.json();
-      
+
       if (data.success) {
         fetchImages();
       } else {
@@ -127,7 +127,7 @@ export default function AdminGameImages() {
       });
 
       const data = await res.json();
-      
+
       if (data.success) {
         fetchImages();
       }
@@ -177,19 +177,19 @@ export default function AdminGameImages() {
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-2 right-2 flex gap-2">
-                <button
+                {/* <button
                   onClick={() => toggleActive(image)}
                   className={`p-2 rounded-lg ${image.isActive ? 'bg-green-600' : 'bg-gray-600'} hover:opacity-80`}
                 >
                   {image.isActive ? <Eye size={16} className="text-white" /> : <EyeOff size={16} className="text-white" />}
-                </button>
+                </button> */}
               </div>
             </div>
-            
+
             <div className="p-4">
               <h3 className="text-white font-bold text-lg mb-2">{image.name}</h3>
               <p className="text-gray-400 text-sm mb-3">Category: {image.category}</p>
-              
+
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(image)}
@@ -219,8 +219,8 @@ export default function AdminGameImages() {
       )}
 
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-2xl p-8 max-w-md w-full border border-gray-700">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[10001]">
+          <div className="bg-gray-800 rounded-2xl p-8 max-w-md w-full border border-gray-700 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-white">
                 {editingImage ? "Edit Image" : "Add New Image"}
