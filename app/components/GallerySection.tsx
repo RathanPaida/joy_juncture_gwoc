@@ -65,6 +65,9 @@ export default function GallerySection() {
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           setImages(data.data);
+        } else {
+          console.warn("No images found in gallery, using fallbacks");
+          setImages(FALLBACK_IMAGES);
         }
       } catch (error) {
         console.error("Failed to fetch gallery images:", error);

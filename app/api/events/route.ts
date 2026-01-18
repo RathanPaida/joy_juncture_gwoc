@@ -81,6 +81,7 @@ export async function POST(request: Request) {
       updatedAt: new Date(),
       totalSeats: body.totalSeats,
       availableSeats: body.availableSeats,
+      imageUrl: body.imageUrl || '',
       gallery: body.gallery || [],
       postEventDescription: body.postEventDescription || '',
     };

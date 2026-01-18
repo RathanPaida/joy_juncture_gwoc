@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import './EventCard.css';
 
 interface Event {
   _id: string;
@@ -65,28 +66,31 @@ export default function EventCard({ event, isUpcoming, user, onRegisterSuccess, 
   return (
     <div onClick={handleCardClick} className="event-card cursor-pointer group">
       {/* Event Image */}
-      {event.imageUrl && (
-        <div className="event-card-image relative overflow-hidden">
-          <img src={event.imageUrl} alt={event.name} className="transition-transform duration-500 group-hover:scale-110" />
-          <div className="event-card-overlay">
-            {event.collabWith && (
-              <div className="event-badge badge-collab">
-                Collaboration
-              </div>
-            )}
-            {/* Priority badges */}
-            {isRegistered ? (
-              <div className="event-badge bg-green-500 text-white">
-                Registered
-              </div>
-            ) : !isUpcoming ? (
-              <div className="event-badge badge-past">
-                Completed
-              </div>
-            ) : null}
-          </div>
+      <div className="event-card-image relative overflow-hidden bg-white/5">
+        <img
+          src={event.imageUrl}
+          alt={event.name}
+          loading="lazy"
+          className="transition-transform duration-500 group-hover:scale-110 h-full w-full object-cover"
+        />
+        <div className="event-card-overlay">
+          {event.collabWith && (
+            <div className="event-badge badge-collab">
+              Collaboration
+            </div>
+          )}
+          {/* Priority badges */}
+          {isRegistered ? (
+            <div className="event-badge bg-green-500 text-white">
+              Registered
+            </div>
+          ) : !isUpcoming ? (
+            <div className="event-badge badge-past">
+              Completed
+            </div>
+          ) : null}
         </div>
-      )}
+      </div>
 
       <div className="event-card-body">
         {/* Date displayed prominently after image */}
