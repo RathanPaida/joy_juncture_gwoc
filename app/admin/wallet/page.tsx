@@ -59,7 +59,7 @@ const AdminWalletPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
     "criteria" | "rewards" | "stats" | "users"
-  >("rewards");
+  >("criteria");
 
   // Data states
   const [pointsCriteria, setPointsCriteria] = useState<PointsCriteria[]>([]);
@@ -478,12 +478,7 @@ const AdminWalletPage: React.FC = () => {
       </div>
 
       <div className="admin-tabs">
-        <button
-          className={activeTab === "rewards" ? "active" : ""}
-          onClick={() => setActiveTab("rewards")}
-        >
-          <FaGift /> Rewards ({rewards.length})
-        </button>
+
         <button
           className={activeTab === "criteria" ? "active" : ""}
           onClick={() => setActiveTab("criteria")}
@@ -509,7 +504,7 @@ const AdminWalletPage: React.FC = () => {
         {activeTab === "rewards" && (
           <div className="rewards-section">
             <div className="section-header">
-              <h2>Available Rewards</h2>
+              <h2>Available Coupons</h2>
               <button
                 className="btn-primary"
                 onClick={() => {

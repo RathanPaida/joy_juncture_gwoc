@@ -95,7 +95,7 @@ export default function DiscussionDetailPage() {
       }
     } catch (error) {
       console.error("❌ Error fetching discussion:", error);
-      alert("Failed to load discussion");
+      // alert("Failed to load discussion");
     } finally {
       setLoading(false);
     }

@@ -116,22 +116,7 @@ function OrderSuccessContent() {
           </div>
         )}
 
-        <div className="success-benefits">
-          <div className="benefit">
-            <Package size={24} />
-            <div>
-              <h3>Track Your Orders</h3>
-              <p>Monitor your order status in real-time</p>
-            </div>
-          </div>
-          <div className="benefit">
-            <Gift size={24} />
-            <div>
-              <h3>Earn More Points</h3>
-              <p>Every purchase earns you Joy Points</p>
-            </div>
-          </div>
-        </div>
+        
 
         <div className="email-notification">
           <p>
@@ -148,7 +133,7 @@ function OrderSuccessContent() {
             <ShoppingBag size={20} />
             View My Profile
           </button>
-          <button className="btn-secondary" onClick={() => router.push("/")}>
+          <button className="btn-secondary" onClick={() => router.push("/store")}>
             <Home size={20} />
             Continue Shopping
           </button>

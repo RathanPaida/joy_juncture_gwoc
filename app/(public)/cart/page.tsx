@@ -209,30 +209,17 @@ export default function CartPage() {
         if (codeOverride) setPromoCode(codeOverride);
 
         // Handle Discount Logic
-        // API returns:
-        // discount: The calculated amount to deduct (based on subtotal sent)
-        // discountValue: The raw value (e.g. 25 for 25%, or 100 for ₹100)
-        // type: 'percentage' | 'fixed'
-
-        // We should store the RATE/VALUE for recalculation if cart changes?
-        // Or simply use the calculated amount? 
-        // Current logic recalculates in calculateSummary(). 
-        // So we need the RATE/VALUE.
-
         if (data.type === 'percentage') {
           setPromoType('percentage');
-          setPromoDiscount(data.discountValue || 0); // Store RATE (25)
+          setPromoDiscount(data.discountValue || 0);
         } else {
           setPromoType('fixed');
-          setPromoDiscount(data.discountValue || 0); // Store Fixed Amount (100)
+          setPromoDiscount(data.discountValue || 0);
         }
-
-        // Also we might want to store maxDiscount if available?
-        // For now, let's assume the basic calculation works.
 
       } else {
         const err = await res.json();
-        alert(err.error || "Invalid promo code");
+        console.error(err.error || "Invalid promo code");
       }
     } catch (error) {
       console.error("Error applying promo:", error);
@@ -254,10 +241,10 @@ export default function CartPage() {
 
       const data = await res.json();
       if (res.ok) {
-        alert(`Redeemed! Code: ${data.couponCode}`);
+        console.log(`Redeemed! Code: ${data.couponCode}`);
         fetchWalletAndRewards(); // Refresh to show new coupon
       } else {
-        alert(data.error || "Failed to redeem");
+        console.error(data.error || "Failed to redeem");
       }
     } catch (err) {
       console.error("Redeem error:", err);
@@ -302,7 +289,7 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (cartItems.length === 0) {
-      alert("Your cart is empty!");
+      // alert("Your cart is empty!");
       return;
     }
     const queryParams = new URLSearchParams();

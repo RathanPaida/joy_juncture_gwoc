@@ -522,12 +522,6 @@ export default function ProfilePage() {
                         <Clock size={14} />
                         {new Date(product.purchaseDate).toLocaleDateString()}
                       </span>
-                      <button
-                        className="btn-view"
-                        onClick={() => router.push(`/orders/${product._id}`)}
-                      >
-                        Track Order <ArrowRight size={14} />
-                      </button>
                     </div>
                   </div>
                 </div>

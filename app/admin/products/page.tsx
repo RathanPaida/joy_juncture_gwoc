@@ -87,7 +87,7 @@ export default function AdminProductsPage() {
       setFilteredProducts(data.items || []);
     } catch (error) {
       console.error('Error fetching products:', error);
-      alert('Failed to load products');
+      // alert('Failed to load products');
     } finally {
       setLoading(false);
     }
