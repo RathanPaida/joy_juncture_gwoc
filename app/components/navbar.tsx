@@ -1,7 +1,6 @@
-// components/Navbar.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/app/contexts/AuthContext";
@@ -22,15 +21,21 @@ import {
   FaBook,
   FaCogs,
   FaHome,
+  FaStore,
+  FaStar,
+  FaInfoCircle,
 } from "react-icons/fa";
 import "./Navbar.css";
 
+// Move NavItem type here to avoid import issues
 interface NavItem {
   id: string;
   label: string;
   href: string;
   icon?: React.ReactNode;
-  dropdown?: NavItem[];
+  dropdown?: Omit<NavItem, 'dropdown' | 'icon'>[];
+  requiresAuth?: boolean;
+  adminOnly?: boolean;
 }
 
 const Navbar: React.FC = () => {
@@ -41,57 +46,96 @@ const Navbar: React.FC = () => {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [userPoints, setUserPoints] = useState<number>(0);
-  const [cartItems, setCartItems] = useState<number>(0);
+  const [userData, setUserData] = useState({ points: 0, cartItems: 0 });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const getFirebaseToken = async () => {
+  // Fix hydration issue by tracking client-side mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const getFirebaseToken = useCallback(async () => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
       throw new Error("Not authenticated");
     }
     return await currentUser.getIdToken();
-  };
+  }, [auth]);
 
-  // Fetch user points and cart items
+  // Prevent body scroll when mobile menu is open
   useEffect(() => {
-    if (user) {
-      fetchUserData();
+    if (isMenuOpen) {
+      document.body.classList.add('menu-open');
+    } else {
+      document.body.classList.remove('menu-open');
     }
-  }, [user]);
 
-  const fetchUserData = async () => {
+    return () => {
+      document.body.classList.remove('menu-open');
+    };
+  }, [isMenuOpen]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsProfileOpen(false);
+    setActiveDropdown(null);
+  }, [pathname]);
+
+  // Fetch user data
+  const fetchUserData = useCallback(async () => {
+    if (!user) return;
+
+    setIsLoading(true);
     try {
       const token = await getFirebaseToken();
 
       // Fetch user profile to get points
       const profileRes = await fetch("/api/user/profile", {
         headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
       });
 
       if (profileRes.ok) {
         const data = await profileRes.json();
-        setUserPoints(data.profile?.totalPoints || 0);
+        setUserData(prev => ({
+          ...prev,
+          points: data.profile?.totalPoints || 0
+        }));
       }
 
-      // TODO: Fetch cart items count from your cart API
-      // const cartRes = await fetch('/api/cart', {
-      //   headers: { 'Authorization': `Bearer ${token}` }
-      // });
-      // if (cartRes.ok) {
-      //   const cartData = await cartRes.json();
-      //   setCartItems(cartData.items?.length || 0);
-      // }
+      // Fetch cart items count
+      const cartRes = await fetch('/api/cart/count', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      setCartItems(0); // Default to 0 for now
+      if (cartRes.ok) {
+        const cartData = await cartRes.json();
+        setUserData(prev => ({
+          ...prev,
+          cartItems: cartData.count || 0
+        }));
+      }
     } catch (error) {
       console.error("Error fetching user data:", error);
-      setUserPoints(0);
-      setCartItems(0);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [user, getFirebaseToken]);
 
-  const navItems: NavItem[] = [
+  // Debounced fetch user data
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+    } else {
+      setUserData({ points: 0, cartItems: 0 });
+    }
+  }, [user, fetchUserData]);
+
+  // Navigation items - moved inside component to avoid hydration issues
+  const navItems = useMemo<NavItem[]>(() => [
     {
       id: "home",
       label: "Home",
@@ -102,6 +146,7 @@ const Navbar: React.FC = () => {
       id: "store",
       label: "Store",
       href: "/store",
+      icon: <FaStore />,
     },
     {
       id: "games",
@@ -118,13 +163,14 @@ const Navbar: React.FC = () => {
         { id: "all-events", label: "All Events", href: "/events" },
         { id: "upcoming-events", label: "Upcoming Events", href: "/events/upcoming" },
         { id: "past-events", label: "Past Events", href: "/events/past" },
-        { id: "registered-events", label: "Registered Events", href: "/events/registered" },
+        { id: "registered-events", label: "Registered Events", href: "/events/registered", requiresAuth: true },
       ],
     },
     {
       id: "experiences",
       label: "Experiences",
       href: "/experiences",
+      icon: <FaStar />,
     },
     {
       id: "community",
@@ -142,14 +188,32 @@ const Navbar: React.FC = () => {
       id: "about",
       label: "About",
       href: "/about",
+      icon: <FaInfoCircle />,
     },
-  ];
+  ], []);
+
+  // Filter nav items based on authentication and admin status
+  const filteredNavItems = useMemo(() => {
+    return navItems.map(item => {
+      if (!item.dropdown) return item;
+
+      return {
+        ...item,
+        dropdown: item.dropdown.filter(subItem => {
+          if (subItem.requiresAuth && !user) return false;
+          if (subItem.adminOnly && !isAdmin) return false;
+          return true;
+        })
+      };
+    });
+  }, [navItems, user, isAdmin]);
 
   const handleLogout = async () => {
     try {
       await logout();
       router.push("/");
       setIsProfileOpen(false);
+      setIsMenuOpen(false);
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -168,12 +232,41 @@ const Navbar: React.FC = () => {
     setIsProfileOpen(false);
   };
 
+  const handleMenuToggle = () => {
+    const newState = !isMenuOpen;
+    setIsMenuOpen(newState);
+
+    if (newState) {
+      setIsProfileOpen(false);
+      setActiveDropdown(null);
+    }
+  };
+
+  const handleNavLinkClick = (e: React.MouseEvent, item: NavItem) => {
+    if (item.dropdown && window.innerWidth <= 768) {
+      e.preventDefault();
+      toggleDropdown(item.id);
+    } else {
+      closeAllDropdowns();
+      setIsMenuOpen(false);
+    }
+  };
+
+  // Loading state
   if (authLoading) {
     return (
       <nav className="navbar loading">
         <div className="nav-content">
-          <div className="nav-logo">Joy Juncture</div>
-          <div className="loading-nav"></div>
+          <div className="nav-logo">
+            <div className="logo-container">
+              <div className="logo-skeleton"></div>
+              <div className="logo-text-skeleton"></div>
+            </div>
+          </div>
+          <div className="nav-actions-skeleton">
+            <div className="skeleton-button"></div>
+            <div className="skeleton-button"></div>
+          </div>
         </div>
       </nav>
     );
@@ -182,48 +275,52 @@ const Navbar: React.FC = () => {
   return (
     <nav className="navbar">
       <div className="nav-content">
-        {/* Mobile Menu Toggle - Moved to start for better layout */}
+        {/* Mobile Menu Toggle */}
         <button
           className="mobile-menu-toggle"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          onClick={handleMenuToggle}
           aria-label="Toggle menu"
+          aria-expanded={isMenuOpen}
         >
           <span className={`hamburger ${isMenuOpen ? "active" : ""}`}></span>
         </button>
 
-        {/* Logo with Image */}
+        {/* Logo - FIXED: Use consistent text rendering */}
         <Link href="/" className="nav-logo" onClick={closeAllDropdowns}>
           <div className="logo-container">
-            {/* Using Image component with external URL */}
             <div className="logo-image">
-              <img
-                src="https://res.cloudinary.com/dwvb2cgmq/image/upload/v1767973882/50a5ca49-d3e1-4441-89dd-4cfd1177c9b5.png" // Replace with your actual logo URL
-                alt="JoyJuncture Logo"
-                className="logo-img"
-                onError={(e) => {
-                  // Fallback if image fails to load
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                  const fallback =
-                    target.parentElement?.querySelector(".logo-fallback");
-                  if (fallback) {
-                    (fallback as HTMLElement).style.display = "flex";
-                  }
-                }}
-              />
-              {/* Fallback logo */}
+              {/* Use a local image or absolute URL to avoid hydration mismatch */}
+              {isMounted ? (
+                <Image
+                  src="/logo.png"
+                  alt="JoyJuncture Logo"
+                  width={48}
+                  height={48}
+                  className="logo-img"
+                  priority
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = "none";
+                    const fallback = target.parentElement?.querySelector(".logo-fallback");
+                    if (fallback) {
+                      (fallback as HTMLElement).style.display = "flex";
+                    }
+                  }}
+                />
+              ) : (
+                <div className="logo-img-placeholder"></div>
+              )}
               <div className="logo-fallback">
                 <span className="logo-icon">🎮</span>
               </div>
             </div>
+            <span className="logo-text">JoyJuncture</span>
           </div>
         </Link>
 
-        {/* Mobile Menu Toggle */}
-
         {/* Navigation Items */}
         <div className={`nav-items ${isMenuOpen ? "active" : ""}`}>
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <div
               key={item.id}
               className={`nav-item ${activeDropdown === item.id ? "active" : ""}`}
@@ -240,16 +337,10 @@ const Navbar: React.FC = () => {
             >
               <Link
                 href={item.href}
-                className={`nav-link ${pathname === item.href ? "active" : ""}`}
-                onClick={(e) => {
-                  if (item.dropdown && window.innerWidth <= 768) {
-                    e.preventDefault();
-                    toggleDropdown(item.id);
-                  } else if (!item.dropdown) {
-                    closeAllDropdowns();
-                    setIsMenuOpen(false);
-                  }
-                }}
+                className={`nav-link ${pathname.startsWith(item.href) ? "active" : ""}`}
+                onClick={(e) => handleNavLinkClick(e, item)}
+                aria-haspopup={item.dropdown ? "true" : "false"}
+                aria-expanded={activeDropdown === item.id}
               >
                 {item.icon && <span className="nav-icon">{item.icon}</span>}
                 {item.label}
@@ -259,7 +350,7 @@ const Navbar: React.FC = () => {
               </Link>
 
               {/* Dropdown Menu */}
-              {item.dropdown && activeDropdown === item.id && (
+              {item.dropdown && item.dropdown.length > 0 && activeDropdown === item.id && (
                 <div className="dropdown-menu">
                   {item.dropdown.map((subItem) => (
                     <Link
@@ -280,12 +371,12 @@ const Navbar: React.FC = () => {
           ))}
         </div>
 
-        {/* Right Side Actions */}
+        {/* Right Side Actions - Use isMounted to prevent hydration mismatch */}
         <div className="nav-actions">
-          {/* Admin Dashboard Button (only for admins) */}
-          {(isAdmin || user?.email === "paidarajarathan@gmail.com") && (
+          {/* Admin Dashboard Button */}
+          {isMounted && isAdmin && (
             <Link
-              href="/admin/wallet"
+              href="/admin/dashboard"
               className="admin-button"
               onClick={closeAllDropdowns}
             >
@@ -294,147 +385,188 @@ const Navbar: React.FC = () => {
             </Link>
           )}
 
-          {/* Wallet Balance (only for logged in users) */}
-          {user && (
+          {/* Wallet Balance - only show when mounted */}
+          {isMounted && user && (
             <div
               className="wallet-balance"
-              onClick={() => router.push("/walletandpoints")}
+              onClick={() => {
+                router.push("/wallet");
+                closeAllDropdowns();
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  router.push("/wallet");
+                  closeAllDropdowns();
+                }
+              }}
             >
               <FaWallet />
               <span className="wallet-amount">
-                {userPoints.toLocaleString()} pts
+                {isLoading ? (
+                  <span className="loading-dots"></span>
+                ) : (
+                  `${userData.points.toLocaleString()} pts`
+                )}
               </span>
             </div>
           )}
 
           {/* Cart Icon */}
-          <Link href="/cart" className="cart-icon" onClick={closeAllDropdowns}>
-            <FaShoppingCart />
-            {cartItems > 0 && <span className="cart-badge">{cartItems}</span>}
-          </Link>
+          {isMounted && (
+            <Link
+              href="/cart"
+              className="cart-icon"
+              onClick={closeAllDropdowns}
+              aria-label={`Shopping cart with ${userData.cartItems} items`}
+            >
+              <FaShoppingCart />
+              {userData.cartItems > 0 && (
+                <span className="cart-badge">
+                  {userData.cartItems > 99 ? '99+' : userData.cartItems}
+                </span>
+              )}
+            </Link>
+          )}
 
           {/* User Profile or Auth Buttons */}
-          {user ? (
-            <div
-              className="user-profile"
-              onMouseEnter={() =>
-                window.innerWidth > 768 && setIsProfileOpen(true)
-              }
-            >
-              <button
-                className="profile-button"
-                onClick={toggleProfile}
-                aria-label="User profile"
+          {isMounted ? (
+            user ? (
+              <div
+                className="user-profile"
+                onMouseEnter={() =>
+                  window.innerWidth > 768 && setIsProfileOpen(true)
+                }
+                onMouseLeave={() =>
+                  window.innerWidth > 768 && setIsProfileOpen(false)
+                }
               >
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || "User"}
-                    className="profile-avatar"
-                  />
-                ) : (
-                  <div className="profile-avatar-default">
-                    <FaUser />
-                  </div>
-                )}
-                <FaChevronDown
-                  className={`profile-chevron ${isProfileOpen ? "active" : ""}`}
-                />
-              </button>
-
-              {/* Profile Dropdown */}
-              {isProfileOpen && (
-                <div
-                  className="profile-dropdown"
-                  onMouseLeave={() =>
-                    window.innerWidth > 768 && setIsProfileOpen(false)
-                  }
+                <button
+                  className="profile-button"
+                  onClick={toggleProfile}
+                  aria-label="User profile"
+                  aria-expanded={isProfileOpen}
                 >
-                  <div className="profile-header">
-                    <div className="profile-info">
-                      <h4>{user.displayName || "User"}</h4>
-                      <p>{user.email}</p>
-                      {isAdmin && (
-                        <span className="admin-badge">
-                          <FaCrown /> Admin
-                        </span>
-                      )}
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || "User avatar"}
+                      className="profile-avatar"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="profile-avatar-default">
+                      <FaUser />
                     </div>
-                  </div>
+                  )}
+                  <FaChevronDown
+                    className={`profile-chevron ${isProfileOpen ? "active" : ""}`}
+                  />
+                </button>
 
-                  <div className="profile-links">
-                    <Link
-                      href="/profile"
-                      className="profile-link"
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        setIsMenuOpen(false);
-                      }}
-                    >
-                      <FaUser /> My Profile
-                    </Link>
-                    <Link
-                      href="/cart"
-                      className="profile-link"
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        setIsMenuOpen(false);
-                      }}
-                    >
-                      <FaShoppingCart /> My Orders
-                    </Link>
-                    <Link
-                      href="/walletandpoints"
-                      className="profile-link"
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        setIsMenuOpen(false);
-                      }}
-                    >
-                      <FaWallet /> My Wallet
-                    </Link>
-                    {isAdmin && (
+                {/* Profile Dropdown */}
+                {isProfileOpen && (
+                  <div className="profile-dropdown">
+                    <div className="profile-header">
+                      <div className="profile-info">
+                        <h4>{user.displayName || "User"}</h4>
+                        <p>{user.email}</p>
+                        {isAdmin && (
+                          <span className="admin-badge">
+                            <FaCrown /> Admin
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="profile-links">
                       <Link
-                        href="/admin"
-                        className="profile-link admin-link"
+                        href="/profile"
+                        className="profile-link"
                         onClick={() => {
                           setIsProfileOpen(false);
                           setIsMenuOpen(false);
                         }}
                       >
-                        <FaCogs /> Admin Dashboard
+                        <FaUser /> My Profile
                       </Link>
-                    )}
-                  </div>
+                      <Link
+                        href="/orders"
+                        className="profile-link"
+                        onClick={() => {
+                          setIsProfileOpen(false);
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        <FaShoppingCart /> My Orders
+                      </Link>
+                      <Link
+                        href="/wallet"
+                        className="profile-link"
+                        onClick={() => {
+                          setIsProfileOpen(false);
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        <FaWallet /> My Wallet
+                      </Link>
+                      {isAdmin && (
+                        <Link
+                          href="/admin/dashboard"
+                          className="profile-link admin-link"
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            setIsMenuOpen(false);
+                          }}
+                        >
+                          <FaCogs /> Admin Dashboard
+                        </Link>
+                      )}
+                    </div>
 
-                  <div className="profile-footer">
-                    <button onClick={handleLogout} className="logout-button">
-                      <FaSignOutAlt /> Logout
-                    </button>
+                    <div className="profile-footer">
+                      <button
+                        onClick={handleLogout}
+                        className="logout-button"
+                        aria-label="Logout"
+                      >
+                        <FaSignOutAlt /> Logout
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="auth-buttons">
+                <Link
+                  href="/login"
+                  className="login-button"
+                  onClick={closeAllDropdowns}
+                >
+                  <FaSignInAlt /> <span>Login</span>
+                </Link>
+                <Link
+                  href="/register"
+                  className="signup-button"
+                  onClick={closeAllDropdowns}
+                >
+                  <FaUserPlus /> <span>Sign Up</span>
+                </Link>
+              </div>
+            )
           ) : (
+            // Fallback for server-side rendering
             <div className="auth-buttons">
-              <Link
-                href="/login"
-                className="login-button"
-                onClick={closeAllDropdowns}
-              >
-                <FaSignInAlt /> Login
-              </Link>
-              <Link
-                href="/register"
-                className="signup-button"
-                onClick={closeAllDropdowns}
-              >
-                <FaUserPlus /> Sign Up
-              </Link>
+              <div className="login-button">
+                <FaSignInAlt /> <span>Login</span>
+              </div>
+              <div className="signup-button">
+                <FaUserPlus /> <span>Sign Up</span>
+              </div>
             </div>
           )}
         </div>
-
       </div>
 
       {/* Mobile Menu Overlay */}
@@ -442,7 +574,8 @@ const Navbar: React.FC = () => {
         <div
           className="mobile-overlay"
           onClick={() => setIsMenuOpen(false)}
-        ></div>
+          aria-hidden="true"
+        />
       )}
     </nav>
   );
